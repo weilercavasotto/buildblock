@@ -1,3 +1,4 @@
+import { TEXT } from '../constants';
 import { PartType } from '../types';
 
 export interface HudHandlers {
@@ -6,11 +7,6 @@ export interface HudHandlers {
   onClear(): void;
   onMenu(): void;
 }
-
-const BUILD_HINT =
-  'Left click: place · Right click: remove · Drag: rotate camera (right drag: pan) · Scroll: zoom<br>' +
-  'Wheel: click the side of a block';
-const PLAY_HINT = 'W/S: accelerate/reverse · A/D: steer · R: restart · Stop returns to building';
 
 export class Hud {
   private toolButtons: Record<PartType, HTMLElement>;
@@ -43,8 +39,8 @@ export class Hud {
   setMode(mode: 'build' | 'play'): void {
     const playing = mode === 'play';
     this.tools.style.display = playing ? 'none' : 'flex';
-    this.playButton.textContent = playing ? '■ Stop' : '▶ Play';
+    this.playButton.textContent = playing ? TEXT.hud.stop : TEXT.hud.play;
     this.playButton.classList.toggle('playing', playing);
-    this.hint.innerHTML = playing ? PLAY_HINT : BUILD_HINT;
+    this.hint.innerHTML = playing ? TEXT.hud.playHint : TEXT.hud.buildHint;
   }
 }

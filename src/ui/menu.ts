@@ -1,3 +1,4 @@
+import { SAVE, TEXT } from '../constants';
 import { SaveGame, deleteSave, listSaves } from '../save';
 
 export interface MenuHandlers {
@@ -13,7 +14,8 @@ export class Menu {
   private nameInput = document.getElementById('new-name') as HTMLInputElement;
 
   constructor(private handlers: MenuHandlers) {
-    document.getElementById('menu-version')!.textContent = `v${__APP_VERSION__}`;
+    document.getElementById('menu-version')!.textContent = TEXT.menu.version(__APP_VERSION__);
+    this.nameInput.maxLength = SAVE.nameMaxLength;
     document.getElementById('menu-play')!.onclick = () => this.showSaves();
     document.getElementById('menu-back')!.onclick = () => this.showMain();
     document.getElementById('new-create')!.onclick = () => this.create();
@@ -44,7 +46,7 @@ export class Menu {
   }
 
   private create(): void {
-    const name = this.nameInput.value.trim() || `Creation ${listSaves().length + 1}`;
+    const name = this.nameInput.value.trim() || TEXT.menu.defaultSaveName(listSaves().length + 1);
     this.handlers.onNew(name);
   }
 
@@ -54,7 +56,7 @@ export class Menu {
     if (saves.length === 0) {
       const empty = document.createElement('div');
       empty.id = 'save-empty';
-      empty.textContent = 'No saved games yet. Start a new one below.';
+      empty.textContent = TEXT.menu.noSaves;
       this.list.append(empty);
       return;
     }
@@ -72,20 +74,20 @@ export class Menu {
     name.textContent = save.name;
     const meta = document.createElement('div');
     meta.className = 'meta';
-    const parts = save.parts.length === 1 ? '1 part' : `${save.parts.length} parts`;
-    meta.textContent = `${parts} · ${new Date(save.updatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`;
+    const date = new Date(save.updatedAt).toLocaleString(TEXT.menu.dateLocale, { dateStyle: 'medium', timeStyle: 'short' });
+    meta.textContent = `${TEXT.menu.parts(save.parts.length)} · ${date}`;
     info.append(name, meta);
 
     const load = document.createElement('button');
     load.className = 'primary';
-    load.textContent = 'Load';
+    load.textContent = TEXT.menu.load;
     load.onclick = () => this.handlers.onLoad(save.id);
 
     const remove = document.createElement('button');
     remove.className = 'danger';
-    remove.textContent = 'Delete';
+    remove.textContent = TEXT.menu.delete;
     remove.onclick = () => {
-      if (confirm(`Delete "${save.name}"? This cannot be undone.`)) {
+      if (confirm(TEXT.menu.confirmDelete(save.name))) {
         deleteSave(save.id);
         this.renderList();
       }

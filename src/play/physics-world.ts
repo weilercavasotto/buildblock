@@ -1,17 +1,24 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { Grid } from '../build/grid';
-import { WHEEL_RADIUS, WHEEL_WIDTH, createPartObject, faceQuaternion } from '../parts/part-defs';
+import {
+  CELL_SIZE,
+  CHASSIS,
+  COLLISION_GROUP,
+  GROUND_COLLIDER,
+  ROUGHNESS,
+  SCENERY,
+  SPAWN_LIFT,
+  WHEEL,
+  WORLD,
+  hexToNumber,
+} from '../constants';
+import { createPartObject, faceQuaternion } from '../parts/part-defs';
 import { Part, Vec3, cellKey, subVec } from '../types';
 
-const GROUND = 1;
-const CHASSIS = 2;
-const WHEEL = 4;
+const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
 
-/** Vertical offset at spawn so the (taller than a cell) wheels do not start inside the floor. */
-const SPAWN_LIFT = WHEEL_RADIUS - 0.5 + 0.05;
-const STEP = 1 / 60;
 
 export interface WheelDrive {
   joint: RAPIER.RevoluteImpulseJoint;
@@ -29,7 +36,7 @@ export class PhysicsWorld {
   readonly wheels: WheelDrive[] = [];
   focus: RAPIER.RigidBody | null = null;
 
-  private world = new RAPIER.World({ x: 0, y: -15, z: 0 });
+  private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
   private accumulator = 0;
 
@@ -40,10 +47,10 @@ export class PhysicsWorld {
   }
 
   step(dt: number): void {
-    this.accumulator = Math.min(this.accumulator + dt, 0.1);
-    while (this.accumulator >= STEP) {
+    this.accumulator = Math.min(this.accumulator + dt, WORLD.maxFrameTime);
+    while (this.accumulator >= WORLD.step) {
       this.world.step();
-      this.accumulator -= STEP;
+      this.accumulator -= WORLD.step;
     }
     this.sync();
   }
@@ -64,13 +71,13 @@ export class PhysicsWorld {
 
   private buildScenery(): void {
     this.world.createCollider(
-      RAPIER.ColliderDesc.cuboid(200, 0.5, 200)
-        .setTranslation(0, -1, 0)
+      RAPIER.ColliderDesc.cuboid(GROUND_COLLIDER.halfExtent, GROUND_COLLIDER.halfThickness, GROUND_COLLIDER.halfExtent)
+        .setTranslation(0, GROUND_COLLIDER.centerY, 0)
         .setCollisionGroups(groups(GROUND, 0xffff))
-        .setFriction(1),
+        .setFriction(GROUND_COLLIDER.friction),
     );
-    const addStatic = (half: Vec3, pos: Vec3, rotX: number, color: number) => {
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX, 0, 0));
+    for (const { halfExtents: half, position: pos, tiltDeg, color } of SCENERY) {
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(THREE.MathUtils.degToRad(tiltDeg), 0, 0));
       const body = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.fixed().setTranslation(...pos).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }),
       );
@@ -80,18 +87,13 @@ export class PhysicsWorld {
       );
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(half[0] * 2, half[1] * 2, half[2] * 2),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.8 }),
+        new THREE.MeshStandardMaterial({ color: hexToNumber(color), roughness: ROUGHNESS.scenery }),
       );
       mesh.position.set(...pos);
       mesh.quaternion.copy(q);
       mesh.castShadow = mesh.receiveShadow = true;
       this.group.add(mesh);
-    };
-    const tilt = THREE.MathUtils.degToRad(15);
-    addStatic([3, 0.25, 4], [0, 0.3, -16], tilt, 0x8a6f4d);
-    addStatic([2.5, 0.25, 3], [14, 0.1, -10], tilt, 0x6f8a4d);
-    addStatic([6, 0.5, 0.5], [-10, -0.25, -6], 0, 0x4d6f8a);
-    addStatic([6, 0.5, 0.5], [-10, -0.25, -9], 0, 0x4d6f8a);
+    }
   }
 
   private buildCreation(grid: Grid): void {
@@ -130,11 +132,11 @@ export class PhysicsWorld {
       for (const p of comp) {
         const local = subVec(p.cell, origin);
         this.world.createCollider(
-          RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5)
+          RAPIER.ColliderDesc.cuboid(CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE / 2)
             .setTranslation(...local)
-            .setDensity(1)
-            .setFriction(0.6)
-            .setCollisionGroups(groups(CHASSIS, GROUND | CHASSIS)),
+            .setDensity(CHASSIS.density)
+            .setFriction(CHASSIS.friction)
+            .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
           body,
         );
         const obj = createPartObject(p);
@@ -163,12 +165,12 @@ export class PhysicsWorld {
           .setCanSleep(false),
       );
       this.world.createCollider(
-        RAPIER.ColliderDesc.cylinder(WHEEL_WIDTH / 2, WHEEL_RADIUS)
+        RAPIER.ColliderDesc.cylinder(WHEEL.width / 2, WHEEL.radius)
           .setRotation({ x: q.x, y: q.y, z: q.z, w: q.w })
-          .setDensity(1)
-          .setFriction(2.5)
+          .setDensity(WHEEL.density)
+          .setFriction(WHEEL.friction)
           .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Max)
-          .setCollisionGroups(groups(WHEEL, GROUND)),
+          .setCollisionGroups(groups(WHEEL_GROUP, GROUND)),
         body,
       );
       const axis = { x: face[0], y: face[1], z: face[2] };

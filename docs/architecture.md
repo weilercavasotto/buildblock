@@ -6,12 +6,14 @@
 src/
   main.ts                      Bootstrap: renderer, scene, lights, mode switching, main loop
   types.ts                     Part, Vec3, cell helpers
+  constants/                   Design tokens and tunables (colours, spacing, typography, physics, text); see constants.md
+  styles/main.css              All CSS, using only the tokens published by constants/theme.ts
   save.ts                      Named save slots in localStorage
   menu/menu-scene.ts           Main-menu background: random car, autopilot, orbiting camera
   menu/random-build.ts         Random car generator
   ../vite.config.ts            Injects `__APP_VERSION__` (from package.json); typed in src/env.d.ts
   ui/menu.ts                   Main menu and saved-games panel (DOM bound to index.html)
-  parts/part-defs.ts           Visuals and dimensions of every part
+  parts/part-defs.ts           Visuals (meshes/materials) of every part
   build/grid.ts                Data model: the set of placed parts
   build/build-mode.ts          Mouse picking, ghost preview, place/remove
   play/physics-world.ts        Grid -> Rapier bodies/joints, scenery, stepping and sync
@@ -89,7 +91,7 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 Static files in `public/` (served from `/`, copied as-is to `dist/`):
 
 - `logo-mark.svg`: isometric red brick with studs and a wheel; shown above the title in the main menu
-  (`#menu-logo` in `index.html`).
+  (`#menu-logo` in `index.html`, styled in `main.css`).
 - `favicon.svg`: the same mark on a dark rounded square (modern browsers).
 - `favicon.ico`: 16/32/48 px PNG-in-ICO fallback (Safari, old browsers, default `/favicon.ico` requests).
 - `apple-touch-icon.png`: 180×180 full-bleed version for iOS home screens.
@@ -104,7 +106,7 @@ the in-game block (`#d9453b`) and the HUD (`#1a1f2b`).
 ## UI font
 
 The UI uses **Orbitron** (variable), imported in `main.ts` from `@fontsource-variable/orbitron` and applied on
-`html, body` in `index.html` (`button`/`input` inherit it). Orbitron is wide: keep font sizes small and buttons
+`html, body` in `src/styles/main.css` (`button`/`input` inherit it). Font tokens live in `src/constants/typography.ts`. Orbitron is wide: keep font sizes small and buttons
 `white-space: nowrap` so the HUD does not wrap. Text inside the 3D scene does not use it.
 
 ## Conventions

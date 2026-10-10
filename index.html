@@ -8,51 +8,6 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#1a1f2b" />
-    <style>
-      html, body { margin: 0; height: 100%; overflow: hidden; background: #9fc5e8; font-family: 'Orbitron Variable', system-ui, sans-serif; }
-      button, input { font-family: inherit; }
-      button { white-space: nowrap; }
-      canvas { display: block; }
-      #hud { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center;
-        background: rgba(20, 24, 33, 0.85); padding: 10px 14px; border-radius: 14px; color: #fff; user-select: none; }
-      #hud button { border: 2px solid transparent; background: #2d3446; color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-      #hud button:hover { background: #3a4359; }
-      #hud button.active { border-color: #ffd34e; }
-      #hud .sep { width: 1px; height: 28px; background: #4a5368; margin: 0 4px; }
-      #btn-play { background: #2e9d55; font-weight: 600; }
-      #btn-play:hover { background: #38b765; }
-      #btn-play.playing { background: #c8453b; }
-      #hint { position: fixed; top: 14px; left: 14px; color: #1b2433; background: rgba(255, 255, 255, 0.7);
-        padding: 8px 12px; border-radius: 10px; font-size: 11px; line-height: 1.6; }
-      #menu { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
-        background: radial-gradient(ellipse at center, rgba(10, 14, 24, 0.15), rgba(10, 14, 24, 0.55)); color: #fff; }
-      #menu.open { display: flex; }
-      #menu-main { display: flex; flex-direction: column; align-items: center; }
-      #menu-logo { width: 110px; height: 110px; margin-bottom: 10px; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45)); }
-      #menu h1 { margin: 0 0 6px; font-size: 56px; letter-spacing: 4px; font-weight: 800; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5); }
-      #menu .tagline { margin: 0 0 32px; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.9; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
-      #menu button { border: 0; background: #2d3446; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-      #menu button:hover { background: #3a4359; }
-      #menu button.primary { background: #2e9d55; font-weight: 600; }
-      #menu button.primary:hover { background: #38b765; }
-      #menu button.danger:hover { background: #c8453b; }
-      #menu button:disabled { opacity: 0.45; cursor: default; }
-      #menu-play { font-size: 18px; letter-spacing: 2px; padding: 16px 64px; border-radius: 14px; }
-      #menu-saves { width: min(460px, 90vw); background: rgba(20, 24, 33, 0.92); border-radius: 16px; padding: 20px; }
-      #menu-saves h2 { margin: 0 0 14px; font-size: 16px; letter-spacing: 1px; }
-      #save-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin-bottom: 16px; }
-      .save-item { display: flex; align-items: center; gap: 8px; background: #2d3446; border-radius: 10px; padding: 10px 12px; }
-      .save-item .info { flex: 1; min-width: 0; }
-      .save-item .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .save-item .meta { font-size: 10px; opacity: 0.7; }
-      .save-item button { background: #3a4359; }
-      #save-empty { opacity: 0.7; text-align: center; padding: 16px 0; font-size: 12px; }
-      #new-game { display: flex; gap: 8px; margin-bottom: 14px; }
-      #new-name { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 2px solid #3a4359; background: #1a1f2b; color: #fff; font-size: 12px; }
-      #new-name:focus { outline: none; border-color: #ffd34e; }
-      #menu-version { position: fixed; right: 16px; bottom: 12px; font-size: 11px; letter-spacing: 1px; opacity: 0.7; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
-      [hidden] { display: none !important; }
-    </style>
   </head>
   <body>
     <div id="hint"></div>
@@ -61,13 +16,13 @@
         <img id="menu-logo" src="/logo-mark.svg" alt="" />
         <h1>BlockLab</h1>
         <p class="tagline">Build it. Drive it.</p>
-        <button id="menu-play" class="primary">Play</button>
+        <button id="menu-play">Play</button>
       </div>
       <div id="menu-saves" hidden>
         <h2>Saved games</h2>
         <div id="save-list"></div>
         <div id="new-game">
-          <input id="new-name" type="text" maxlength="30" placeholder="New game name" />
+          <input id="new-name" type="text" placeholder="New game name" />
           <button id="new-create" class="primary">New game</button>
         </div>
         <button id="menu-back">Back</button>
@@ -77,7 +32,7 @@
     <div id="hud">
       <button id="btn-menu">☰ Menu</button>
       <span class="sep"></span>
-      <div id="tools" style="display: flex; gap: 8px">
+      <div id="tools">
         <button id="tool-block">[1] Block</button>
         <button id="tool-wheel">[2] Wheel</button>
         <span class="sep"></span>

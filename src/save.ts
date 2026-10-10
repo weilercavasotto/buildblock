@@ -1,3 +1,4 @@
+import { SAVE, STORAGE } from './constants';
 import { Part } from './types';
 
 export interface SaveGame {
@@ -7,25 +8,22 @@ export interface SaveGame {
   parts: Part[];
 }
 
-const STORAGE_KEY = 'blocklab.saves.v2';
-const LEGACY_KEY = 'blocklab.v1';
-
 function readAll(): SaveGame[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE.savesKey);
     if (raw) {
       const data: unknown = JSON.parse(raw);
       return Array.isArray(data) ? (data as SaveGame[]) : [];
     }
     // One-time migration of the single-slot save used before the main menu existed.
-    const legacy = localStorage.getItem(LEGACY_KEY);
+    const legacy = localStorage.getItem(STORAGE.legacyKey);
     if (legacy) {
       const parts = JSON.parse(legacy) as Part[];
       const saves: SaveGame[] = parts.length
-        ? [{ id: newId(), name: 'My creation', updatedAt: Date.now(), parts }]
+        ? [{ id: newId(), name: SAVE.legacyName, updatedAt: Date.now(), parts }]
         : [];
       writeAll(saves);
-      localStorage.removeItem(LEGACY_KEY);
+      localStorage.removeItem(STORAGE.legacyKey);
       return saves;
     }
   } catch {
@@ -36,7 +34,7 @@ function readAll(): SaveGame[] {
 
 function writeAll(saves: SaveGame[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saves));
+    localStorage.setItem(STORAGE.savesKey, JSON.stringify(saves));
   } catch {
     /* storage unavailable or full */
   }

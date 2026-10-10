@@ -7,6 +7,7 @@ grid, mount wheels on them, then press **Play** to drive your creation under sim
 |---|---|
 | [getting-started.md](getting-started.md) | Install, run, build and play |
 | [architecture.md](architecture.md) | Modules, data flow and conventions |
+| [constants.md](constants.md) | Design tokens and constants (colours, spacing, typography, physics, text) and how they reach CSS |
 | [physics.md](physics.md) | How Play mode turns the grid into rigid bodies and motors, plus tuning constants |
 | [adding-a-part.md](adding-a-part.md) | Step-by-step guide to adding a new kind of part |
 | [roadmap.md](roadmap.md) | Known limitations and ideas for next steps |
@@ -22,4 +23,5 @@ grid, mount wheels on them, then press **Play** to drive your creation under sim
 
 - All in-game text is **English**.
 - The game starts in the main menu; creations live in named save slots.
+- Never hard-code colours, sizes, spacing, fonts or tunable numbers: use `src/constants/` ([constants.md](constants.md)).
 - Source files are named in **kebab-case** (`build-mode.ts`); classes inside stay PascalCase.

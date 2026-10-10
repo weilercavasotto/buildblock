@@ -1,20 +1,26 @@
 import * as THREE from 'three';
+import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, ROUGHNESS, WHEEL, WHEEL_VISUAL, hexToNumber } from '../constants';
 import { Part, Vec3 } from '../types';
 
-export const WHEEL_RADIUS = 0.65;
-export const WHEEL_WIDTH = 0.4;
+const color = (hex: string): number => hexToNumber(hex);
+const ghostMaterial = (hex: string) =>
+  new THREE.MeshBasicMaterial({ color: color(hex), transparent: true, opacity: ALPHA.ghost, depthWrite: false });
 
-const blockGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
-const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.98, 0.98, 0.98));
-const tireGeo = new THREE.CylinderGeometry(WHEEL_RADIUS, WHEEL_RADIUS, WHEEL_WIDTH, 28);
-const spokeGeo = new THREE.BoxGeometry(WHEEL_RADIUS * 1.5, WHEEL_WIDTH + 0.04, 0.14);
+const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
+const edgeGeo = new THREE.EdgesGeometry(blockGeo);
+const tireGeo = new THREE.CylinderGeometry(WHEEL.radius, WHEEL.radius, WHEEL.width, WHEEL_VISUAL.tireSegments);
+const spokeGeo = new THREE.BoxGeometry(
+  WHEEL.radius * WHEEL_VISUAL.spokeLength,
+  WHEEL.width + WHEEL_VISUAL.spokeOverhang,
+  WHEEL_VISUAL.spokeThickness,
+);
 
-const blockMat = new THREE.MeshStandardMaterial({ color: 0xd9453b, roughness: 0.55 });
-const tireMat = new THREE.MeshStandardMaterial({ color: 0x23262d, roughness: 0.9 });
-const spokeMat = new THREE.MeshStandardMaterial({ color: 0xdfe3ea, roughness: 0.4 });
-const edgeMat = new THREE.LineBasicMaterial({ color: 0x5a1a16 });
-const ghostOk = new THREE.MeshBasicMaterial({ color: 0x4cd964, transparent: true, opacity: 0.5, depthWrite: false });
-const ghostBad = new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.5, depthWrite: false });
+const blockMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.block), roughness: ROUGHNESS.block });
+const tireMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.tire), roughness: ROUGHNESS.tire });
+const spokeMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.spoke), roughness: ROUGHNESS.spoke });
+const edgeMat = new THREE.LineBasicMaterial({ color: color(COLORS.part.blockEdge) });
+const ghostOk = ghostMaterial(COLORS.part.ghostValid);
+const ghostBad = ghostMaterial(COLORS.part.ghostInvalid);
 
 /** Rotation that maps the cylinder's Y axis onto the wheel axle (`face`). */
 export function faceQuaternion(face: Vec3): THREE.Quaternion {

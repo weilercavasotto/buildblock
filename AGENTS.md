@@ -23,7 +23,9 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/play/`: `physics-world.ts` (grid -> Rapier), `vehicle-controller.ts` (WASD -> motors)
 - `src/parts/part-defs.ts`: visuals/dimensions of every part
 - `src/menu/`: main-menu background (`menu-scene.ts`: random car + orbiting camera, `random-build.ts`)
-- `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel
+- `src/constants/`: design tokens and tunables (colours, spacing, typography, physics, game, text); `theme.ts` publishes them as CSS variables
+- `src/styles/main.css`: all CSS, tokens only
+- `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
 - `src/save.ts`: named save slots in localStorage (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
 
@@ -31,12 +33,14 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 
 ## Conventions
 
+- **Never hard-code colours, sizes, spacing, fonts, tunable numbers or UI strings**: add/use a token in `src/constants/`
+  (see [docs/constants.md](docs/constants.md)). CSS only uses `var(--...)`; Three.js colours go through `hexToNumber(COLORS...)`.
 - **All in-game text is English** (HUD, hints, labels, `lang="en"`).
 - **File names are kebab-case** (`build-mode.ts`); classes inside stay PascalCase.
 - The `Grid` is the single source of truth; the simulation never mutates it. Stop discards the physics world.
 - The game starts in the main menu. Edits autosave only to the active save (`activeSave` in `main.ts`);
   set it to `null` around `grid.load/clear` so loading does not rewrite (and re-date) a save.
-- UI font is Orbitron (self-hosted, imported in `main.ts`); it is wide, so keep sizes modest and buttons `nowrap`.
+- UI font is Orbitron (self-hosted, imported in `main.ts`, token in `typography.ts`); it is wide, so keep sizes modest and buttons `nowrap`.
 - The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).
 - User-provided text (save names) is rendered with `textContent`, never `innerHTML`.
 - Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0`.
@@ -49,7 +53,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 - A wheel body must start **un-rotated**: Rapier's revolute joint uses the same axis numbers in both bodies'
   local frames, so only the wheel's *collider* and mesh are rotated toward the axle.
 - Wheels (radius 0.65) collide only with the ground; this is done with collision groups, keep it that way.
-- Tuning constants (speed, motor strength, brake, steering, friction, gravity) are listed in `docs/physics.md`.
+- Tuning constants (speed, motor strength, brake, steering, friction, gravity) live in `src/constants/physics.ts` and are listed in `docs/physics.md`.
 
 ## Verifying changes
 

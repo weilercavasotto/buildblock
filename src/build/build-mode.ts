@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { Grid } from './grid';
+import { BUILD, GROUND_Y } from '../constants';
 import { createPartObject } from '../parts/part-defs';
 import { Part, PartType, Vec3, addVec } from '../types';
 
-const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.5);
-const CLICK_MAX_DISTANCE = 5;
+const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
 interface Pick {
   part: Part | null;
@@ -114,7 +114,7 @@ export class BuildMode {
     const down = this.down;
     this.down = null;
     if (!this.enabled || !down || down.button !== e.button) return;
-    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_MAX_DISTANCE) return;
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > BUILD.clickMaxDistance) return;
 
     const p = this.pick(e);
     if (!p) return;

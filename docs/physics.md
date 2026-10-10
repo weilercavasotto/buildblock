@@ -47,16 +47,22 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
   slow down or reverse while the left wheels speed up.
 - `setAutopilot({ throttle, steer })` overrides the keyboard; the main menu uses it with
   `{ keyboard: false }` so the background car does not react to keys.
-- With no keys pressed, wheels hold velocity 0 with a light damping (`IDLE_BRAKE`).
+- With no keys pressed, wheels hold velocity 0 with a light damping (`VEHICLE.idleBrake`).
 
 ## Tuning constants
 
-| Constant | File | Value | Effect |
-|---|---|---|---|
-| `MAX_WHEEL_SPEED` | `vehicle-controller.ts` | 14 rad/s | Top speed |
-| `MOTOR_STRENGTH` | `vehicle-controller.ts` | 60 | How hard the motor tracks the target |
-| `IDLE_BRAKE` | `vehicle-controller.ts` | 12 | How quickly the car stops with no input |
-| `STEER_GAIN` | `vehicle-controller.ts` | 0.7 | Steering sharpness |
-| `WHEEL_RADIUS` / `WHEEL_WIDTH` | `part-defs.ts` | 0.65 / 0.4 | Wheel size (visual and collider) |
-| gravity | `physics-world.ts` | -15 | World gravity |
-| wheel friction | `physics-world.ts` | 2.5 (combine: max) | Grip |
+All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (see [constants.md](constants.md)).
+
+| Constant | Value | Effect |
+|---|---|---|
+| `VEHICLE.maxWheelSpeed` | 14 rad/s | Top speed |
+| `VEHICLE.motorStrength` | 60 | How hard the motor tracks the target |
+| `VEHICLE.idleBrake` | 12 | How quickly the car stops with no input |
+| `VEHICLE.steerGain` | 0.7 | Steering sharpness |
+| `WHEEL.radius` / `WHEEL.width` | 0.65 / 0.4 | Wheel size (visual and collider) |
+| `WHEEL.friction` | 2.5 (combine: max) | Grip |
+| `CHASSIS.friction` | 0.6 | Chassis friction |
+| `WORLD.gravity` | -15 | World gravity |
+| `WORLD.step` / `WORLD.maxFrameTime` | 1/60 s / 0.1 s | Fixed step and frame-time clamp |
+| `SPAWN_LIFT` | 0.2 | Spawn height so wheels start above the floor |
+| `SCENERY` | list | Ramps and obstacles of Play mode |

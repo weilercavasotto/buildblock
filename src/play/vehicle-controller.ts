@@ -1,10 +1,6 @@
 import { WheelDrive } from './physics-world';
+import { VEHICLE } from '../constants';
 import { Vec3 } from '../types';
-
-const MAX_WHEEL_SPEED = 14; // rad/s
-const MOTOR_STRENGTH = 60;
-const IDLE_BRAKE = 12;
-const STEER_GAIN = 0.7;
 
 const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right'> = {
   KeyW: 'forward', ArrowUp: 'forward',
@@ -83,12 +79,12 @@ export class VehicleController {
     for (const { wheel, roll, side } of this.driven) {
       if (roll === 0) continue;
       if (idle) {
-        wheel.joint.configureMotorVelocity(0, IDLE_BRAKE);
+        wheel.joint.configureMotorVelocity(0, VEHICLE.idleBrake);
         continue;
       }
       // Right turn (steer > 0): right wheels slow down / reverse, left wheels speed up.
-      const speed = throttle - steer * side * STEER_GAIN;
-      wheel.joint.configureMotorVelocity(roll * speed * MAX_WHEEL_SPEED, MOTOR_STRENGTH);
+      const speed = throttle - steer * side * VEHICLE.steerGain;
+      wheel.joint.configureMotorVelocity(roll * speed * VEHICLE.maxWheelSpeed, VEHICLE.motorStrength);
     }
   }
 }

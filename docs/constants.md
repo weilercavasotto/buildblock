@@ -1,0 +1,48 @@
+# Constants and design tokens
+
+Every colour, size, spacing, font, physics number and user-facing string lives in `src/constants/`.
+**Do not hard-code them elsewhere**; import from `../constants` (barrel `index.ts`).
+
+| File | Contents |
+|---|---|
+| `colors.ts` | `COLORS` (text, surface, accent, scene, part), `ALPHA`, `OVERLAYS` (colours with alpha baked in), helpers `hexToNumber` (for Three.js) and `withAlpha` |
+| `spacing.ts` | `SPACE` (4 px scale: xs 4, sm 8, md 12, lg 16, xl 20, xxl 32, huge 64), `RADIUS` (sm 8, md 12, lg 16), `BORDER`, `SIZE` (logo, panel width, ...) |
+| `typography.ts` | `FONT_FAMILY`, `FONT_SIZE`, `FONT_WEIGHT`, `LETTER_SPACING`, `LINE_HEIGHT` |
+| `effects.ts` | `SHADOW` (CSS shadows) and `OPACITY` |
+| `game.ts` | Cell size, ground height, camera, scene, lights, roughness, wheel visuals, build input, storage keys, save limits, main-menu scene and random-car parameters |
+| `physics.ts` | `WORLD`, `WHEEL`, `CHASSIS`, `VEHICLE`, `COLLISION_GROUP`, `SPAWN_LIFT`, `GROUND_COLLIDER`, `SCENERY` |
+| `text.ts` | `TEXT`: strings built in code (static HTML text stays in `index.html`) |
+| `theme.ts` | `applyTheme()`: publishes the tokens as CSS variables |
+
+## One source of truth for TypeScript and CSS
+
+`applyTheme()` runs first in `main.ts` and writes CSS custom properties on `:root`.
+`src/styles/main.css` uses only those variables and contains no literal colour, px size or font.
+
+Naming: `--<group>-<key>` in kebab-case, flattened from the constants:
+
+| Constant | CSS variable |
+|---|---|
+| `COLORS.surface.panel` | `--color-surface-panel` |
+| `OVERLAYS.panelStrong` | `--overlay-panel-strong` |
+| `SPACE.lg` (px) | `--space-lg` |
+| `RADIUS.md` | `--radius-md` |
+| `FONT_SIZE.display` | `--font-size-display` |
+| `FONT_WEIGHT.semibold` | `--font-weight-semibold` |
+| `SHADOW.title` | `--shadow-title` |
+| `FONT_FAMILY` | `--font-family` |
+
+Numbers get `px` for spacing, radius, border, size, font size and letter spacing; alpha, weights and
+line height stay unitless. `applyTheme()` also sets the `theme-color` meta tag.
+
+## Adding or changing a token
+
+1. Add/change it in the matching file under `src/constants/` (and re-export in `index.ts` if it is a new file).
+2. If CSS needs it, add its group to `applyTheme()` (new groups only) and reference `var(--...)` in `main.css`.
+3. Never write the raw value elsewhere. Pick the nearest token instead of inventing an off-scale number.
+
+## Not covered by the tokens
+
+The SVG branding assets in `public/` (`logo-mark.svg`, `favicon.svg`) are static files with their own colours,
+chosen to match `COLORS.part.block` and `COLORS.surface.input`. Update them by hand if those change.
+The static `<meta name="theme-color">` in `index.html` is only a pre-JS fallback.

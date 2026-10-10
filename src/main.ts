@@ -4,15 +4,28 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BuildMode } from './build/build-mode';
 import { Grid } from './build/grid';
+import {
+  CAMERA,
+  COLORS,
+  GROUND_Y,
+  LIGHTS,
+  ROUGHNESS,
+  SCENE,
+  WORLD,
+  applyTheme,
+  hexToNumber,
+} from './constants';
 import { PhysicsWorld } from './play/physics-world';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
 import { createSave, getSave, updateSave } from './save';
+import './styles/main.css';
 import { Hud } from './ui/hud';
 import { Menu } from './ui/menu';
 import { PartType } from './types';
 
 async function main(): Promise<void> {
+  applyTheme();
   await RAPIER.init();
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -22,34 +35,52 @@ async function main(): Promise<void> {
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x9fc5e8);
-  scene.fog = new THREE.Fog(0x9fc5e8, 60, 160);
+  const sky = hexToNumber(COLORS.scene.sky);
+  scene.background = new THREE.Color(sky);
+  scene.fog = new THREE.Fog(sky, SCENE.fogNear, SCENE.fogFar);
 
-  const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
-  camera.position.set(6, 6, 9);
+  const camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, CAMERA.near, CAMERA.far);
+  camera.position.set(...CAMERA.startPosition);
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0.5, 0);
+  controls.target.set(...CAMERA.startTarget);
   controls.enableDamping = true;
-  controls.maxPolarAngle = Math.PI * 0.495;
+  controls.maxPolarAngle = Math.PI * CAMERA.maxPolarFactor;
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7a5a, 1.1));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-  sun.position.set(12, 20, 8);
+  scene.add(new THREE.HemisphereLight(
+      hexToNumber(COLORS.white),
+      hexToNumber(COLORS.scene.hemisphereGround),
+      LIGHTS.hemisphereIntensity,
+    ));
+  const sun = new THREE.DirectionalLight(hexToNumber(COLORS.white), LIGHTS.sunIntensity);
+  sun.position.set(...LIGHTS.sunPosition);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 80 });
+  sun.shadow.mapSize.set(LIGHTS.shadowMapSize, LIGHTS.shadowMapSize);
+  const extent = LIGHTS.shadowExtent;
+  Object.assign(sun.shadow.camera, {
+    left: -extent,
+    right: extent,
+    top: extent,
+    bottom: -extent,
+    near: LIGHTS.shadowNear,
+    far: LIGHTS.shadowFar,
+  });
   scene.add(sun);
 
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(400, 400),
-    new THREE.MeshStandardMaterial({ color: 0x7fae6a, roughness: 1 }),
+    new THREE.PlaneGeometry(SCENE.floorSize, SCENE.floorSize),
+    new THREE.MeshStandardMaterial({ color: hexToNumber(COLORS.scene.floor), roughness: ROUGHNESS.floor }),
   );
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -0.5;
+  floor.position.y = GROUND_Y;
   floor.receiveShadow = true;
   scene.add(floor);
-  const gridLines = new THREE.GridHelper(60, 60, 0x2f4f2f, 0x4f7f4f);
-  gridLines.position.y = -0.499;
+  const gridLines = new THREE.GridHelper(
+    SCENE.gridSize,
+    SCENE.gridDivisions,
+    hexToNumber(COLORS.scene.gridMajor),
+    hexToNumber(COLORS.scene.gridMinor),
+  );
+  gridLines.position.y = GROUND_Y + SCENE.gridLift;
   scene.add(gridLines);
 
   const grid = new Grid();
@@ -101,8 +132,8 @@ async function main(): Promise<void> {
   const enterBuild = () => {
     menuScene.stop();
     menu.hide();
-    camera.position.set(6, 6, 9);
-    controls.target.set(0, 0.5, 0);
+    camera.position.set(...CAMERA.startPosition);
+    controls.target.set(...CAMERA.startTarget);
     controls.update();
     hud.setVisible(true);
     stop();
@@ -165,7 +196,7 @@ async function main(): Promise<void> {
   const timer = new THREE.Timer();
   renderer.setAnimationLoop(() => {
     timer.update();
-    const dt = Math.min(timer.getDelta(), 0.1);
+    const dt = Math.min(timer.getDelta(), WORLD.maxFrameTime);
     if (mode === 'menu') {
       menuScene.update(dt);
     } else if (physics) {
