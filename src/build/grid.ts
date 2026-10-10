@@ -1,0 +1,69 @@
+import { Part, Vec3, addVec, cellKey, subVec } from '../types';
+
+export class Grid {
+  private parts = new Map<string, Part>();
+  private listeners: Array<() => void> = [];
+
+  subscribe(fn: () => void): void {
+    this.listeners.push(fn);
+  }
+
+  private emit(): void {
+    this.listeners.forEach((fn) => fn());
+  }
+
+  get(cell: Vec3): Part | undefined {
+    return this.parts.get(cellKey(cell));
+  }
+
+  all(): Part[] {
+    return [...this.parts.values()];
+  }
+
+  canPlace(part: Part): boolean {
+    if (part.cell[1] < 0 || this.get(part.cell)) return false;
+    if (part.type === 'wheel') {
+      if (!part.face || part.face[1] !== 0) return false;
+      return this.get(subVec(part.cell, part.face))?.type === 'block';
+    }
+    return true;
+  }
+
+  add(part: Part): boolean {
+    if (!this.canPlace(part)) return false;
+    this.parts.set(cellKey(part.cell), part);
+    this.emit();
+    return true;
+  }
+
+  /** Removes the part at `cell`; removing a block also removes the wheels mounted on it. */
+  remove(cell: Vec3): void {
+    const part = this.get(cell);
+    if (!part) return;
+    this.parts.delete(cellKey(cell));
+    if (part.type === 'block') {
+      for (const other of this.all()) {
+        if (other.type === 'wheel' && other.face && cellKey(subVec(other.cell, other.face)) === cellKey(cell)) {
+          this.parts.delete(cellKey(other.cell));
+        }
+      }
+    }
+    this.emit();
+  }
+
+  clear(): void {
+    this.parts.clear();
+    this.emit();
+  }
+
+  load(parts: Part[]): void {
+    this.parts.clear();
+    for (const p of parts) this.parts.set(cellKey(p.cell), p);
+    this.emit();
+  }
+
+  neighbors(cell: Vec3): Part[] {
+    const dirs: Vec3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+    return dirs.map((d) => this.get(addVec(cell, d))).filter((p): p is Part => !!p);
+  }
+}
