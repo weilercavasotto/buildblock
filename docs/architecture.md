@@ -84,6 +84,17 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 - **`main.ts`** — owns the mode state (`physics`/`vehicle` are non-null only in Play), the `R` restart and
   the animation loop (camera follow in Play).
 
+## Branding assets
+
+Static files in `public/` (served from `/`, copied as-is to `dist/`):
+
+- `logo-mark.svg`: isometric red brick with studs and a wheel; shown above the title in the main menu
+  (`#menu-logo` in `index.html`).
+- `favicon.svg`: the same mark on a dark rounded square, linked from `index.html`.
+
+Both are hand-written SVG (no raster files). Edit the SVG directly to change colours; the palette matches
+the in-game block (`#d9453b`) and the HUD (`#1a1f2b`).
+
 ## UI font
 
 The UI uses **Orbitron** (variable), imported in `main.ts` from `@fontsource-variable/orbitron` and applied on
