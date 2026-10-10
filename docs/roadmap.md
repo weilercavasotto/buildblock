@@ -19,5 +19,5 @@
 - Breakable connections and damage.
 - Larger maps, terrain editor and objectives.
 - Automated tests for `Grid`, `save.ts` and the physics setup.
-- PNG icons (apple-touch / PWA manifest) generated from `public/favicon.svg`.
+- Script to regenerate `favicon.ico` / `apple-touch-icon.png` from `public/favicon.svg`, plus 192/512 px PWA icons and a manifest.
 - Menu: settings screen, save thumbnails, rename saves, more varied random cars.

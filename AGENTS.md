@@ -24,7 +24,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/parts/part-defs.ts`: visuals/dimensions of every part
 - `src/menu/`: main-menu background (`menu-scene.ts`: random car + orbiting camera, `random-build.ts`)
 - `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel
-- `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`)
+- `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
 - `src/save.ts`: named save slots in localStorage (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
 
 See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/physics.md).

@@ -90,9 +90,15 @@ Static files in `public/` (served from `/`, copied as-is to `dist/`):
 
 - `logo-mark.svg`: isometric red brick with studs and a wheel; shown above the title in the main menu
   (`#menu-logo` in `index.html`).
-- `favicon.svg`: the same mark on a dark rounded square, linked from `index.html`.
+- `favicon.svg`: the same mark on a dark rounded square (modern browsers).
+- `favicon.ico`: 16/32/48 px PNG-in-ICO fallback (Safari, old browsers, default `/favicon.ico` requests).
+- `apple-touch-icon.png`: 180×180 full-bleed version for iOS home screens.
 
-Both are hand-written SVG (no raster files). Edit the SVG directly to change colours; the palette matches
+All three are linked from `index.html`.
+
+The SVGs are hand-written. The `.ico` and the apple-touch PNG are rasterised from `favicon.svg` and must be
+regenerated when the SVG changes (draw it on a canvas at 16/32/48/180 px, fill `#1a1f2b` under the 180 px one,
+and pack 16/32/48 into an ICO). Edit the SVG to change colours; the palette matches
 the in-game block (`#d9453b`) and the HUD (`#1a1f2b`).
 
 ## UI font
