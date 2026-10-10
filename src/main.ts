@@ -1,3 +1,4 @@
+import '@fontsource-variable/orbitron';
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';

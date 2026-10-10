@@ -83,6 +83,12 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 - **`main.ts`** — owns the mode state (`physics`/`vehicle` are non-null only in Play), the `R` restart and
   the animation loop (camera follow in Play).
 
+## UI font
+
+The UI uses **Orbitron** (variable), imported in `main.ts` from `@fontsource-variable/orbitron` and applied on
+`html, body` in `index.html` (`button`/`input` inherit it). Orbitron is wide: keep font sizes small and buttons
+`white-space: nowrap` so the HUD does not wrap. Text inside the 3D scene does not use it.
+
 ## Conventions
 
 - English for all in-game text; kebab-case file names.

@@ -14,6 +14,7 @@ grid, mount wheels on them, then press **Play** to drive your creation under sim
 ## Stack
 
 - TypeScript + [Vite](https://vite.dev)
+- [Orbitron](https://fonts.google.com/specimen/Orbitron) UI font, self-hosted via `@fontsource-variable/orbitron` (OFL)
 - [Three.js](https://threejs.org) for rendering
 - [Rapier](https://rapier.rs) (`@dimforge/rapier3d-compat`, WASM) for physics
 
