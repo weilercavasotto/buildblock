@@ -7,6 +7,7 @@ src/
   main.ts                      Bootstrap: renderer, scene, lights, mode switching, main loop
   types.ts                     Part, Vec3, cell helpers
   constants/                   Design tokens and tunables (colours, spacing, typography, physics, text); see constants.md
+  scene/sky.ts                 Sky dome: gradient + procedural clouds drifting with the wind (shader)
   styles/main.css              All CSS, using only the tokens published by constants/theme.ts
   save.ts                      Named save slots in localStorage
   menu/menu-scene.ts           Main-menu background: random car, autopilot, orbiting camera
@@ -85,6 +86,28 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   migration from `blocklab.v1`.
 - **`main.ts`** — owns the mode state (`physics`/`vehicle` are non-null only in Play), the `R` restart and
   the animation loop (camera follow in Play).
+
+## Sky
+
+`Sky` (`src/scene/sky.ts`) is a large inverted sphere with a `ShaderMaterial`, shared by the menu, build and
+play modes (one Three.js scene). It has no textures:
+
+- a gradient from `COLORS.scene.sky` at the horizon (also the fog colour, so the far floor melts into the sky)
+  to `COLORS.scene.skyZenith`;
+- **blocky "voxel" clouds** to match the game's look: the view direction is projected on a flat cloud layer that
+  is split into square cells (`SKY.cloudScale` cells per unit). Each cell is either fully filled or empty,
+  decided by thresholding fractal noise sampled at the cell centre (`SKY.coverage`, `SKY.clumpiness`).
+  Filled cells get thin seams and a shaded bevel on the lower-right edges where the neighbour is empty, so they
+  read as chunky bricks;
+- movement: the cell grid is offset by `SKY.wind * time`, so whole blocks glide with the wind (the pattern
+  changes very slowly through `SKY.evolveSpeed`, so cells rarely pop in or out);
+- anti-shimmer: far from the camera cells get smaller than `SKY.minCellPixels`, so the shader blends to a smooth
+  density there; clouds also fade out near the horizon;
+- `update(elapsed, camera.position)` runs every frame and keeps the dome centred on the camera (the sky never gets
+  closer). The dome radius must stay below `CAMERA.far`.
+
+All parameters are in `SKY` (`src/constants/game.ts`) and the colours in `COLORS.scene`. The default camera
+(`CAMERA.startPosition`) is low enough for the sky to show in the upper part of the screen.
 
 ## Branding assets
 

@@ -27,6 +27,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/styles/main.css`: all CSS, tokens only
 - `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
+- `src/scene/sky.ts`: shader sky dome with blocky (voxel-style) clouds that drift with the wind (parameters in `SKY`, `src/constants/game.ts`)
 - `src/save.ts`: named save slots in localStorage (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
 
 See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/physics.md).

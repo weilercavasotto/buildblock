@@ -38,7 +38,11 @@ export const COLORS = {
 
   /** Colours inside the 3D scene. */
   scene: {
+    /** Sky at the horizon; also the fog colour so the far floor fades into the sky. */
     sky: '#9fc5e8',
+    skyZenith: '#4f8fd6',
+    cloud: '#ffffff',
+    cloudShade: '#a9bcdb',
     hemisphereGround: '#6b7a5a',
     floor: '#7fae6a',
     gridMajor: '#2f4f2f',

@@ -13,7 +13,8 @@ export const CAMERA = {
   fov: 55,
   near: 0.1,
   far: 400,
-  startPosition: [6, 6, 9] as Vec3,
+  /** Low enough that the horizon and the sky show in the upper part of the screen. */
+  startPosition: [9, 4, 12] as Vec3,
   startTarget: [0, 0.5, 0] as Vec3,
   /** Fraction of PI; keeps the orbit camera above the ground. */
   maxPolarFactor: 0.495,
@@ -47,6 +48,35 @@ export const WHEEL_VISUAL = {
   /** How far the hub bar sticks out of the tire on each side. */
   spokeOverhang: 0.04,
   spokeThickness: 0.14,
+} as const;
+
+/** Procedural sky dome with blocky "voxel" clouds (see src/scene/sky.ts). */
+export const SKY = {
+  /** Must stay below CAMERA.far. */
+  domeRadius: 300,
+  /** Cloud cells per unit of the flat cloud layer: higher means smaller squares. */
+  cloudScale: 4,
+  /** How the cloud pattern varies from cell to cell: lower means bigger clumps of cells. */
+  clumpiness: 0.3,
+  /** Wind in cells per second (x, z); the cloud blocks drift this way. */
+  wind: [0.08, 0.03] as readonly [number, number],
+  /** Noise level above which a cell is filled (higher = fewer clouds). */
+  coverage: 0.52,
+  /** How slowly the pattern itself changes over time (cells appear/disappear at the edges). */
+  evolveSpeed: 0.003,
+  /** Clouds fade out between these elevations (sine of the angle above the horizon). */
+  fadeStart: 0.02,
+  fadeEnd: 0.22,
+  /** Exponent of the horizon -> zenith gradient (lower = the zenith colour starts sooner). */
+  gradientPower: 0.55,
+  /** Dark line between neighbouring cells, as a fraction of the cell, and how dark (0-1). */
+  seamWidth: 0.05,
+  seamStrength: 0.1,
+  /** Shaded bevel on the lower-right edges of a cloud block, as a fraction of the cell, and how strong (0-1). */
+  bevelWidth: 0.2,
+  bevelStrength: 0.85,
+  /** Cells smaller than this many pixels fade into smooth noise to avoid shimmering near the horizon. */
+  minCellPixels: 3,
 } as const;
 
 export const ROUGHNESS = {

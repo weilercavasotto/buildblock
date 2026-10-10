@@ -16,6 +16,7 @@ import {
   hexToNumber,
 } from './constants';
 import { PhysicsWorld } from './play/physics-world';
+import { Sky } from './scene/sky';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
 import { createSave, getSave, updateSave } from './save';
@@ -35,9 +36,9 @@ async function main(): Promise<void> {
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  const sky = hexToNumber(COLORS.scene.sky);
-  scene.background = new THREE.Color(sky);
-  scene.fog = new THREE.Fog(sky, SCENE.fogNear, SCENE.fogFar);
+  const skyColor = hexToNumber(COLORS.scene.sky);
+  scene.background = new THREE.Color(skyColor);
+  scene.fog = new THREE.Fog(skyColor, SCENE.fogNear, SCENE.fogFar);
 
   const camera = new THREE.PerspectiveCamera(CAMERA.fov, innerWidth / innerHeight, CAMERA.near, CAMERA.far);
   camera.position.set(...CAMERA.startPosition);
@@ -45,6 +46,9 @@ async function main(): Promise<void> {
   controls.target.set(...CAMERA.startTarget);
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * CAMERA.maxPolarFactor;
+
+  const sky = new Sky();
+  scene.add(sky.mesh);
 
   scene.add(new THREE.HemisphereLight(
       hexToNumber(COLORS.white),
@@ -210,6 +214,7 @@ async function main(): Promise<void> {
       }
     }
     if (mode !== 'menu') controls.update();
+    sky.update(timer.getElapsed(), camera.position);
     renderer.render(scene, camera);
   });
 }

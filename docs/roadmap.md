@@ -16,6 +16,7 @@
 - Per-wheel key bindings (Besiege-style) and a steerable/non-driven wheel flag.
 - Undo/redo, copy/paste and save slots (export/import JSON).
 - Block colours and materials.
+- Day/night cycle and weather using the sky shader (sun position, cloud colour/coverage over time).
 - Breakable connections and damage.
 - Larger maps, terrain editor and objectives.
 - Automated tests for `Grid`, `save.ts` and the physics setup.
