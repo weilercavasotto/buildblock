@@ -13,6 +13,7 @@ export class Menu {
   private nameInput = document.getElementById('new-name') as HTMLInputElement;
 
   constructor(private handlers: MenuHandlers) {
+    document.getElementById('menu-version')!.textContent = `v${__APP_VERSION__}`;
     document.getElementById('menu-play')!.onclick = () => this.showSaves();
     document.getElementById('menu-back')!.onclick = () => this.showMain();
     document.getElementById('new-create')!.onclick = () => this.create();

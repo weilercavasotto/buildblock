@@ -36,6 +36,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 - The game starts in the main menu. Edits autosave only to the active save (`activeSave` in `main.ts`);
   set it to `null` around `grid.load/clear` so loading does not rewrite (and re-date) a save.
 - UI font is Orbitron (self-hosted, imported in `main.ts`); it is wide, so keep sizes modest and buttons `nowrap`.
+- The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).
 - User-provided text (save names) is rendered with `textContent`, never `innerHTML`.
 - Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0`.
 - Shared geometries/materials are created once in `part-defs.ts`; do not dispose them per instance.

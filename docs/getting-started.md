@@ -22,6 +22,9 @@ Press **Play** to open the *Saved games* panel:
 - Type a name (optional) and press **New game** to start an empty creation.
 - **Back** returns to the title screen.
 
+The bottom-right corner shows the game version (`vX.Y.Z`), read from `package.json` at build time
+(`vite.config.ts` defines `__APP_VERSION__`). Bump the `version` field there to release a new version.
+
 In the game, the **☰ Menu** button (left of the toolbar) returns to the main menu.
 
 ## Controls

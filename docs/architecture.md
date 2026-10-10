@@ -9,6 +9,7 @@ src/
   save.ts                      Named save slots in localStorage
   menu/menu-scene.ts           Main-menu background: random car, autopilot, orbiting camera
   menu/random-build.ts         Random car generator
+  ../vite.config.ts            Injects `__APP_VERSION__` (from package.json); typed in src/env.d.ts
   ui/menu.ts                   Main menu and saved-games panel (DOM bound to index.html)
   parts/part-defs.ts           Visuals and dimensions of every part
   build/grid.ts                Data model: the set of placed parts
