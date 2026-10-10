@@ -19,8 +19,10 @@ import { PhysicsWorld } from './play/physics-world';
 import { Sky } from './scene/sky';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
+import { FrameLimiter } from './frame-limiter';
 import { createSave, getSave, updateSave } from './save';
 import './styles/main.css';
+import { FpsCounter } from './ui/fps-counter';
 import { Hud } from './ui/hud';
 import { Menu } from './ui/menu';
 import { PartType } from './types';
@@ -171,6 +173,8 @@ async function main(): Promise<void> {
     },
   });
 
+  const fps = new FpsCounter();
+
   const hud = new Hud({
     onTool: setTool,
     onTogglePlay: () => (physics ? stop() : startPlay()),
@@ -181,6 +185,10 @@ async function main(): Promise<void> {
   enterMenu();
 
   addEventListener('keydown', (e) => {
+    if (e.code === 'F3') {
+      e.preventDefault();
+      fps.toggle();
+    }
     if (mode === 'play' && e.code === 'KeyR') startPlay();
     if (mode !== 'build') return;
     if (e.code === 'Digit1') setTool('block');
@@ -198,7 +206,9 @@ async function main(): Promise<void> {
   }
 
   const timer = new THREE.Timer();
-  renderer.setAnimationLoop(() => {
+  const limiter = new FrameLimiter();
+  renderer.setAnimationLoop((nowMs) => {
+    if (!limiter.shouldRender(nowMs)) return;
     timer.update();
     const dt = Math.min(timer.getDelta(), WORLD.maxFrameTime);
     if (mode === 'menu') {
@@ -215,6 +225,7 @@ async function main(): Promise<void> {
     }
     if (mode !== 'menu') controls.update();
     sky.update(timer.getElapsed(), camera.position);
+    fps.frame(timer.getElapsed());
     renderer.render(scene, camera);
   });
 }

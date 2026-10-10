@@ -13,6 +13,13 @@ npm run build    # type-check (tsc) and produce a production build in dist/
 npm run preview  # serve the production build locally
 ```
 
+## FPS counter and frame limit
+
+Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also shows 60). The target is
+`FRAME_LIMIT.targetFps` in `src/constants/game.ts`. A small frames-per-second readout sits in the **top-right corner** in every mode. It is green at 55+ FPS, yellow
+at 30+ and red below. Press **F3** to show or hide it. Thresholds and refresh rate: `FPS_COUNTER` in
+`src/constants/game.ts`.
+
 ## Main menu and saved games
 
 The game opens on the main menu: a random car wanders in the background while the camera orbits it.

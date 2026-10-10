@@ -92,6 +92,21 @@ export const BUILD = {
   clickMaxDistance: 5,
 } as const;
 
+export const FRAME_LIMIT = {
+  /** Rendering is capped at this many frames per second, whatever the display refresh rate. */
+  targetFps: 60,
+  /** A frame may be rendered this early (ms) so the average stays on target on displays whose refresh rate is not a multiple of it. */
+  toleranceMs: 4,
+} as const;
+
+export const FPS_COUNTER = {
+  /** Seconds over which frames are counted before the number is refreshed. */
+  updateInterval: 0.5,
+  /** At or above this the counter is green; at or above `okFps` it is yellow; below it is red. */
+  goodFps: 55,
+  okFps: 30,
+} as const;
+
 export const STORAGE = {
   savesKey: 'blocklab.saves.v2',
   /** Single-slot save used before the main menu existed; migrated once. */

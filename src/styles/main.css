@@ -84,6 +84,33 @@ canvas {
   line-height: var(--line-height-normal);
 }
 
+/* ---- FPS counter ---- */
+#fps {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--overlay-panel);
+  font-size: var(--font-size-sm);
+  letter-spacing: var(--letter-spacing-sm);
+  color: var(--color-text-primary);
+  pointer-events: none;
+  user-select: none;
+}
+#fps:empty {
+  display: none;
+}
+#fps.good {
+  color: var(--color-accent-primary-hover);
+}
+#fps.ok {
+  color: var(--color-accent-highlight);
+}
+#fps.bad {
+  color: var(--color-accent-danger);
+}
+
 /* ---- Main menu ---- */
 #menu {
   position: fixed;

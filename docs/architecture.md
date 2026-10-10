@@ -9,6 +9,7 @@ src/
   constants/                   Design tokens and tunables (colours, spacing, typography, physics, text); see constants.md
   scene/sky.ts                 Sky dome: gradient + procedural clouds drifting with the wind (shader)
   styles/main.css              All CSS, using only the tokens published by constants/theme.ts
+  frame-limiter.ts             Caps rendering at 60 FPS (decides, per animation callback, whether to render)
   save.ts                      Named save slots in localStorage
   menu/menu-scene.ts           Main-menu background: random car, autopilot, orbiting camera
   menu/random-build.ts         Random car generator
@@ -19,6 +20,7 @@ src/
   build/build-mode.ts          Mouse picking, ghost preview, place/remove
   play/physics-world.ts        Grid -> Rapier bodies/joints, scenery, stepping and sync
   play/vehicle-controller.ts   Keyboard -> wheel motors
+  ui/fps-counter.ts            FPS readout (top-right), counted per rendered frame, toggled with F3
   ui/hud.ts                    Toolbar and hint text (DOM bound to index.html)
 ```
 
@@ -79,6 +81,8 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
 - **`PhysicsWorld`** — see [physics.md](physics.md).
 - **`VehicleController`** — see [physics.md](physics.md).
+- **`FpsCounter`** — counts frames over `FPS_COUNTER.updateInterval` and colours the number by threshold; the first
+  window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.
 - **`Hud`** — wires the buttons in `index.html`, switches hint text per mode and can be hidden (menu).
 - **`Menu`** — title screen and saved-games panel (load / delete / new). Uses `save.ts`; names are
   inserted with `textContent`.
@@ -86,6 +90,17 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   migration from `blocklab.v1`.
 - **`main.ts`** — owns the mode state (`physics`/`vehicle` are non-null only in Play), the `R` restart and
   the animation loop (camera follow in Play).
+
+## Frame limit
+
+`requestAnimationFrame` fires at the display's refresh rate, so `main.ts` asks `FrameLimiter.shouldRender(now)` at
+the top of every callback and returns early when it says no. The limiter schedules frames on a fixed timeline
+(`next += 1000 / targetFps`) with a small tolerance (`FRAME_LIMIT.toleranceMs`), so the average stays at 60 even when
+the refresh rate is not a multiple of 60 (75 Hz renders 4 of every 5 callbacks; a naive "wait one interval since
+the last frame" would drop to 37.5 FPS). After a stall (first frame, hidden tab) the timeline restarts instead of
+rendering a burst of catch-up frames. Skipped callbacks do not touch the timer, so the next rendered frame's `dt`
+covers the whole gap and physics (fixed 1/60 s steps) stays in sync. The FPS counter only counts rendered frames.
+It cannot raise the frame rate: on a 30/50 Hz display the game runs at that rate.
 
 ## Sky
 

@@ -1,12 +1,13 @@
 /** User-facing strings built in code (static HTML text lives in index.html). All English. */
 export const TEXT = {
   hud: {
+    fps: (value: number) => `${value} FPS`,
     play: '▶ Play',
     stop: '■ Stop',
     buildHint:
       'Left click: place · Right click: remove · Drag: rotate camera (right drag: pan) · Scroll: zoom<br>' +
-      'Wheel: click the side of a block',
-    playHint: 'W/S: accelerate/reverse · A/D: steer · R: restart · Stop returns to building',
+      'Wheel: click the side of a block · F3: toggle FPS',
+    playHint: 'W/S: accelerate/reverse · A/D: steer · R: restart · Stop returns to building · F3: toggle FPS',
   },
   menu: {
     version: (v: string) => `v${v}`,

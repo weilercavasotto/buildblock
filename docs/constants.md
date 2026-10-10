@@ -9,7 +9,7 @@ Every colour, size, spacing, font, physics number and user-facing string lives i
 | `spacing.ts` | `SPACE` (4 px scale: xs 4, sm 8, md 12, lg 16, xl 20, xxl 32, huge 64), `RADIUS` (sm 8, md 12, lg 16), `BORDER`, `SIZE` (logo, panel width, ...) |
 | `typography.ts` | `FONT_FAMILY`, `FONT_SIZE`, `FONT_WEIGHT`, `LETTER_SPACING`, `LINE_HEIGHT` |
 | `effects.ts` | `SHADOW` (CSS shadows) and `OPACITY` |
-| `game.ts` | Cell size, ground height, camera, scene, lights, sky (`SKY`: cloud cell size, wind, coverage, bevel...), roughness, wheel visuals, build input, storage keys, save limits, main-menu scene and random-car parameters |
+| `game.ts` | Cell size, ground height, camera, scene, lights, frame limit, FPS counter, sky (`SKY`: cloud cell size, wind, coverage, bevel...), roughness, wheel visuals, build input, storage keys, save limits, main-menu scene and random-car parameters |
 | `physics.ts` | `WORLD`, `WHEEL`, `CHASSIS`, `VEHICLE`, `COLLISION_GROUP`, `SPAWN_LIFT`, `GROUND_COLLIDER`, `SCENERY` |
 | `text.ts` | `TEXT`: strings built in code (static HTML text stays in `index.html`) |
 | `theme.ts` | `applyTheme()`: publishes the tokens as CSS variables |
