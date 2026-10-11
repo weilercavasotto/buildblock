@@ -14,7 +14,8 @@
 
 - More parts: slopes, thrusters, hinges, suspension, steering wheels.
 - Per-wheel key bindings (Besiege-style) and a steerable/non-driven wheel flag.
-- Undo/redo, copy/paste and save slots (export/import JSON).
+- Undo/redo (a painted stroke should undo as one step), copy/paste and save slots (export/import JSON).
+- Painting for other tools (e.g. a row of wheels) and an erase-by-dragging mode.
 - Block colours and materials.
 - Frame-limit setting in an options menu (30/60/uncapped).
 - Day/night cycle and weather using the sky shader (sun position, cloud colour/coverage over time).

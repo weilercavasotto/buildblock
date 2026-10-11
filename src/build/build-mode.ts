@@ -13,6 +13,18 @@ interface Pick {
   point: THREE.Vector3;
 }
 
+/** A left-button drag that keeps placing blocks on the plane of the face where it started. */
+interface Stroke {
+  /** Axis (0 = x, 1 = y, 2 = z) perpendicular to the painted plane. */
+  axis: number;
+  /** Coordinate of the painted surface along `axis` (a cell face, half a cell from the cell centres). */
+  surface: number;
+  /** Coordinate along `axis` shared by every cell of the stroke. */
+  layer: number;
+  start: Vec3;
+  last: Vec3;
+}
+
 export class BuildMode {
   readonly group = new THREE.Group();
   private ghost: THREE.Object3D | null = null;
@@ -21,6 +33,7 @@ export class BuildMode {
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
   private down: { x: number; y: number; button: number } | null = null;
+  private stroke: Stroke | null = null;
 
   constructor(
     private scene: THREE.Scene,
@@ -34,10 +47,13 @@ export class BuildMode {
 
     dom.addEventListener('pointermove', (e) => this.onMove(e));
     dom.addEventListener('pointerleave', () => this.setGhost(null));
-    dom.addEventListener('pointerdown', (e) => {
-      this.down = { x: e.clientX, y: e.clientY, button: e.button };
-    });
+    dom.addEventListener('pointerdown', (e) => this.onDown(e));
     dom.addEventListener('pointerup', (e) => this.onUp(e));
+    // A stroke must end even when the button is released outside the canvas or the window loses focus.
+    window.addEventListener('pointerup', (e) => {
+      if (e.button === 0) this.stroke = null;
+    });
+    window.addEventListener('blur', () => (this.stroke = null));
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -49,7 +65,10 @@ export class BuildMode {
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     this.group.visible = enabled;
-    if (!enabled) this.setGhost(null);
+    if (!enabled) {
+      this.stroke = null;
+      this.setGhost(null);
+    }
   }
 
   private rebuild(): void {
@@ -59,13 +78,19 @@ export class BuildMode {
       obj.position.set(...part.cell);
       obj.userData.part = part;
       this.group.add(obj);
+      // Raycasts use the world matrix, which is otherwise only refreshed on the next rendered frame.
+      obj.updateMatrixWorld(true);
     }
   }
 
-  private pick(e: PointerEvent): Pick | null {
+  private setRay(e: PointerEvent): void {
     const rect = this.dom.getBoundingClientRect();
     this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
+  }
+
+  private pick(e: PointerEvent): Pick | null {
+    this.setRay(e);
 
     const hit = this.raycaster.intersectObjects(this.group.children, true)[0];
     const groundPoint = this.raycaster.ray.intersectPlane(GROUND_PLANE, new THREE.Vector3());
@@ -95,8 +120,61 @@ export class BuildMode {
     return { type: 'wheel', cell: addVec(p.part.cell, p.normal), face: p.normal };
   }
 
+  private onDown(e: PointerEvent): void {
+    this.down = { x: e.clientX, y: e.clientY, button: e.button };
+    if (!this.enabled || e.button !== 0) return;
+
+    // The left button places on press; for blocks, keeping it down and moving paints more blocks (see `paint`).
+    const p = this.pick(e);
+    const part = p && this.target(p);
+    if (!p || !part || !this.grid.add(part)) return;
+    this.setGhost(null);
+    if (part.type === 'block') {
+      const axis = p.normal.findIndex((v) => v !== 0);
+      this.stroke = {
+        axis,
+        surface: part.cell[axis] - 0.5 * p.normal[axis],
+        layer: part.cell[axis],
+        start: part.cell,
+        last: part.cell,
+      };
+    }
+  }
+
+  /**
+   * Extends the stroke to the cell under the pointer. The pointer ray is intersected with the plane of the face the
+   * stroke started on (not with the blocks just placed, which would make the stroke grow towards the camera), and
+   * the cells between the previous and the new position are filled so fast mouse moves leave no gaps.
+   */
+  private paint(e: PointerEvent): void {
+    const s = this.stroke!;
+    this.setRay(e);
+    const normal = new THREE.Vector3();
+    normal.setComponent(s.axis, 1);
+    const point = this.raycaster.ray.intersectPlane(new THREE.Plane(normal, -s.surface), new THREE.Vector3());
+    if (!point) return;
+
+    const goal: Vec3 = [Math.round(point.x), Math.round(point.y), Math.round(point.z)];
+    goal[s.axis] = s.layer;
+    if (goal.some((v, i) => Math.abs(v - s.start[i]) > BUILD.maxPaintDistance)) return;
+
+    const steps = Math.max(...goal.map((v, i) => Math.abs(v - s.last[i])));
+    const cells: Part[] = [];
+    for (let step = 1; step <= steps; step++) {
+      const cell = s.last.map((v, i) => Math.round(v + ((goal[i] - v) * step) / steps)) as Vec3;
+      cells.push({ type: 'block', cell });
+    }
+    this.grid.addMany(cells);
+    s.last = goal;
+  }
+
   private onMove(e: PointerEvent): void {
-    if (!this.enabled || e.buttons !== 0) return this.setGhost(null);
+    if (!this.enabled) return this.setGhost(null);
+    if (this.stroke) {
+      if (e.buttons & 1) return this.paint(e);
+      this.stroke = null;
+    }
+    if (e.buttons !== 0) return this.setGhost(null);
     const p = this.pick(e);
     this.setGhost(p ? this.target(p) : null);
   }
@@ -113,16 +191,15 @@ export class BuildMode {
   private onUp(e: PointerEvent): void {
     const down = this.down;
     this.down = null;
+    if (e.button === 0) this.stroke = null;
     if (!this.enabled || !down || down.button !== e.button) return;
-    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > BUILD.clickMaxDistance) return;
+    // Placing happens on press (see `onDown`). The right button also pans the camera: only a press without
+    // movement counts as a click (remove).
+    if (e.button === 2 && Math.hypot(e.clientX - down.x, e.clientY - down.y) > BUILD.clickMaxDistance) return;
 
-    const p = this.pick(e);
-    if (!p) return;
-    if (e.button === 0) {
-      const part = this.target(p);
-      if (part) this.grid.add(part);
-    } else if (e.button === 2 && p.part) {
-      this.grid.remove(p.part.cell);
+    if (e.button === 2) {
+      const p = this.pick(e);
+      if (p?.part) this.grid.remove(p.part.cell);
     }
     this.setGhost(null);
     this.onMove(e);

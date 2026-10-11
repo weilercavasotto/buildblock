@@ -45,6 +45,8 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 - The game starts in the main menu. Edits autosave only to the active save (`activeSave` in `main.ts`);
   set it to `null` around `grid.load/clear` so loading does not rewrite (and re-date) a save.
 - UI font is Orbitron (self-hosted, imported in `main.ts`, token in `typography.ts`); it is wide, so keep sizes modest and buttons `nowrap`.
+- Mouse: left = place on press / drag to paint blocks on the starting face's plane (never moves the camera), right click = remove / right drag = pan, middle drag = rotate,
+  scroll = zoom (`controls.mouseButtons` in `main.ts`; click-vs-drag logic in `build-mode.ts`).
 - The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).
 - User-provided text (save names) is rendered with `textContent`, never `innerHTML`.
 - Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0`.
@@ -64,7 +66,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 1. `npm run build` must pass.
 2. Run `npm run dev`, open the app and exercise the feature: place blocks/wheels with real clicks, press
    Play, drive with W/S/A/D, `R` restarts, Stop returns to the intact build.
-3. Dev mode exposes `window.__blocklab` (`grid`, `camera`, `controls`, `getPhysics()`, `getMode()`, `menuScene`) for inspecting
+3. Dev mode exposes `window.__blocklab` (`grid`, `camera`, `controls`, `getPhysics()`, `getMode()`, `menuScene`, `build`) for inspecting
    state, e.g. a body's position, from the console.
 4. The in-app browser pane pauses `requestAnimationFrame` while hidden; if physics seems frozen, bring the
    tab to the front (a screenshot also wakes it) before concluding something is broken.

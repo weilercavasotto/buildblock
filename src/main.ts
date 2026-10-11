@@ -48,6 +48,12 @@ async function main(): Promise<void> {
   controls.target.set(...CAMERA.startTarget);
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * CAMERA.maxPolarFactor;
+  // Left button is reserved for placing blocks; middle rotates, right pans (a right click without moving removes).
+  controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.PAN };
+  // Stop browsers from starting "autoscroll" on a middle press.
+  renderer.domElement.addEventListener('mousedown', (e) => {
+    if (e.button === 1) e.preventDefault();
+  });
 
   const sky = new Sky();
   scene.add(sky.mesh);
@@ -202,7 +208,7 @@ async function main(): Promise<void> {
   });
 
   if (import.meta.env.DEV) {
-    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene } });
+    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build } });
   }
 
   const timer = new THREE.Timer();

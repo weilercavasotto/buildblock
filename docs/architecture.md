@@ -75,8 +75,13 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   lateral `face` with a block behind it. `remove` cascades to wheels mounted on a removed block.
   Observers register with `subscribe`.
 - **`BuildMode`** — raycasts against placed parts and the ground plane, picks the nearest hit and derives
-  a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). Distinguishes
-  a click from a camera drag by pointer movement (< 5 px). Owns the `group` of build meshes and hides it
+  a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). The left button places on
+  press; with the block tool, holding it and moving **paints** blocks (a `Stroke`): the pointer ray is intersected with
+  the plane of the face where the stroke began (not with the new blocks, which would make it grow towards the camera),
+  the layer coordinate stays fixed, cells between two pointer events are interpolated, `Grid.addMany` adds them with a
+  single change notification, and cells farther than `BUILD.maxPaintDistance` from the start are ignored. The stroke
+  ends on release (also outside the canvas or on window blur). Distinguishes
+  a right click (remove) from a right drag (pan) by pointer movement (< `BUILD.clickMaxDistance`). Owns the `group` of build meshes and hides it
   during Play.
 - **`part-defs`** — shared geometries/materials, `createPartObject(part, ghost?)` and
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
@@ -84,6 +89,9 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 - **`VehicleController`** — see [physics.md](physics.md).
 - **`FpsCounter`** — counts frames over `FPS_COUNTER.updateInterval` and colours the number by threshold; the first
   window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.
+- **Camera controls** (`main.ts`) — `OrbitControls.mouseButtons = { LEFT: null, MIDDLE: ROTATE, RIGHT: PAN }`: the left
+  button is reserved for placing, the middle rotates, the right pans; scroll zooms. A `mousedown` handler
+  prevents the browser's middle-click autoscroll on the canvas.
 - **`Hud`** — wires the buttons in `index.html`, switches hint text per mode and can be hidden (menu).
 - **`confirmDialog`** (`src/ui/confirm-dialog.ts`) — reusable modal: `await confirmDialog({ title, message,
   confirmLabel, cancelLabel, danger })` resolves `true` on confirm and `false` on cancel, Escape or a click on the

@@ -88,8 +88,10 @@ export const ROUGHNESS = {
 } as const;
 
 export const BUILD = {
-  /** Pointer travel (px) below which a press-release counts as a click rather than a camera drag. */
+  /** Pointer travel (px) below which a right press-release counts as a click (remove) rather than a camera pan. */
   clickMaxDistance: 5,
+  /** While painting blocks by dragging, cells farther than this (in cells) from where the stroke started are ignored. */
+  maxPaintDistance: 50,
 } as const;
 
 export const FRAME_LIMIT = {

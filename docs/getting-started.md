@@ -41,10 +41,13 @@ In the game, the **☰ Menu** button (left of the toolbar) returns to the main m
 
 | Input | Action |
 |---|---|
-| Left click | Place the selected part |
+| Left click | Place the selected part on press (the left button never moves the camera) |
+| Left drag (**Block** tool) | Keep the button down and move to **paint blocks**: every cell the pointer passes over gets a block. Painting is locked to the face where you started (ground, a block's top, or a side), so you draw a row, layer or wall without growing towards the camera. Fast moves leave no gaps. The **Wheel** tool places a single wheel per press |
 | Right click | Remove the part under the cursor (removing a block also removes the wheels mounted on it) |
+| Right drag | Pan the camera (a right press that moves is not a click, so nothing is removed) |
+| Middle drag | Rotate the camera |
+| Scroll | Zoom |
 | `1` / `2` | Select **Block** / **Wheel** (also available as HUD buttons) |
-| Drag | Rotate the camera (right-button drag pans, scroll zooms) |
 | **Clear** | Remove every part |
 | **Play** | Switch to Play mode |
 
@@ -70,6 +73,6 @@ migrated once into a save called "My creation". There is no export/import yet.
 
 ## Dev-only debug hook
 
-In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics }`
+In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build }`
 for inspection from the browser console. It is stripped from production builds
 (`import.meta.env.DEV`).

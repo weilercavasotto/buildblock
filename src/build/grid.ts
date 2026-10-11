@@ -36,6 +36,18 @@ export class Grid {
     return true;
   }
 
+  /** Adds every part that can be placed (in order) and notifies listeners once. Returns how many were added. */
+  addMany(parts: Part[]): number {
+    let added = 0;
+    for (const part of parts) {
+      if (!this.canPlace(part)) continue;
+      this.parts.set(cellKey(part.cell), part);
+      added++;
+    }
+    if (added > 0) this.emit();
+    return added;
+  }
+
   /** Removes the part at `cell`; removing a block also removes the wheels mounted on it. */
   remove(cell: Vec3): void {
     const part = this.get(cell);

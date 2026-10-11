@@ -5,7 +5,7 @@ export const TEXT = {
     play: '▶ Play',
     stop: '■ Stop',
     buildHint:
-      'Left click: place · Right click: remove · Drag: rotate camera (right drag: pan) · Scroll: zoom<br>' +
+      'Left click: place (drag to paint blocks) · Right click: remove · Middle drag: rotate camera · Right drag: pan · Scroll: zoom<br>' +
       'Wheel: click the side of a block · F3: toggle FPS',
     playHint: 'W/S: accelerate/reverse · A/D: steer · R: restart · Stop returns to building · F3: toggle FPS',
   },
