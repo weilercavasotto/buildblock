@@ -1,5 +1,6 @@
 import { SAVE, TEXT } from '../constants';
 import { SaveGame, deleteSave, listSaves } from '../save';
+import { confirmDialog } from './confirm-dialog';
 
 export interface MenuHandlers {
   onLoad(id: string): void;
@@ -86,8 +87,16 @@ export class Menu {
     const remove = document.createElement('button');
     remove.className = 'danger';
     remove.textContent = TEXT.menu.delete;
-    remove.onclick = () => {
-      if (confirm(TEXT.menu.confirmDelete(save.name))) {
+    remove.onclick = async () => {
+      const { title, message, confirm, cancel } = TEXT.menu.deleteDialog;
+      const confirmed = await confirmDialog({
+        title,
+        message: message(save.name),
+        confirmLabel: confirm,
+        cancelLabel: cancel,
+        danger: true,
+      });
+      if (confirmed) {
         deleteSave(save.id);
         this.renderList();
       }

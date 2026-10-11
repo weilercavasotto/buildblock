@@ -16,4 +16,6 @@ Example: a new part type `'thruster'`.
 7. **Control** — if it should react to input, extend `VehicleController` or add a sibling controller.
 8. **Persistence** — nothing to do: parts are saved as plain JSON. If you change the shape of `Part`
    incompatibly, bump `STORAGE_KEY` in `src/save.ts`.
-9. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).
+9. **Confirmations** — for destructive actions use `confirmDialog` from `src/ui/confirm-dialog.ts` (strings in `TEXT`),
+   never `window.confirm`.
+10. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).

@@ -1,5 +1,5 @@
 import { ALPHA, COLORS, OVERLAYS } from './colors';
-import { OPACITY, SHADOW } from './effects';
+import { MOTION, OPACITY, SHADOW, Z_INDEX } from './effects';
 import { BORDER, RADIUS, SIZE, SPACE } from './spacing';
 import { FONT_FAMILY, FONT_SIZE, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT } from './typography';
 
@@ -27,6 +27,8 @@ export function applyTheme(root: HTMLElement = document.documentElement): void {
   flatten(ALPHA, '--alpha', '', vars);
   flatten(OPACITY, '--opacity', '', vars);
   flatten(SHADOW, '--shadow', '', vars);
+  flatten(Z_INDEX, '--z-index', '', vars);
+  flatten(MOTION, '--motion', 'ms', vars);
   flatten(SPACE, '--space', 'px', vars);
   flatten(RADIUS, '--radius', 'px', vars);
   flatten(BORDER, '--border', 'px', vars);

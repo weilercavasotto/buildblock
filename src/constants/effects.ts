@@ -10,6 +10,16 @@ export const SHADOW = {
   logo: `drop-shadow(0 8px 18px ${shadow(0.45)})`,
 } as const;
 
+/** Stacking order of fixed UI layers. */
+export const Z_INDEX = {
+  dialog: 100,
+} as const;
+
+/** Transition durations in ms. */
+export const MOTION = {
+  fast: 150,
+} as const;
+
 /** Opacity of muted / disabled UI, re-exported here so CSS and code agree. */
 export const OPACITY = {
   muted: ALPHA.muted,

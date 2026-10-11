@@ -25,7 +25,8 @@ at 30+ and red below. Press **F3** to show or hide it. Thresholds and refresh ra
 The game opens on the main menu: a random car wanders in the background while the camera orbits it.
 Press **Play** to open the *Saved games* panel:
 
-- **Load** opens a save; **Delete** removes it (with confirmation).
+- **Load** opens a save; **Delete** asks for confirmation in a dialog (Enter/Cancel/Esc/click outside keep the save;
+  only the red **Delete** button removes it).
 - Type a name (optional) and press **New game** to start an empty creation.
 - **Back** returns to the title screen.
 

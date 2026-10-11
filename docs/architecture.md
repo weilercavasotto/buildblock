@@ -14,6 +14,7 @@ src/
   menu/menu-scene.ts           Main-menu background: random car, autopilot, orbiting camera
   menu/random-build.ts         Random car generator
   ../vite.config.ts            Injects `__APP_VERSION__` (from package.json); typed in src/env.d.ts
+  ui/confirm-dialog.ts         Reusable modal confirmation: confirmDialog(options) -> Promise<boolean>
   ui/menu.ts                   Main menu and saved-games panel (DOM bound to index.html)
   parts/part-defs.ts           Visuals (meshes/materials) of every part
   build/grid.ts                Data model: the set of placed parts
@@ -84,6 +85,13 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 - **`FpsCounter`** — counts frames over `FPS_COUNTER.updateInterval` and colours the number by threshold; the first
   window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.
 - **`Hud`** — wires the buttons in `index.html`, switches hint text per mode and can be hidden (menu).
+- **`confirmDialog`** (`src/ui/confirm-dialog.ts`) — reusable modal: `await confirmDialog({ title, message,
+  confirmLabel, cancelLabel, danger })` resolves `true` on confirm and `false` on cancel, Escape or a click on the
+  backdrop. It builds its DOM on demand (`.dialog-*` classes in `main.css`, `role="alertdialog"`, `aria-modal`), traps
+  Tab between its two buttons, restores the previous focus, and sets all text with `textContent`. With `danger: true`
+  the confirm button is red and **Cancel gets the initial focus**, so pressing Enter never deletes by accident. Only
+  one dialog is open at a time (opening another cancels the first). Used to confirm deleting a save; strings are in
+  `TEXT.menu.deleteDialog`.
 - **`Menu`** — title screen and saved-games panel (load / delete / new). Uses `save.ts`; names are
   inserted with `textContent`.
 - **`save.ts`** — `listSaves`, `getSave`, `createSave`, `updateSave`, `deleteSave`; handles the one-time

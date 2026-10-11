@@ -26,6 +26,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/constants/`: design tokens and tunables (colours, spacing, typography, physics, game, text); `theme.ts` publishes them as CSS variables
 - `src/styles/main.css`: all CSS, tokens only
 - `src/frame-limiter.ts`: 60 FPS cap (`FRAME_LIMIT`); the main loop returns early when `shouldRender` is false
+- `src/ui/confirm-dialog.ts`: reusable modal confirmation (`confirmDialog`); use it instead of `window.confirm`
 - `src/ui/fps-counter.ts`: FPS readout (F3 toggles)
 - `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)

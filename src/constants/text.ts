@@ -16,7 +16,12 @@ export const TEXT = {
     delete: 'Delete',
     defaultSaveName: (n: number) => `Creation ${n}`,
     parts: (count: number) => (count === 1 ? '1 part' : `${count} parts`),
-    confirmDelete: (name: string) => `Delete "${name}"? This cannot be undone.`,
+    deleteDialog: {
+      title: 'Delete saved game?',
+      message: (name: string) => `"${name}" will be permanently deleted. This cannot be undone.`,
+      confirm: 'Delete',
+      cancel: 'Cancel',
+    },
     dateLocale: 'en-US',
   },
 } as const;

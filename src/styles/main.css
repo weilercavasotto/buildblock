@@ -111,6 +111,86 @@ canvas {
   color: var(--color-accent-danger);
 }
 
+/* ---- Confirm dialog (src/ui/confirm-dialog.ts) ---- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-dialog);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-backdrop);
+  animation: dialog-fade var(--motion-fast) ease-out;
+}
+.dialog {
+  width: min(var(--size-dialog-width), 90vw);
+  background: var(--color-surface-panel);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  animation: dialog-pop var(--motion-fast) ease-out;
+}
+.dialog-title {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-sm);
+}
+.dialog-message {
+  margin: 0 0 var(--space-xl);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  opacity: var(--opacity-muted);
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+.dialog-button {
+  border: var(--border-regular) solid transparent;
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+.dialog-button:hover {
+  background: var(--color-surface-control-hover);
+}
+.dialog-button.primary {
+  background: var(--color-accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.dialog-button.primary:hover {
+  background: var(--color-accent-primary-hover);
+}
+.dialog-button.danger {
+  background: var(--color-accent-danger);
+  font-weight: var(--font-weight-semibold);
+}
+.dialog-button:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-highlight);
+}
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dialog-pop {
+  from {
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog-backdrop,
+  .dialog {
+    animation: none;
+  }
+}
+
 /* ---- Main menu ---- */
 #menu {
   position: fixed;

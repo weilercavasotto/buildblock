@@ -28,4 +28,5 @@ export const SIZE = {
   panelWidth: 460,
   listMaxHeight: 260,
   separatorHeight: 28,
+  dialogWidth: 380,
 } as const;

@@ -72,6 +72,7 @@ export const ALPHA = {
   muted: 0.7,
   disabled: 0.45,
   ghost: 0.5,
+  backdrop: 0.55,
 } as const;
 
 /** Colours with alpha baked in, ready for CSS. */
@@ -82,4 +83,6 @@ export const OVERLAYS = {
   hint: withAlpha(COLORS.white, ALPHA.hint),
   vignetteInner: withAlpha(COLORS.surface.vignette, ALPHA.vignetteInner),
   vignetteOuter: withAlpha(COLORS.surface.vignette, ALPHA.vignetteOuter),
+  /** Dimmed layer behind modal dialogs. */
+  backdrop: withAlpha(COLORS.black, ALPHA.backdrop),
 } as const;
