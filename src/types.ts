@@ -1,6 +1,9 @@
 export type Vec3 = [number, number, number];
 export type PartType = 'block' | 'wheel';
 
+/** What the left button does: place parts, inspect a part, or remove parts. */
+export type CursorMode = 'build' | 'inspect' | 'remove';
+
 export interface Part {
   type: PartType;
   cell: Vec3;

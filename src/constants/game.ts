@@ -92,6 +92,15 @@ export const ROUGHNESS = {
   scenery: 0.8,
 } as const;
 
+/** Outlines drawn around the part under the cursor / the inspected part. */
+export const HIGHLIGHT = {
+  /** Outline sticks out of the part by this much (world units) to avoid z-fighting. */
+  margin: 0.03,
+  selectedFillOpacity: 0.22,
+  removeFillOpacity: 0.3,
+  hoverFillOpacity: 0.12,
+} as const;
+
 export const BUILD = {
   /** Pointer travel (px) below which a right press-release counts as a click (remove) rather than a camera pan. */
   clickMaxDistance: 5,

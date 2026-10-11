@@ -19,6 +19,7 @@ export class Hotbar {
   private slotEls: HTMLButtonElement[] = [];
   private listeners: Array<(part: PartType | null) => void> = [];
   private layoutListeners: Array<() => void> = [];
+  private userSelectListeners: Array<() => void> = [];
 
   private root = document.getElementById('hotbar-slots')!;
 
@@ -37,6 +38,11 @@ export class Hotbar {
   subscribe(fn: (part: PartType | null) => void): void {
     this.listeners.push(fn);
     fn(this.current);
+  }
+
+  /** Called when a slot is selected on purpose (key, click or the catalog), as opposed to its content changing. */
+  onUserSelect(fn: () => void): void {
+    this.userSelectListeners.push(fn);
   }
 
   /** Called after any change of the slots or of the selected slot. Returns a function that unsubscribes. */
@@ -62,6 +68,7 @@ export class Hotbar {
     this.selected = index;
     this.renderAll();
     this.changed();
+    this.userSelectListeners.forEach((fn) => fn());
   }
 
   assign(index: number, type: Slot): void {

@@ -471,7 +471,7 @@ body.dragging * {
   border: var(--border-regular) solid transparent;
   background: var(--color-surface-control);
   color: var(--color-text-primary);
-  padding: var(--space-sm) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   font-size: var(--font-size-md);
   cursor: pointer;
@@ -483,6 +483,43 @@ body.dragging * {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
+/* Cursor modes (Q / W / E): left side of the top bar. */
+#mode-switch {
+  display: flex;
+  gap: var(--space-xs);
+}
+#top-bar #mode-switch button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+#mode-switch button.active {
+  border-color: var(--color-accent-highlight);
+  background: var(--color-surface-control-hover);
+}
+#mode-switch kbd {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-input);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  line-height: var(--space-lg);
+}
+/* Narrow windows: only the key caps (the tooltip names the mode) so the bar does not run under the top-left buttons.
+   (A media query cannot use the CSS variables, so the breakpoint is a literal.) */
+@media (max-width: 1000px) {
+  #mode-switch .mode-label {
+    display: none;
+  }
+}
+/* The pointer tells the mode on the 3D view. */
+body[data-cursor-mode='inspect'] > canvas {
+  cursor: help;
+}
+body[data-cursor-mode='remove'] > canvas {
+  cursor: crosshair;
+}
+
 #top-bar #btn-play {
   background: var(--color-accent-primary);
   font-weight: var(--font-weight-semibold);
@@ -494,11 +531,56 @@ body.dragging * {
   background: var(--color-accent-danger);
 }
 
+/* ---- Part inspector (inspect mode): in the top-right column, below the zoom control ---- */
+#part-inspector {
+  pointer-events: auto;
+  width: var(--size-part-inspector-width);
+  /* Fills all the height left in the column (its content scrolls when it is taller). */
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel-strong);
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+#part-inspector .inspector-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+#part-inspector .inspector-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+#part-inspector .inspector-name {
+  text-align: left;
+}
+#part-inspector .inspector-chip {
+  align-self: flex-start;
+}
+#part-inspector .help-header {
+  margin-bottom: 0;
+}
+.catalog-action.danger {
+  background: var(--color-accent-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* ---- Top-right corner: FPS counter and zoom control ---- */
 #corner {
   position: fixed;
   top: var(--space-lg);
   right: var(--space-lg);
+  /* Down to the space reserved for the hotbar, so the part inspector can fill what is left below the zoom control. */
+  bottom: var(--size-hotbar-reserved);
   display: flex;
   flex-direction: column;
   align-items: flex-end;

@@ -48,5 +48,9 @@ export const SIZE = {
   catalogChrome: 340,
   inspectorPreview: 160,
   dragGhost: 64,
+  partInspectorWidth: 280,
+  partInspectorPreview: 72,
+  /** Space kept free at the bottom for the hotbar; the top-right column (and the part inspector in it) stops above it. */
+  hotbarReserved: 100,
   zoomSliderHeight: 140,
 } as const;

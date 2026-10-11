@@ -90,15 +90,27 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   steps are kept; `clear()` runs when another creation is loaded or created. The Undo/Redo buttons (in `#top-bar`,
   shown only while building) are driven by `Hud.setHistoryState`; `main.ts` handles `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`
   and `Ctrl/Cmd+Shift+Z` (ignored while a stroke is in progress and outside build mode).
+- **Cursor modes** (`CursorMode` in `types.ts`, `CURSOR_MODES` in `constants/cursor-modes.ts`) — `build`, `inspect`,
+  `remove` (keys Q/W/E). `main.ts` `setCursorMode` applies one mode everywhere: `BuildMode.setMode`, the highlighted
+  button of the top bar (`Hud.setCursorMode`; the buttons are created from `CURSOR_MODES`), `body[data-cursor-mode]`
+  (cursor shape in CSS) and `controls.mouseButtons` (`LEFT` is `ROTATE` only in inspect mode, `null` otherwise, so a left
+  drag never moves the camera while placing/erasing). Choosing a hotbar slot (`Hotbar.onUserSelect`) goes back to build.
 - **`BuildMode`** — raycasts against placed parts and the ground plane, picks the nearest hit and derives
-  a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). The left button places on
+  a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). In **build** mode the left button places on
   press; with the block tool, holding it and moving **paints** blocks (a `Stroke`): the pointer ray is intersected with
   the plane of the face where the stroke began (not with the new blocks, which would make it grow towards the camera),
   the layer coordinate stays fixed, cells between two pointer events are interpolated, `Grid.addMany` adds them with a
   single change notification, and cells farther than `BUILD.maxPaintDistance` from the start are ignored. The stroke
-  ends on release (also outside the canvas or on window blur). Distinguishes
-  a right click (remove) from a right drag (pan) by pointer movement (< `BUILD.clickMaxDistance`). Owns the `group` of build meshes and hides it
-  during Play.
+  ends on release (also outside the canvas or on window blur). In **remove** mode the left button removes the part under
+  the pointer on press and keeps erasing while dragging (an `Erase`, committed to the history as one step; a new removal
+  needs `BUILD.clickMaxDistance` px of pointer movement, so a stack is not drilled through). In **inspect** mode a left
+  *click* (no movement; a drag rotates the camera) calls `select(part)`: the part gets a yellow outline
+  (`build/outline.ts`: wireframe + translucent fill around `partBounds(part)`), the listeners registered with
+  `onSelectionChange` are told, and `rebuild()` (every grid change) re-validates the selection (dropped if the part is
+  gone, refreshed otherwise). Outside build mode the part under the cursor gets a hover outline (white / red). A right
+  click removes (build and remove modes) and a right *drag* pans, told apart by pointer movement
+  (< `BUILD.clickMaxDistance`). Owns the `group` of build meshes and hides it during Play (which also clears the
+  selection).
 - **`part-defs`** — shared geometries/materials, `createPartObject(part, ghost?)` and
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
 - **`PhysicsWorld`** — see [physics.md](physics.md).
@@ -135,6 +147,14 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   swallows every other key (capture-phase listener + `stopPropagation`, so the game under it does not react: no
   hotbar selection, undo or driving) and allows a single modal at a time. Callers pass `build()` (fills the dialog and
   returns the element to focus), optional `onKeyDown` and `onClose`.
+- **`PartInspector`** (`src/ui/part-inspector.ts`) — the panel on the right in inspect mode (`#part-inspector`, inside
+  the top-right `#corner` column, **below the zoom control**. `#corner` is stretched from the top of the screen down to
+  `SIZE.hotbarReserved` above the bottom (so it never reaches the hotbar) and the panel is `flex: 1`: it **fills all the
+  height left under the zoom control** (taller windows give it more room; it scrolls when the window is short):
+  small spinning preview beside the name and category, a *Remove part* button
+  (`history.run`), "This part" rows (position; for a block the size of its rigid body from `Grid.connectedBlocks` and its
+  wheels from `Grid.wheelsOn`; for a wheel its host block and axle) and the properties from `PART_INFO`.
+  `main.ts` calls `inspector.show(part)` from `build.onSelectionChange`, so it follows undo/redo and every other edit.
 - **`Hotbar`** (`src/ui/hotbar.ts`) — `HOTBAR.slots` (9) slots, each a part type or empty; the selected slot is what
   `BuildMode.setTool` places (`null` = place nothing). `main.ts` wires `hotbar.subscribe(part => build.setTool(part))`
   and the keys `1`–`9` / `B`. Slots are persisted in `localStorage` (`STORAGE.hotbarKey`, per browser, not per save).

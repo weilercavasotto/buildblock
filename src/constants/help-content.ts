@@ -53,14 +53,23 @@ export const HELP_TABS: HelpTab[] = [
     title: 'Mouse & camera',
     sections: [
       {
-        heading: 'Building',
+        heading: 'Cursor modes',
+        rows: [
+          { keys: ['Q'], text: 'Build mode (default): the left button places the part of the selected hotbar slot.' },
+          { keys: ['W'], text: 'Inspect mode: click a part to select it and see its details in a panel on the right, below the zoom control. Clicking empty ground deselects. The left button also rotates the camera here.' },
+          { keys: ['E'], text: 'Remove mode: the left button removes the part under the cursor; drag to erase several (one undo step). Parts under the cursor are outlined in red.' },
+          { text: 'The modes are in the top bar, on the left. Choosing a hotbar slot switches back to Build.' },
+        ],
+      },
+      {
+        heading: 'Building (Build mode)',
         rows: [
           { keys: ['Left click'], text: 'Place the selected part.' },
           {
             keys: ['Left drag'],
             text: 'Paint blocks: keep the button down and move to keep placing blocks on the face where you started (a row, a layer or a wall).',
           },
-          { keys: ['Right click'], text: 'Remove the part under the cursor. Removing a block also removes its wheels.' },
+          { keys: ['Right click'], text: 'Remove the part under the cursor (Build and Remove modes). Removing a block also removes its wheels.' },
         ],
       },
       {
@@ -124,7 +133,8 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Build mode',
         rows: [
-          { keys: ['1 – 9'], text: 'Select the part in that hotbar slot.' },
+          { keys: ['Q', 'W', 'E'], text: 'Cursor mode: Build, Inspect, Remove.' },
+          { keys: ['1 – 9'], text: 'Select the part in that hotbar slot (and switch to Build).' },
           { keys: ['B'], text: 'Open or close the parts catalog.' },
           { keys: ['Ctrl / Cmd + Z'], text: 'Undo.' },
           { keys: ['Ctrl / Cmd + Y', 'Ctrl / Cmd + Shift + Z'], text: 'Redo.' },
@@ -133,7 +143,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Play mode',
         rows: [
-          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too).' },
+          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). Q/W/E only switch modes while building.' },
           { keys: ['R'], text: 'Restart.' },
         ],
       },

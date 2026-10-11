@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { Grid } from './grid';
 import { Checkpoint, History } from './history';
-import { BUILD, GROUND_Y } from '../constants';
-import { createPartObject } from '../parts/part-defs';
-import { Part, PartType, Vec3, addVec } from '../types';
+import { disposeOutline, createOutline, outlineFill } from './outline';
+import { BUILD, COLORS, GROUND_Y, hexToNumber } from '../constants';
+import { createPartObject, partBounds } from '../parts/part-defs';
+import { CursorMode, Part, PartType, Vec3, addVec, cellKey } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -28,9 +29,30 @@ interface Stroke {
   before: Checkpoint;
 }
 
+/** A left-button drag in remove mode that erases every part it passes over. */
+interface Erase {
+  before: Checkpoint;
+  /** Pointer position of the last removal; the next one needs some movement (no drilling through a stack). */
+  x: number;
+  y: number;
+}
+
+/**
+ * Turns pointer input into edits of the grid, depending on the cursor mode:
+ * - build: the left button places the hotbar part (drag to paint blocks), a right click removes;
+ * - inspect: a left click selects the part under the cursor (outlined; listeners such as the inspector panel are told);
+ * - remove: the left button removes the part under the cursor (drag to erase), a right click removes too.
+ * The camera buttons are configured in `main.ts` per mode (the left button only rotates the camera in inspect mode).
+ */
 export class BuildMode {
   readonly group = new THREE.Group();
+  private mode: CursorMode = 'build';
   private ghost: THREE.Object3D | null = null;
+  private hover: { part: Part; outline: THREE.Group } | null = null;
+  private selection: Part | null = null;
+  private selectionOutline: THREE.Group | null = null;
+  private selectionListeners: Array<(part: Part | null) => void> = [];
+  private erase: Erase | null = null;
   /** The part to place (the one in the selected hotbar slot); null when that slot is empty. */
   private tool: PartType | null = 'block';
   private enabled = true;
@@ -51,14 +73,14 @@ export class BuildMode {
     this.rebuild();
 
     dom.addEventListener('pointermove', (e) => this.onMove(e));
-    dom.addEventListener('pointerleave', () => this.setGhost(null));
+    dom.addEventListener('pointerleave', () => this.clearHints());
     dom.addEventListener('pointerdown', (e) => this.onDown(e));
     dom.addEventListener('pointerup', (e) => this.onUp(e));
     // A stroke must end even when the button is released outside the canvas or the window loses focus.
     window.addEventListener('pointerup', (e) => {
-      if (e.button === 0) this.endStroke();
+      if (e.button === 0) this.endGestures();
     });
-    window.addEventListener('blur', () => this.endStroke());
+    window.addEventListener('blur', () => this.endGestures());
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -67,13 +89,44 @@ export class BuildMode {
     this.setGhost(null);
   }
 
+  setMode(mode: CursorMode): void {
+    if (mode === this.mode) return;
+    this.endGestures();
+    this.clearHints();
+    this.mode = mode;
+    if (mode !== 'inspect') this.select(null);
+  }
+
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     this.group.visible = enabled;
     if (!enabled) {
-      this.endStroke();
-      this.setGhost(null);
+      this.endGestures();
+      this.clearHints();
+      this.select(null);
     }
+  }
+
+  /** The inspected part (outlined), or null. */
+  get selected(): Part | null {
+    return this.selection;
+  }
+
+  /** Called with the new selection (or null) whenever it changes or the selected part is updated by an edit. */
+  onSelectionChange(fn: (part: Part | null) => void): void {
+    this.selectionListeners.push(fn);
+  }
+
+  select(part: Part | null): void {
+    const unchanged = part === null ? this.selection === null : this.selection && cellKey(part.cell) === cellKey(this.selection.cell);
+    this.selection = part;
+    disposeOutline(this.selectionOutline);
+    this.selectionOutline = null;
+    if (part) {
+      this.selectionOutline = createOutline(partBounds(part), hexToNumber(COLORS.accent.highlight), outlineFill.selected);
+      this.scene.add(this.selectionOutline);
+    }
+    if (!unchanged || part) this.selectionListeners.forEach((fn) => fn(part));
   }
 
   private rebuild(): void {
@@ -85,6 +138,15 @@ export class BuildMode {
       this.group.add(obj);
       // Raycasts use the world matrix, which is otherwise only refreshed on the next rendered frame.
       obj.updateMatrixWorld(true);
+    }
+    if (this.hover) {
+      disposeOutline(this.hover.outline);
+      this.hover = null;
+    }
+    // An edit may have removed or changed the inspected part: keep the selection in sync (or drop it).
+    if (this.selection) {
+      const current = this.grid.get(this.selection.cell);
+      this.select(current && current.type === this.selection.type ? current : null);
     }
   }
 
@@ -129,6 +191,12 @@ export class BuildMode {
   private onDown(e: PointerEvent): void {
     this.down = { x: e.clientX, y: e.clientY, button: e.button };
     if (!this.enabled || e.button !== 0) return;
+    if (this.mode === 'remove') {
+      this.erase = { before: this.history.begin(), x: e.clientX, y: e.clientY };
+      this.eraseAt(e, true);
+      return;
+    }
+    if (this.mode !== 'build') return; // inspect: the click is handled on release (a drag rotates the camera)
 
     // The left button places on press; for blocks, keeping it down and moving paints more blocks (see `paint`).
     const p = this.pick(e);
@@ -163,6 +231,26 @@ export class BuildMode {
     this.stroke = null;
   }
 
+  /** Ends a paint stroke or an erase stroke, each as one undo step. */
+  private endGestures(): void {
+    this.endStroke();
+    if (this.erase) {
+      this.history.commit(this.erase.before);
+      this.erase = null;
+    }
+  }
+
+  /** Removes the part under the pointer, unless the pointer has not moved since the previous removal. */
+  private eraseAt(e: PointerEvent, first = false): void {
+    const s = this.erase!;
+    if (!first && Math.hypot(e.clientX - s.x, e.clientY - s.y) < BUILD.clickMaxDistance) return;
+    const part = this.pick(e)?.part;
+    if (!part) return;
+    s.x = e.clientX;
+    s.y = e.clientY;
+    this.grid.remove(part.cell);
+  }
+
   /**
    * Extends the stroke to the cell under the pointer. The pointer ray is intersected with the plane of the face the
    * stroke started on (not with the blocks just placed, which would make the stroke grow towards the camera), and
@@ -191,14 +279,45 @@ export class BuildMode {
   }
 
   private onMove(e: PointerEvent): void {
-    if (!this.enabled) return this.setGhost(null);
+    if (!this.enabled) return this.clearHints();
     if (this.stroke) {
       if (e.buttons & 1) return this.paint(e);
       this.endStroke();
     }
-    if (e.buttons !== 0) return this.setGhost(null);
+    if (this.erase) {
+      if (e.buttons & 1) return this.eraseAt(e);
+      this.endGestures();
+    }
+    if (e.buttons !== 0) return this.clearHints();
     const p = this.pick(e);
-    this.setGhost(p ? this.target(p) : null);
+    if (this.mode === 'build') {
+      this.setHover(null);
+      this.setGhost(p ? this.target(p) : null);
+    } else {
+      this.setGhost(null);
+      this.setHover(p?.part ?? null);
+    }
+  }
+
+  private clearHints(): void {
+    this.setGhost(null);
+    this.setHover(null);
+  }
+
+  /** Outlines the part that a click would inspect (white) or remove (red). */
+  private setHover(part: Part | null): void {
+    if (this.hover && part && cellKey(this.hover.part.cell) === cellKey(part.cell) && this.hover.part.type === part.type) return;
+    disposeOutline(this.hover?.outline ?? null);
+    this.hover = null;
+    if (!part || (this.mode === 'inspect' && this.selection && cellKey(part.cell) === cellKey(this.selection.cell))) return;
+    const remove = this.mode === 'remove';
+    const outline = createOutline(
+      partBounds(part),
+      hexToNumber(remove ? COLORS.accent.danger : COLORS.white),
+      remove ? outlineFill.remove : outlineFill.hover,
+    );
+    this.scene.add(outline);
+    this.hover = { part, outline };
   }
 
   private setGhost(part: Part | null): void {
@@ -213,20 +332,22 @@ export class BuildMode {
   private onUp(e: PointerEvent): void {
     const down = this.down;
     this.down = null;
-    if (e.button === 0) this.endStroke();
+    if (e.button === 0) this.endGestures();
     if (!this.enabled || !down || down.button !== e.button) return;
-    // Placing happens on press (see `onDown`). The right button also pans the camera: only a press without
-    // movement counts as a click (remove).
-    if (e.button === 2 && Math.hypot(e.clientX - down.x, e.clientY - down.y) > BUILD.clickMaxDistance) return;
+    // Placing / removing with the left button happens on press (see `onDown`). Inspecting is a click on release, and
+    // the right button also pans the camera: both only count when the pointer did not move.
+    const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > BUILD.clickMaxDistance;
 
-    if (e.button === 2) {
+    if (this.mode === 'inspect') {
+      if (e.button === 0 && !moved) this.select(this.pick(e)?.part ?? null);
+    } else if (e.button === 2 && !moved) {
       const p = this.pick(e);
       if (p?.part) {
         const cell = p.part.cell;
         this.history.run(() => this.grid.remove(cell));
       }
     }
-    this.setGhost(null);
+    this.clearHints();
     this.onMove(e);
   }
 }

@@ -79,6 +79,20 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 
 ## Controls
 
+### Cursor modes (`Q` / `W` / `E`)
+
+The left part of the top bar has three **cursor modes**; press the key or click the button. They decide what the left
+mouse button does (the middle button always rotates the camera, the right button pans, scroll zooms):
+
+| Mode | Key | Left button |
+|---|---|---|
+| **Build** (default) | `Q` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
+| **Inspect** | `W` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens on the right, below the zoom control and filling the height down to the hotbar's level (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button). Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
+| **Remove** | `E` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |
+
+Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The shortcuts only work while
+building (in Play, `W` drives). The modes are hidden on narrow windows (< 1000 px) to just the key caps.
+
 ### Build mode
 
 | Input | Action |

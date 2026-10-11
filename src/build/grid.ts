@@ -74,6 +74,27 @@ export class Grid {
     this.emit();
   }
 
+  /** Number of blocks welded together with the block at `cell` (touching blocks form one rigid body); 0 if none. */
+  connectedBlocks(cell: Vec3): number {
+    if (this.get(cell)?.type !== 'block') return 0;
+    const seen = new Set([cellKey(cell)]);
+    const queue: Vec3[] = [cell];
+    while (queue.length) {
+      for (const n of this.neighbors(queue.pop()!)) {
+        if (n.type === 'block' && !seen.has(cellKey(n.cell))) {
+          seen.add(cellKey(n.cell));
+          queue.push(n.cell);
+        }
+      }
+    }
+    return seen.size;
+  }
+
+  /** Wheels mounted on the block at `cell`. */
+  wheelsOn(cell: Vec3): Part[] {
+    return this.all().filter((p) => p.type === 'wheel' && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
+  }
+
   neighbors(cell: Vec3): Part[] {
     const dirs: Vec3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
     return dirs.map((d) => this.get(addVec(cell, d))).filter((p): p is Part => !!p);

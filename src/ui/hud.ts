@@ -1,4 +1,5 @@
-import { TEXT } from '../constants';
+import { CURSOR_MODES, TEXT } from '../constants';
+import { CursorMode } from '../types';
 
 export interface HudHandlers {
   onTogglePlay(): void;
@@ -6,6 +7,7 @@ export interface HudHandlers {
   onMenu(): void;
   onHelp(): void;
   onUndo(): void;
+  onMode(mode: CursorMode): void;
   onRedo(): void;
 }
 
@@ -27,6 +29,7 @@ export class Hud {
     this.playButton.onclick = handlers.onTogglePlay;
     document.getElementById('btn-menu')!.onclick = handlers.onMenu;
     this.helpButton.onclick = handlers.onHelp;
+    this.createModeButtons(handlers.onMode);
     this.undoButton.onclick = handlers.onUndo;
     this.redoButton.onclick = handlers.onRedo;
     this.setMode('build');
@@ -35,6 +38,35 @@ export class Hud {
   setVisible(visible: boolean): void {
     this.visible = visible;
     this.updateVisibility();
+  }
+
+  /** Highlights the button of the active cursor mode. */
+  setCursorMode(mode: CursorMode): void {
+    document.querySelectorAll<HTMLElement>('#mode-switch button').forEach((el) => {
+      el.classList.toggle('active', el.dataset.mode === mode);
+      el.setAttribute('aria-pressed', String(el.dataset.mode === mode));
+    });
+  }
+
+  private createModeButtons(onMode: (mode: CursorMode) => void): void {
+    const group = document.getElementById('mode-switch')!;
+    group.setAttribute('aria-label', TEXT.modes.group);
+    for (const mode of CURSOR_MODES) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = `mode-${mode.id}`;
+      button.dataset.mode = mode.id;
+      button.title = TEXT.modes.tooltip(mode.label, mode.key, mode.description);
+      const key = document.createElement('kbd');
+      key.textContent = mode.key;
+      const label = document.createElement('span');
+      label.className = 'mode-label';
+      label.textContent = mode.label;
+      button.append(key, label);
+      button.setAttribute('aria-label', `${mode.label} (${mode.key})`);
+      button.onclick = () => onMode(mode.id);
+      group.append(button);
+    }
   }
 
   setHistoryState(canUndo: boolean, canRedo: boolean): void {

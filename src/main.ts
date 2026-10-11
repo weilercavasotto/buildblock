@@ -8,6 +8,7 @@ import { History } from './build/history';
 import {
   CAMERA,
   COLORS,
+  CURSOR_MODES,
   GROUND_Y,
   LIGHTS,
   ROUGHNESS,
@@ -22,11 +23,13 @@ import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
 import { FrameLimiter } from './frame-limiter';
 import { createSave, getSave, updateSave } from './save';
+import { CursorMode } from './types';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
 import { openCatalog } from './ui/catalog-dialog';
 import { Hud } from './ui/hud';
 import { Hotbar } from './ui/hotbar';
+import { PartInspector } from './ui/part-inspector';
 import { isHelpOpen, toggleHelpDialog } from './ui/help-dialog';
 import { ZoomControl } from './ui/zoom-control';
 import { Menu } from './ui/menu';
@@ -65,8 +68,6 @@ async function main(): Promise<void> {
     camera.position.y = Math.max(camera.position.y, minCameraY);
     camera.lookAt(controls.target);
   };
-  // Left button is reserved for placing blocks; middle rotates, right pans (a right click without moving removes).
-  controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.PAN };
   // Stop browsers from starting "autoscroll" on a middle press.
   renderer.domElement.addEventListener('mousedown', (e) => {
     if (e.button === 1) e.preventDefault();
@@ -205,11 +206,33 @@ async function main(): Promise<void> {
     onTogglePlay: () => (physics ? stop() : startPlay()),
     onClear: () => history.run(() => grid.clear()),
     onMenu: enterMenu,
+    onMode: (mode) => setCursorMode(mode),
     onHelp: toggleHelpDialog,
     onUndo: () => history.undo(),
     onRedo: () => history.redo(),
   });
   history.subscribe(() => hud.setHistoryState(history.canUndo, history.canRedo));
+
+  // Cursor modes (Q / W / E): what the left mouse button does. The camera buttons depend on it: in build and remove
+  // mode the left button is taken, in inspect mode it also rotates the camera (a click without movement inspects).
+  const setCursorMode = (mode: CursorMode) => {
+    build.setMode(mode);
+    hud.setCursorMode(mode);
+    controls.mouseButtons = {
+      LEFT: mode === 'inspect' ? THREE.MOUSE.ROTATE : null,
+      MIDDLE: THREE.MOUSE.ROTATE,
+      RIGHT: THREE.MOUSE.PAN,
+    };
+    document.body.dataset.cursorMode = mode;
+  };
+  setCursorMode('build');
+  hotbar.onUserSelect(() => setCursorMode('build')); // choosing a part to place means building
+
+  const inspector = new PartInspector(grid, {
+    onRemove: (part) => history.run(() => grid.remove(part.cell)),
+    onClose: () => build.select(null),
+  });
+  build.onSelectionChange((part) => inspector.show(part));
   hud.setHistoryState(history.canUndo, history.canRedo);
   enterMenu();
 
@@ -236,6 +259,8 @@ async function main(): Promise<void> {
       }
       return;
     }
+    const modeKey = CURSOR_MODES.find((mode) => mode.code === e.code);
+    if (modeKey && !e.shiftKey && !e.altKey) setCursorMode(modeKey.id);
     if (/^Digit[1-9]$/.test(e.code)) hotbar.select(Number(e.code.slice(5)) - 1);
     if (e.code === 'KeyB') openCatalog(hotbar);
   });

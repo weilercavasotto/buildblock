@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, ROUGHNESS, WHEEL, WHEEL_VISUAL, hexToNumber } from '../constants';
+import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, HIGHLIGHT, ROUGHNESS, WHEEL, WHEEL_VISUAL, hexToNumber } from '../constants';
 import { Part, Vec3 } from '../types';
 
 const color = (hex: string): number => hexToNumber(hex);
@@ -21,6 +21,21 @@ const spokeMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.spoke
 const edgeMat = new THREE.LineBasicMaterial({ color: color(COLORS.part.blockEdge) });
 const ghostOk = ghostMaterial(COLORS.part.ghostValid);
 const ghostBad = ghostMaterial(COLORS.part.ghostInvalid);
+
+/** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
+export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face'>): THREE.Box3 {
+  const half = new THREE.Vector3();
+  if (part.type === 'block') {
+    half.setScalar(BLOCK_VISUAL_SIZE / 2);
+  } else {
+    half.setScalar(WHEEL.radius);
+    const axle = (part.face ?? [1, 0, 0]).findIndex((v) => v !== 0);
+    half.setComponent(axle, WHEEL.width / 2);
+  }
+  half.addScalar(HIGHLIGHT.margin);
+  const centre = new THREE.Vector3(...part.cell);
+  return new THREE.Box3(centre.clone().sub(half), centre.clone().add(half));
+}
 
 /** Rotation that maps the cylinder's Y axis onto the wheel axle (`face`). */
 export function faceQuaternion(face: Vec3): THREE.Quaternion {
