@@ -109,6 +109,11 @@ export const FPS_COUNTER = {
   okFps: 30,
 } as const;
 
+export const HISTORY = {
+  /** Undo steps kept per session; the oldest are dropped beyond this. */
+  maxSteps: 100,
+} as const;
+
 export const STORAGE = {
   savesKey: 'blocklab.saves.v2',
   /** Single-slot save used before the main menu existed; migrated once. */

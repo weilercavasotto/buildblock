@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BuildMode } from './build/build-mode';
 import { Grid } from './build/grid';
+import { History } from './build/history';
 import {
   CAMERA,
   COLORS,
@@ -100,7 +101,8 @@ async function main(): Promise<void> {
   grid.subscribe(() => {
     if (activeSave) updateSave(activeSave, grid.all());
   });
-  const build = new BuildMode(scene, camera, renderer.domElement, grid);
+  const history = new History(grid);
+  const build = new BuildMode(scene, camera, renderer.domElement, grid, history);
 
   type Mode = 'menu' | 'build' | 'play';
   let mode: Mode = 'menu';
@@ -169,12 +171,14 @@ async function main(): Promise<void> {
       activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
       grid.load(save.parts);
       activeSave = id;
+      history.clear();
       enterBuild();
     },
     onNew: (name) => {
       activeSave = null;
       grid.clear();
       activeSave = createSave(name).id;
+      history.clear();
       enterBuild();
     },
   });
@@ -184,9 +188,13 @@ async function main(): Promise<void> {
   const hud = new Hud({
     onTool: setTool,
     onTogglePlay: () => (physics ? stop() : startPlay()),
-    onClear: () => grid.clear(),
+    onClear: () => history.run(() => grid.clear()),
     onMenu: enterMenu,
+    onUndo: () => history.undo(),
+    onRedo: () => history.redo(),
   });
+  history.subscribe(() => hud.setHistoryState(history.canUndo, history.canRedo));
+  hud.setHistoryState(history.canUndo, history.canRedo);
   setTool('block');
   enterMenu();
 
@@ -197,6 +205,18 @@ async function main(): Promise<void> {
     }
     if (mode === 'play' && e.code === 'KeyR') startPlay();
     if (mode !== 'build') return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      // Ctrl/Cmd+Z undo, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redo. Not while a paint stroke is in progress.
+      const isUndo = e.code === 'KeyZ' && !e.shiftKey;
+      const isRedo = e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey);
+      if (isUndo || isRedo) {
+        e.preventDefault();
+        if (build.isPainting) return;
+        if (isUndo) history.undo();
+        else history.redo();
+      }
+      return;
+    }
     if (e.code === 'Digit1') setTool('block');
     if (e.code === 'Digit2') setTool('wheel');
   });
@@ -208,7 +228,7 @@ async function main(): Promise<void> {
   });
 
   if (import.meta.env.DEV) {
-    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build } });
+    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build, history } });
   }
 
   const timer = new THREE.Timer();

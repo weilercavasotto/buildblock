@@ -5,7 +5,7 @@
 - Wheels can only be mounted on the **side** faces of blocks (axle along X or Z).
 - Only the wheels parallel to the majority axle are driven; every driven wheel gets the same torque.
 - Only block and wheel parts exist.
-- No export/import of saves, no rename of existing saves and no undo/redo.
+- No export/import of saves and no rename of existing saves; the undo history is per session (not saved).
 - Blocks have no joints that can break; a structure never falls apart.
 - Scenery in Play mode is fixed (a couple of ramps and obstacles).
 - Controls are fixed WASD/arrows; there is no per-wheel key configuration.
@@ -14,7 +14,7 @@
 
 - More parts: slopes, thrusters, hinges, suspension, steering wheels.
 - Per-wheel key bindings (Besiege-style) and a steerable/non-driven wheel flag.
-- Undo/redo (a painted stroke should undo as one step), copy/paste and save slots (export/import JSON).
+- Copy/paste and save slots (export/import JSON); undo/redo that also survives reloading a save.
 - Painting for other tools (e.g. a row of wheels) and an erase-by-dragging mode.
 - Block colours and materials.
 - Frame-limit setting in an options menu (30/60/uncapped).

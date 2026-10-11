@@ -29,4 +29,6 @@ export const SIZE = {
   listMaxHeight: 260,
   separatorHeight: 28,
   dialogWidth: 380,
+  /** Width reserved for the undo/redo bar at the top centre; the build hint wraps before reaching it. */
+  historyBarWidth: 240,
 } as const;

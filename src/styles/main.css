@@ -82,6 +82,38 @@ canvas {
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
+  /* Leave the top centre free for the undo/redo bar. */
+  max-width: calc(50vw - var(--size-history-bar-width) / 2 - var(--space-xl));
+}
+
+/* ---- Undo / redo bar (top centre) ---- */
+#history {
+  position: fixed;
+  top: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel);
+  user-select: none;
+}
+#history button {
+  border: var(--border-regular) solid transparent;
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+#history button:hover:not(:disabled) {
+  background: var(--color-surface-control-hover);
+}
+#history button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
 }
 
 /* ---- FPS counter ---- */

@@ -18,6 +18,7 @@ src/
   ui/menu.ts                   Main menu and saved-games panel (DOM bound to index.html)
   parts/part-defs.ts           Visuals (meshes/materials) of every part
   build/grid.ts                Data model: the set of placed parts
+  build/history.ts             Undo/redo: snapshot history of grid edits (one step per user action)
   build/build-mode.ts          Mouse picking, ghost preview, place/remove
   play/physics-world.ts        Grid -> Rapier bodies/joints, scenery, stepping and sync
   play/vehicle-controller.ts   Keyboard -> wheel motors
@@ -74,6 +75,15 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 - **`Grid`** — `Map` keyed by `"x,y,z"`. `canPlace` enforces: free cell, `y >= 0`, and for wheels a
   lateral `face` with a block behind it. `remove` cascades to wheels mounted on a removed block.
   Observers register with `subscribe`.
+- **`History`** (`src/build/history.ts`) — undo/redo as snapshots of the grid (parts are never mutated, so snapshots
+  share the objects). `begin()` takes a checkpoint, `commit(checkpoint)` pushes it as ONE step if the grid changed
+  (detected with a mutation counter), `run(edit)` wraps both. `BuildMode` uses it for each press (place), removal and
+  paint stroke (committed when the stroke ends); `main.ts` for **Clear**. `undo()`/`redo()` restore snapshots with
+  `Grid.load`, so the autosave and the meshes follow. A new edit clears the redo stack; at most `HISTORY.maxSteps`
+  steps are kept; `clear()` runs when another creation is loaded or created. The Undo/Redo bar (`#history`, top
+  centre, shown only while building) is driven by `Hud.setHistoryState`; `main.ts` handles `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`
+  and `Ctrl/Cmd+Shift+Z` (ignored while a stroke is in progress and outside build mode). The build hint is
+  width-limited so it never runs under the bar (`SIZE.historyBarWidth`).
 - **`BuildMode`** — raycasts against placed parts and the ground plane, picks the nearest hit and derives
   a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). The left button places on
   press; with the block tool, holding it and moving **paints** blocks (a `Stroke`): the pointer ray is intersected with

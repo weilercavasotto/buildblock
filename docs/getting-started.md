@@ -47,6 +47,7 @@ In the game, the **☰ Menu** button (left of the toolbar) returns to the main m
 | Right drag | Pan the camera (a right press that moves is not a click, so nothing is removed) |
 | Middle drag | Rotate the camera |
 | Scroll | Zoom |
+| **Undo / Redo** buttons (top centre) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |
 | `1` / `2` | Select **Block** / **Wheel** (also available as HUD buttons) |
 | **Clear** | Remove every part |
 | **Play** | Switch to Play mode |
@@ -73,6 +74,6 @@ migrated once into a save called "My creation". There is no export/import yet.
 
 ## Dev-only debug hook
 
-In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build }`
+In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build, history }`
 for inspection from the browser console. It is stripped from production builds
 (`import.meta.env.DEV`).

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Grid } from './grid';
+import { Checkpoint, History } from './history';
 import { BUILD, GROUND_Y } from '../constants';
 import { createPartObject } from '../parts/part-defs';
 import { Part, PartType, Vec3, addVec } from '../types';
@@ -23,6 +24,8 @@ interface Stroke {
   layer: number;
   start: Vec3;
   last: Vec3;
+  /** Grid state before the stroke; committed to the history as one step when the stroke ends. */
+  before: Checkpoint;
 }
 
 export class BuildMode {
@@ -40,6 +43,7 @@ export class BuildMode {
     private camera: THREE.Camera,
     private dom: HTMLElement,
     private grid: Grid,
+    private history: History,
   ) {
     scene.add(this.group);
     grid.subscribe(() => this.rebuild());
@@ -51,9 +55,9 @@ export class BuildMode {
     dom.addEventListener('pointerup', (e) => this.onUp(e));
     // A stroke must end even when the button is released outside the canvas or the window loses focus.
     window.addEventListener('pointerup', (e) => {
-      if (e.button === 0) this.stroke = null;
+      if (e.button === 0) this.endStroke();
     });
-    window.addEventListener('blur', () => (this.stroke = null));
+    window.addEventListener('blur', () => this.endStroke());
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
@@ -66,7 +70,7 @@ export class BuildMode {
     this.enabled = enabled;
     this.group.visible = enabled;
     if (!enabled) {
-      this.stroke = null;
+      this.endStroke();
       this.setGhost(null);
     }
   }
@@ -127,9 +131,13 @@ export class BuildMode {
     // The left button places on press; for blocks, keeping it down and moving paints more blocks (see `paint`).
     const p = this.pick(e);
     const part = p && this.target(p);
-    if (!p || !part || !this.grid.add(part)) return;
+    if (!p || !part) return;
+    const before = this.history.begin();
+    if (!this.grid.add(part)) return;
     this.setGhost(null);
-    if (part.type === 'block') {
+    if (part.type !== 'block') {
+      this.history.commit(before);
+    } else {
       const axis = p.normal.findIndex((v) => v !== 0);
       this.stroke = {
         axis,
@@ -137,8 +145,20 @@ export class BuildMode {
         layer: part.cell[axis],
         start: part.cell,
         last: part.cell,
+        before,
       };
     }
+  }
+
+  /** True while the left button is held after placing a block (further blocks may still be added). */
+  get isPainting(): boolean {
+    return this.stroke !== null;
+  }
+
+  private endStroke(): void {
+    if (!this.stroke) return;
+    this.history.commit(this.stroke.before);
+    this.stroke = null;
   }
 
   /**
@@ -172,7 +192,7 @@ export class BuildMode {
     if (!this.enabled) return this.setGhost(null);
     if (this.stroke) {
       if (e.buttons & 1) return this.paint(e);
-      this.stroke = null;
+      this.endStroke();
     }
     if (e.buttons !== 0) return this.setGhost(null);
     const p = this.pick(e);
@@ -191,7 +211,7 @@ export class BuildMode {
   private onUp(e: PointerEvent): void {
     const down = this.down;
     this.down = null;
-    if (e.button === 0) this.stroke = null;
+    if (e.button === 0) this.endStroke();
     if (!this.enabled || !down || down.button !== e.button) return;
     // Placing happens on press (see `onDown`). The right button also pans the camera: only a press without
     // movement counts as a click (remove).
@@ -199,7 +219,10 @@ export class BuildMode {
 
     if (e.button === 2) {
       const p = this.pick(e);
-      if (p?.part) this.grid.remove(p.part.cell);
+      if (p?.part) {
+        const cell = p.part.cell;
+        this.history.run(() => this.grid.remove(cell));
+      }
     }
     this.setGhost(null);
     this.onMove(e);
