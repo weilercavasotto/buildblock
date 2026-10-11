@@ -22,6 +22,7 @@ src/
   build/build-mode.ts          Mouse picking, ghost preview, place/remove
   play/physics-world.ts        Grid -> Rapier bodies/joints, scenery, stepping and sync
   play/vehicle-controller.ts   Keyboard -> wheel motors
+  ui/zoom-control.ts           Zoom buttons + slider (top-right), in sync with the mouse-wheel zoom
   ui/fps-counter.ts            FPS readout (top-right), counted per rendered frame, toggled with F3
   ui/hud.ts                    Toolbar and hint text (DOM bound to index.html)
 ```
@@ -97,6 +98,15 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
 - **`PhysicsWorld`** — see [physics.md](physics.md).
 - **`VehicleController`** — see [physics.md](physics.md).
+- **`ZoomControl`** (`src/ui/zoom-control.ts`) — zoom is the camera's distance to the orbit target. The limits are
+  applied to `OrbitControls.minDistance/maxDistance`, so the wheel, pinch and the control itself share them. The slider
+  is logarithmic (equal steps = equal ratio; top = closest) and the label (inside the bar, above the slider) is the
+  zoom as a percentage: default distance divided by the current one (`100%` = default view). It listens to the controls' `change` event (wheel, damping, the camera following the car), so mouse zoom moves
+  the slider; slider/buttons move the camera along its line of sight (`setDistance`). The slider value is not rewritten
+  while it is being dragged, and the control releases keyboard focus after a click so the arrow keys keep driving.
+  Hidden in the menu (`main.ts` calls `setVisible` and `sync()` together with the HUD). The top-right `#corner` stacks
+  it under the FPS counter; inside, three same-width `.zoom-panel`s are stacked: `+`, `#zoom-bar` (percentage label +
+  slider) and `−`.
 - **`FpsCounter`** — counts frames over `FPS_COUNTER.updateInterval` and colours the number by threshold; the first
   window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.
 - **Camera controls** (`main.ts`) — `OrbitControls.mouseButtons = { LEFT: null, MIDDLE: ROTATE, RIGHT: PAN }`: the left

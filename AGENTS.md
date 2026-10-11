@@ -28,6 +28,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/frame-limiter.ts`: 60 FPS cap (`FRAME_LIMIT`); the main loop returns early when `shouldRender` is false
 - `src/build/history.ts`: undo/redo (`begin`/`commit`/`run`); wrap every user edit of the grid in one step (Ctrl/Cmd+Z / Y)
 - `src/ui/confirm-dialog.ts`: reusable modal confirmation (`confirmDialog`); use it instead of `window.confirm`
+- `src/ui/zoom-control.ts`: zoom buttons/slider synced with the wheel; limits in `CAMERA.minDistance/maxDistance`
 - `src/ui/fps-counter.ts`: FPS readout (F3 toggles)
 - `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
@@ -67,7 +68,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 1. `npm run build` must pass.
 2. Run `npm run dev`, open the app and exercise the feature: place blocks/wheels with real clicks, press
    Play, drive with W/S/A/D, `R` restarts, Stop returns to the intact build.
-3. Dev mode exposes `window.__blocklab` (`grid`, `camera`, `controls`, `getPhysics()`, `getMode()`, `menuScene`, `build`, `history`) for inspecting
+3. Dev mode exposes `window.__blocklab` (`grid`, `camera`, `controls`, `getPhysics()`, `getMode()`, `menuScene`, `build`, `history`, `zoom`) for inspecting
    state, e.g. a body's position, from the console.
 4. The in-app browser pane pauses `requestAnimationFrame` while hidden; if physics seems frozen, bring the
    tab to the front (a screenshot also wakes it) before concluding something is broken.

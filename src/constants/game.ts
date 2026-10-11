@@ -18,6 +18,9 @@ export const CAMERA = {
   startTarget: [0, 0.5, 0] as Vec3,
   /** Fraction of PI; keeps the orbit camera above the ground. */
   maxPolarFactor: 0.495,
+  /** Zoom limits: closest and farthest distance (world units) between the camera and its target. */
+  minDistance: 3,
+  maxDistance: 60,
 } as const;
 
 export const SCENE = {
@@ -107,6 +110,13 @@ export const FPS_COUNTER = {
   /** At or above this the counter is green; at or above `okFps` it is yellow; below it is red. */
   goodFps: 55,
   okFps: 30,
+} as const;
+
+export const ZOOM = {
+  /** Each zoom button press multiplies (out) or divides (in) the camera distance by this. */
+  buttonFactor: 1.25,
+  /** Slider granularity (the slider is logarithmic: equal steps are equal zoom ratios). */
+  sliderStep: 0.001,
 } as const;
 
 export const HISTORY = {

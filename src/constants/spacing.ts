@@ -31,4 +31,5 @@ export const SIZE = {
   dialogWidth: 380,
   /** Width reserved for the undo/redo bar at the top centre; the build hint wraps before reaching it. */
   historyBarWidth: 240,
+  zoomSliderHeight: 140,
 } as const;

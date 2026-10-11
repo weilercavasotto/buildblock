@@ -25,6 +25,7 @@ import { createSave, getSave, updateSave } from './save';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
 import { Hud } from './ui/hud';
+import { ZoomControl } from './ui/zoom-control';
 import { Menu } from './ui/menu';
 import { PartType } from './types';
 
@@ -49,6 +50,7 @@ async function main(): Promise<void> {
   controls.target.set(...CAMERA.startTarget);
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * CAMERA.maxPolarFactor;
+  const zoom = new ZoomControl(controls, camera);
   // Left button is reserved for placing blocks; middle rotates, right pans (a right click without moving removes).
   controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.PAN };
   // Stop browsers from starting "autoscroll" on a middle press.
@@ -150,6 +152,8 @@ async function main(): Promise<void> {
     controls.target.set(...CAMERA.startTarget);
     controls.update();
     hud.setVisible(true);
+    zoom.setVisible(true);
+    zoom.sync();
     stop();
   };
 
@@ -160,6 +164,7 @@ async function main(): Promise<void> {
     build.setEnabled(false);
     gridLines.visible = false;
     hud.setVisible(false);
+    zoom.setVisible(false);
     menuScene.start();
     menu.show();
   };
@@ -228,7 +233,7 @@ async function main(): Promise<void> {
   });
 
   if (import.meta.env.DEV) {
-    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build, history } });
+    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build, history, zoom } });
   }
 
   const timer = new THREE.Timer();

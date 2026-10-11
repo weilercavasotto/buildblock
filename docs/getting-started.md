@@ -13,6 +13,15 @@ npm run build    # type-check (tsc) and produce a production build in dist/
 npm run preview  # serve the production build locally
 ```
 
+## Zoom control
+
+Below the FPS counter (top-right) there is a **zoom control** made of three separate panels stacked vertically: the `+` button on top, the
+bar in the middle (the zoom percentage at its top and a vertical slider below it, top = closest) and the `−` button
+at the bottom. The percentage is relative to the default view (`100%`). It works together with the mouse
+wheel: scrolling moves the slider, and dragging the slider or pressing the buttons zooms the camera. Zoom is limited
+to a camera distance of **3 to 60 units** (`CAMERA.minDistance` / `CAMERA.maxDistance`, about `513%` to `26%`), for
+the wheel, the buttons and the slider alike. It is shown while building and playing, not in the main menu.
+
 ## FPS counter and frame limit
 
 Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also shows 60). The target is
@@ -74,6 +83,6 @@ migrated once into a save called "My creation". There is no export/import yet.
 
 ## Dev-only debug hook
 
-In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build, history }`
+In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build, history, zoom }`
 for inspection from the browser console. It is stripped from production builds
 (`import.meta.env.DEV`).

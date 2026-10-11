@@ -2,6 +2,8 @@
 export const TEXT = {
   hud: {
     fps: (value: number) => `${value} FPS`,
+    /** Zoom relative to the default camera distance, as a percentage (100% = the default view). */
+    zoom: (factor: number) => `${Math.round(factor * 100)}%`,
     play: '▶ Play',
     stop: '■ Stop',
     buildHint:
