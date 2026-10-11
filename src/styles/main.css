@@ -22,15 +22,12 @@ canvas {
   display: none !important;
 }
 
-/* ---- HUD ---- */
+/* ---- Bottom bar: tools ---- */
 #hud {
   position: fixed;
   left: 50%;
   bottom: var(--space-xl);
   transform: translateX(-50%);
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
   background: var(--overlay-panel);
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-lg);
@@ -56,50 +53,182 @@ canvas {
 #hud button.active {
   border-color: var(--color-accent-highlight);
 }
-#hud .sep {
+
+/* Vertical divider used inside the bars. */
+.sep {
   width: var(--border-hairline);
   height: var(--size-separator-height);
   background: var(--color-surface-divider);
   margin: 0 var(--space-xs);
 }
-#btn-play {
-  background: var(--color-accent-primary);
-  font-weight: var(--font-weight-semibold);
-}
-#btn-play:hover {
-  background: var(--color-accent-primary-hover);
-}
-#btn-play.playing {
-  background: var(--color-accent-danger);
-}
-#hint {
+
+/* ---- Help button (top left) and help dialog ---- */
+#top-left {
   position: fixed;
   top: var(--space-lg);
   left: var(--space-lg);
-  color: var(--color-text-inverse);
-  background: var(--overlay-hint);
-  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+}
+#help-button,
+#btn-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-icon-button);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+#help-button {
+  width: var(--size-icon-button);
+}
+#btn-menu {
+  padding: 0 var(--space-lg);
+  font-size: var(--font-size-md);
+}
+#help-button:hover,
+#btn-menu:hover {
+  background: var(--overlay-panel-hover);
+}
+#help-button svg {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+.dialog.help {
+  width: min(var(--size-help-width), 94vw);
+}
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+.help-header .dialog-title {
+  margin: 0;
+}
+.help-close {
+  width: calc(var(--space-xl) + var(--space-md));
+  height: calc(var(--space-xl) + var(--space-md));
+  padding: 0;
+  border: var(--border-regular) solid transparent;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xxl);
+  line-height: 1;
+  cursor: pointer;
+}
+.help-close:hover,
+.help-tab:hover {
+  background: var(--color-surface-control-hover);
+}
+.help-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  border-bottom: var(--border-hairline) solid var(--color-surface-divider);
+  padding-bottom: var(--space-sm);
+}
+.help-tab {
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-regular) solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  opacity: var(--opacity-muted);
+  cursor: pointer;
+}
+.help-tab[aria-selected='true'] {
+  background: var(--color-surface-control);
+  border-bottom-color: var(--color-accent-highlight);
+  opacity: 1;
+  font-weight: var(--font-weight-semibold);
+}
+.help-close:focus-visible,
+.help-tab:focus-visible,
+.help-panel:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-highlight);
+}
+.help-panel {
+  max-height: min(var(--size-help-panel-height), 60vh);
+  overflow-y: auto;
+  padding-right: var(--space-sm);
+  border: var(--border-regular) solid transparent;
+  border-radius: var(--radius-sm);
+}
+.help-heading {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-md);
+  text-transform: uppercase;
+  color: var(--color-accent-highlight);
+}
+.help-heading:first-child {
+  margin-top: 0;
+}
+.help-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding: var(--space-xs) 0;
+  font-size: var(--font-size-md);
   line-height: var(--line-height-normal);
-  /* Leave the top centre free for the undo/redo bar. */
-  max-width: calc(50vw - var(--size-history-bar-width) / 2 - var(--space-xl));
+}
+.help-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 0 0 var(--size-help-keys-width);
+}
+.help-keys kbd {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border-bottom: var(--border-regular) solid var(--color-surface-divider);
+  background: var(--color-surface-control);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+.help-or {
+  font-size: var(--font-size-sm);
+  opacity: var(--opacity-muted);
+}
+.help-text {
+  flex: 1;
+  opacity: var(--opacity-muted);
+}
+.help-note .help-text {
+  opacity: 1;
 }
 
-/* ---- Undo / redo bar (top centre) ---- */
-#history {
+/* ---- Top bar (centre): undo / redo, clear and play ---- */
+#top-bar {
   position: fixed;
   top: var(--space-lg);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm);
   border-radius: var(--radius-lg);
   background: var(--overlay-panel);
   user-select: none;
 }
-#history button {
+#top-bar div.build-only {
+  display: flex;
+  gap: var(--space-sm);
+}
+#top-bar button {
   border: var(--border-regular) solid transparent;
   background: var(--color-surface-control);
   color: var(--color-text-primary);
@@ -108,12 +237,22 @@ canvas {
   font-size: var(--font-size-md);
   cursor: pointer;
 }
-#history button:hover:not(:disabled) {
+#top-bar button:hover:not(:disabled) {
   background: var(--color-surface-control-hover);
 }
-#history button:disabled {
+#top-bar button:disabled {
   opacity: var(--opacity-disabled);
   cursor: default;
+}
+#top-bar #btn-play {
+  background: var(--color-accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+#top-bar #btn-play:hover {
+  background: var(--color-accent-primary-hover);
+}
+#top-bar #btn-play.playing {
+  background: var(--color-accent-danger);
 }
 
 /* ---- Top-right corner: FPS counter and zoom control ---- */

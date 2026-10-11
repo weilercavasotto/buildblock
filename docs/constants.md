@@ -11,6 +11,7 @@ Every colour, size, spacing, font, physics number and user-facing string lives i
 | `effects.ts` | `SHADOW` (CSS shadows), `OPACITY`, `Z_INDEX` (stacking of fixed layers) and `MOTION` (transition durations) |
 | `game.ts` | Cell size, ground height, camera (incl. zoom limits), zoom control, scene, lights, undo history, frame limit, FPS counter, sky (`SKY`: cloud cell size, wind, coverage, bevel...), roughness, wheel visuals, build input, storage keys, save limits, main-menu scene and random-car parameters |
 | `physics.ts` | `WORLD`, `WHEEL`, `CHASSIS`, `VEHICLE`, `COLLISION_GROUP`, `SPAWN_LIFT`, `GROUND_COLLIDER`, `SCENERY` |
+| `help-content.ts` | `HELP_TABS`: the tabs, sections and key/description rows of the help dialog (keep in sync with the controls) |
 | `text.ts` | `TEXT`: strings built in code (static HTML text stays in `index.html`) |
 | `theme.ts` | `applyTheme()`: publishes the tokens as CSS variables |
 

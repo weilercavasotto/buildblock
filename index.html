@@ -10,7 +10,16 @@
     <meta name="theme-color" content="#1a1f2b" />
   </head>
   <body>
-    <div id="hint"></div>
+    <div id="top-left" hidden>
+      <button id="btn-menu" title="Back to the main menu">☰ Menu</button>
+      <button id="help-button" title="Help (H)" aria-label="Help">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="11" x2="12" y2="17" />
+          <circle cx="12" cy="7.5" r="0.6" fill="currentColor" />
+        </svg>
+      </button>
+    </div>
     <div id="corner">
       <div id="fps"></div>
       <div id="zoom">
@@ -44,21 +53,20 @@
       </div>
       <div id="menu-version"></div>
     </div>
-    <div id="history" hidden>
-      <button id="btn-undo" title="Undo (Ctrl/Cmd+Z)" disabled>↶ Undo</button>
-      <button id="btn-redo" title="Redo (Ctrl/Cmd+Y)" disabled>↷ Redo</button>
+    <div id="top-bar" hidden>
+      <div class="build-only">
+        <button id="btn-undo" title="Undo (Ctrl/Cmd+Z)" disabled>↶ Undo</button>
+        <button id="btn-redo" title="Redo (Ctrl/Cmd+Y)" disabled>↷ Redo</button>
+      </div>
+      <span class="sep build-only"></span>
+      <button id="btn-clear" class="build-only">Clear</button>
+      <button id="btn-play">▶ Play</button>
     </div>
     <div id="hud">
-      <button id="btn-menu">☰ Menu</button>
-      <span class="sep"></span>
       <div id="tools">
         <button id="tool-block">[1] Block</button>
         <button id="tool-wheel">[2] Wheel</button>
-        <span class="sep"></span>
-        <button id="btn-clear">Clear</button>
       </div>
-      <span class="sep"></span>
-      <button id="btn-play">▶ Play</button>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

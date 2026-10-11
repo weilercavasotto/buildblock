@@ -24,7 +24,8 @@ src/
   play/vehicle-controller.ts   Keyboard -> wheel motors
   ui/zoom-control.ts           Zoom buttons + slider (top-right), in sync with the mouse-wheel zoom
   ui/fps-counter.ts            FPS readout (top-right), counted per rendered frame, toggled with F3
-  ui/hud.ts                    Toolbar and hint text (DOM bound to index.html)
+  ui/hud.ts                    Top-left buttons, top bar, bottom tools (DOM bound to index.html)
+  ui/help-dialog.ts            Help modal with tabs (opened by the top-left info button or H)
 ```
 
 ## Core idea: the grid is the source of truth
@@ -81,10 +82,9 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   (detected with a mutation counter), `run(edit)` wraps both. `BuildMode` uses it for each press (place), removal and
   paint stroke (committed when the stroke ends); `main.ts` for **Clear**. `undo()`/`redo()` restore snapshots with
   `Grid.load`, so the autosave and the meshes follow. A new edit clears the redo stack; at most `HISTORY.maxSteps`
-  steps are kept; `clear()` runs when another creation is loaded or created. The Undo/Redo bar (`#history`, top
-  centre, shown only while building) is driven by `Hud.setHistoryState`; `main.ts` handles `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`
-  and `Ctrl/Cmd+Shift+Z` (ignored while a stroke is in progress and outside build mode). The build hint is
-  width-limited so it never runs under the bar (`SIZE.historyBarWidth`).
+  steps are kept; `clear()` runs when another creation is loaded or created. The Undo/Redo buttons (in `#top-bar`,
+  shown only while building) are driven by `Hud.setHistoryState`; `main.ts` handles `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`
+  and `Ctrl/Cmd+Shift+Z` (ignored while a stroke is in progress and outside build mode).
 - **`BuildMode`** — raycasts against placed parts and the ground plane, picks the nearest hit and derives
   a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). The left button places on
   press; with the block tool, holding it and moving **paints** blocks (a `Stroke`): the pointer ray is intersected with
@@ -112,7 +112,17 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
 - **Camera controls** (`main.ts`) — `OrbitControls.mouseButtons = { LEFT: null, MIDDLE: ROTATE, RIGHT: PAN }`: the left
   button is reserved for placing, the middle rotates, the right pans; scroll zooms. A `mousedown` handler
   prevents the browser's middle-click autoscroll on the canvas.
-- **`Hud`** — wires the buttons in `index.html`, switches hint text per mode and can be hidden (menu).
+- **`Hud`** — wires the buttons in `index.html` and decides what is visible. Three groups: `#top-left` (Menu and Help
+  buttons), `#top-bar` (top centre: Undo, Redo, a divider, Clear and Play/Stop) and `#hud` (bottom: the Block/Wheel
+  tools). Menu: nothing is shown. Build: everything. Play: `#top-left` and a `#top-bar` reduced to Stop (the elements
+  marked `.build-only` are hidden) while `#hud` is hidden. The old instruction card was replaced by the help button.
+- **`openHelpDialog` / `toggleHelpDialog`** (`src/ui/help-dialog.ts`) — modal opened by the info button (top-left,
+  shown while building/playing) or the `H` key. One tab per topic, rendered from `HELP_TABS`
+  (`src/constants/help-content.ts`: sections of rows with key caps + text; edit that file to change the content).
+  Keyboard: `Esc` or `H` close, `Tab` cycles inside the dialog, `←/→/Home/End` change tab. While it is open it swallows
+  every key (capture-phase listener + `stopPropagation`), so the game under it does not react (no tool switching, undo
+  or driving); the backdrop and the `×` button close it, focus returns to the previous element and the last tab is
+  remembered. Text is set with `textContent`. It reuses the `.dialog-*` styles of the confirm dialog.
 - **`confirmDialog`** (`src/ui/confirm-dialog.ts`) — reusable modal: `await confirmDialog({ title, message,
   confirmLabel, cancelLabel, danger })` resolves `true` on confirm and `false` on cancel, Escape or a click on the
   backdrop. It builds its DOM on demand (`.dialog-*` classes in `main.css`, `role="alertdialog"`, `aria-modal`), traps

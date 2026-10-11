@@ -1,6 +1,7 @@
 export * from './colors';
 export * from './effects';
 export * from './game';
+export * from './help-content';
 export * from './physics';
 export * from './spacing';
 export * from './text';

@@ -25,6 +25,7 @@ import { createSave, getSave, updateSave } from './save';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
 import { Hud } from './ui/hud';
+import { isHelpOpen, toggleHelpDialog } from './ui/help-dialog';
 import { ZoomControl } from './ui/zoom-control';
 import { Menu } from './ui/menu';
 import { PartType } from './types';
@@ -195,6 +196,7 @@ async function main(): Promise<void> {
     onTogglePlay: () => (physics ? stop() : startPlay()),
     onClear: () => history.run(() => grid.clear()),
     onMenu: enterMenu,
+    onHelp: toggleHelpDialog,
     onUndo: () => history.undo(),
     onRedo: () => history.redo(),
   });
@@ -207,6 +209,10 @@ async function main(): Promise<void> {
     if (e.code === 'F3') {
       e.preventDefault();
       fps.toggle();
+    }
+    if (e.code === 'KeyH' && mode !== 'menu' && !e.ctrlKey && !e.metaKey && !e.altKey && !isHelpOpen()) {
+      toggleHelpDialog();
+      return;
     }
     if (mode === 'play' && e.code === 'KeyR') startPlay();
     if (mode !== 'build') return;

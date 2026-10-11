@@ -13,8 +13,6 @@ export const COLORS = {
 
   text: {
     primary: '#ffffff',
-    /** Text on light backgrounds (the build hint). */
-    inverse: '#1b2433',
   },
 
   /** Dark UI surfaces, from darkest (panels) to lightest (hovered controls). */
@@ -65,7 +63,6 @@ export const COLORS = {
 export const ALPHA = {
   panel: 0.85,
   panelStrong: 0.92,
-  hint: 0.7,
   vignetteInner: 0.15,
   vignetteOuter: 0.55,
   tagline: 0.9,
@@ -80,7 +77,6 @@ export const OVERLAYS = {
   panel: withAlpha(COLORS.surface.panel, ALPHA.panel),
   panelStrong: withAlpha(COLORS.surface.panel, ALPHA.panelStrong),
   panelHover: withAlpha(COLORS.surface.panelHover, ALPHA.panelStrong),
-  hint: withAlpha(COLORS.white, ALPHA.hint),
   vignetteInner: withAlpha(COLORS.surface.vignette, ALPHA.vignetteInner),
   vignetteOuter: withAlpha(COLORS.surface.vignette, ALPHA.vignetteOuter),
   /** Dimmed layer behind modal dialogs. */

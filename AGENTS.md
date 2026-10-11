@@ -30,7 +30,8 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/ui/confirm-dialog.ts`: reusable modal confirmation (`confirmDialog`); use it instead of `window.confirm`
 - `src/ui/zoom-control.ts`: zoom buttons/slider synced with the wheel; limits in `CAMERA.minDistance/maxDistance`
 - `src/ui/fps-counter.ts`: FPS readout (F3 toggles)
-- `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar/hints and the main menu with its saved-games panel (markup)
+- `src/ui/help-dialog.ts` + `src/constants/help-content.ts`: help modal with tabs (info button top-left, `H`). **Update `help-content.ts` whenever you add or change a control or shortcut**
+- `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
 - `src/scene/sky.ts`: shader sky dome with blocky (voxel-style) clouds that drift with the wind (parameters in `SKY`, `src/constants/game.ts`)
 - `src/save.ts`: named save slots in localStorage (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
@@ -41,7 +42,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 
 - **Never hard-code colours, sizes, spacing, fonts, tunable numbers or UI strings**: add/use a token in `src/constants/`
   (see [docs/constants.md](docs/constants.md)). CSS only uses `var(--...)`; Three.js colours go through `hexToNumber(COLORS...)`.
-- **All in-game text is English** (HUD, hints, labels, `lang="en"`).
+- **All in-game text is English** (HUD, help, labels, `lang="en"`).
 - **File names are kebab-case** (`build-mode.ts`); classes inside stay PascalCase.
 - The `Grid` is the single source of truth; the simulation never mutates it. Stop discards the physics world.
 - The game starts in the main menu. Edits autosave only to the active save (`activeSave` in `main.ts`);

@@ -42,7 +42,23 @@ Press **Play** to open the *Saved games* panel:
 The bottom-right corner shows the game version (`vX.Y.Z`), read from `package.json` at build time
 (`vite.config.ts` defines `__APP_VERSION__`). Bump the `version` field there to release a new version.
 
-In the game, the **☰ Menu** button (left of the toolbar) returns to the main menu.
+In the game, the **☰ Menu** button (top-left, next to the ⓘ help button, on its left) returns to the main menu.
+
+## Help
+
+The **ⓘ button** in the top-left corner (or the `H` key) opens a help dialog with all the instructions, mouse
+controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build & drive, Shortcuts). `Esc`, `H` or the
+`×` button close it. It is available while building and playing, not in the main menu. The text lives in
+`src/constants/help-content.ts`.
+
+## Screen layout
+
+| Where | What |
+|---|---|
+| Top left | **☰ Menu** and, next to it, **ⓘ Help** |
+| Top centre | Bar with **Undo** and **Redo**, a divider, then **Clear** and **Play** (while playing it only shows **Stop**) |
+| Top right | FPS counter and zoom control |
+| Bottom centre | Tools: **[1] Block** and **[2] Wheel** (build mode only) |
 
 ## Controls
 
@@ -56,10 +72,10 @@ In the game, the **☰ Menu** button (left of the toolbar) returns to the main m
 | Right drag | Pan the camera (a right press that moves is not a click, so nothing is removed) |
 | Middle drag | Rotate the camera |
 | Scroll | Zoom |
-| **Undo / Redo** buttons (top centre) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |
-| `1` / `2` | Select **Block** / **Wheel** (also available as HUD buttons) |
-| **Clear** | Remove every part |
-| **Play** | Switch to Play mode |
+| **Undo / Redo** buttons (top bar) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |
+| `1` / `2` | Select **Block** / **Wheel** (also available as the buttons at the bottom) |
+| **Clear** (top bar) | Remove every part (can be undone) |
+| **Play** (top bar) | Switch to Play mode |
 
 The ghost preview is **green** when the placement is valid and **red** when it is not.
 

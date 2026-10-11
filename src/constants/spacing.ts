@@ -29,7 +29,12 @@ export const SIZE = {
   listMaxHeight: 260,
   separatorHeight: 28,
   dialogWidth: 380,
-  /** Width reserved for the undo/redo bar at the top centre; the build hint wraps before reaching it. */
-  historyBarWidth: 240,
+  /** Icon buttons (the help button). */
+  iconButton: 44,
+  icon: 24,
+  helpWidth: 640,
+  helpPanelHeight: 380,
+  /** Width of the key-caps column of a help row. */
+  helpKeysWidth: 180,
   zoomSliderHeight: 140,
 } as const;
