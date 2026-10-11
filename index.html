@@ -62,11 +62,17 @@
       <button id="btn-clear" class="build-only">Clear</button>
       <button id="btn-play">▶ Play</button>
     </div>
-    <div id="hud">
-      <div id="tools">
-        <button id="tool-block">[1] Block</button>
-        <button id="tool-wheel">[2] Wheel</button>
-      </div>
+    <div id="hotbar">
+      <div id="hotbar-slots"></div>
+      <span class="sep"></span>
+      <button id="catalog-button">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      </button>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

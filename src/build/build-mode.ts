@@ -31,7 +31,8 @@ interface Stroke {
 export class BuildMode {
   readonly group = new THREE.Group();
   private ghost: THREE.Object3D | null = null;
-  private tool: PartType = 'block';
+  /** The part to place (the one in the selected hotbar slot); null when that slot is empty. */
+  private tool: PartType | null = 'block';
   private enabled = true;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -61,7 +62,7 @@ export class BuildMode {
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  setTool(tool: PartType): void {
+  setTool(tool: PartType | null): void {
     this.tool = tool;
     this.setGhost(null);
   }
@@ -116,6 +117,7 @@ export class BuildMode {
 
   /** The part that a click would place for the current pick, or null when nothing sensible. */
   private target(p: Pick): Part | null {
+    if (this.tool === null) return null;
     if (this.tool === 'block') {
       const cell: Vec3 = p.part ? addVec(p.part.cell, p.normal) : [Math.round(p.point.x), 0, Math.round(p.point.z)];
       return { type: 'block', cell };

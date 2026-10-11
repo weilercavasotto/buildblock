@@ -24,7 +24,12 @@ src/
   play/vehicle-controller.ts   Keyboard -> wheel motors
   ui/zoom-control.ts           Zoom buttons + slider (top-right), in sync with the mouse-wheel zoom
   ui/fps-counter.ts            FPS readout (top-right), counted per rendered frame, toggled with F3
-  ui/hud.ts                    Top-left buttons, top bar, bottom tools (DOM bound to index.html)
+  ui/hud.ts                    Top-left buttons, top bar and hotbar visibility (DOM bound to index.html)
+  ui/hotbar.ts                 Hotbar: 9 slots, selection, persistence, drag between slots
+  ui/catalog-dialog.ts         Parts catalog modal: tabs, cards with 3D previews, inspector, drag to the hotbar
+  ui/part-preview.ts           Shared off-screen WebGL renderer for the 3D part previews
+  ui/drag-drop.ts              Pointer-based drag & drop (catalog cards, hotbar slots)
+  ui/modal.ts                  Generic modal (backdrop, Esc, focus trap, key swallowing) used by help and catalog
   ui/help-dialog.ts            Help modal with tabs (opened by the top-left info button or H)
 ```
 
@@ -113,16 +118,38 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   button is reserved for placing, the middle rotates, the right pans; scroll zooms. A `mousedown` handler
   prevents the browser's middle-click autoscroll on the canvas.
 - **`Hud`** — wires the buttons in `index.html` and decides what is visible. Three groups: `#top-left` (Menu and Help
-  buttons), `#top-bar` (top centre: Undo, Redo, a divider, Clear and Play/Stop) and `#hud` (bottom: the Block/Wheel
-  tools). Menu: nothing is shown. Build: everything. Play: `#top-left` and a `#top-bar` reduced to Stop (the elements
-  marked `.build-only` are hidden) while `#hud` is hidden. The old instruction card was replaced by the help button.
+  buttons), `#top-bar` (top centre: Undo, Redo, a divider, Clear and Play/Stop) and `#hotbar` (bottom: the hotbar).
+  Menu: nothing is shown. Build: everything. Play: `#top-left` and a `#top-bar` reduced to Stop (the elements marked
+  `.build-only` are hidden) while `#hotbar` is hidden. The old instruction card was replaced by the help button.
 - **`openHelpDialog` / `toggleHelpDialog`** (`src/ui/help-dialog.ts`) — modal opened by the info button (top-left,
   shown while building/playing) or the `H` key. One tab per topic, rendered from `HELP_TABS`
   (`src/constants/help-content.ts`: sections of rows with key caps + text; edit that file to change the content).
-  Keyboard: `Esc` or `H` close, `Tab` cycles inside the dialog, `←/→/Home/End` change tab. While it is open it swallows
-  every key (capture-phase listener + `stopPropagation`), so the game under it does not react (no tool switching, undo
-  or driving); the backdrop and the `×` button close it, focus returns to the previous element and the last tab is
-  remembered. Text is set with `textContent`. It reuses the `.dialog-*` styles of the confirm dialog.
+  Keyboard: `Esc` or `H` close, `Tab` cycles inside the dialog, `←/→/Home/End` change tab; the last tab is remembered.
+  The shared behaviour lives in `openModal` (below). Text is set with `textContent`.
+- **`openModal`** (`src/ui/modal.ts`) — generic modal used by the help and the catalog (the confirm dialog has its own
+  smaller implementation). It builds the `.dialog-backdrop` / `.dialog`, closes on `Esc`, on extra `closeCodes` (the key
+  that opens it) and on a click on the backdrop, traps `Tab` among the focusable elements, restores the previous focus,
+  swallows every other key (capture-phase listener + `stopPropagation`, so the game under it does not react: no
+  hotbar selection, undo or driving) and allows a single modal at a time. Callers pass `build()` (fills the dialog and
+  returns the element to focus), optional `onKeyDown` and `onClose`.
+- **`Hotbar`** (`src/ui/hotbar.ts`) — `HOTBAR.slots` (9) slots, each a part type or empty; the selected slot is what
+  `BuildMode.setTool` places (`null` = place nothing). `main.ts` wires `hotbar.subscribe(part => build.setTool(part))`
+  and the keys `1`–`9` / `B`. Slots are persisted in `localStorage` (`STORAGE.hotbarKey`, per browser, not per save).
+  Drag a slot onto another to swap, out of the bar or right-click to empty it; `add(type)` puts a part in the slot that
+  has it, the first empty one, or replaces the selected one; `onLayoutChange` lets the catalog refresh its inspector.
+  The slot pictures come from `part-preview`.
+- **`openCatalog`** (`src/ui/catalog-dialog.ts`) — the parts catalog (modal): tabs = "All" + `PART_CATEGORIES`, one card
+  per part of `PART_ORDER`/`PART_INFO` (`src/constants/part-catalog.ts`). Hovering (or focusing) a card spins its
+  preview (`startSpin`); clicking opens the **inspector** on the right (spinning preview, description, properties, tips,
+  "Add to hotbar"/"Select in hotbar"); dragging a card onto a slot assigns it. While it is open the hotbar is raised above
+  the backdrop (`#hotbar.over-dialog`, `Z_INDEX.hotbarOverDialog`) so it stays a drop target. `B` closes it too.
+- **`part-preview`** (`src/ui/part-preview.ts`) — ONE shared off-screen `WebGLRenderer` (browsers cap WebGL contexts) that
+  draws any part (built with `createPartObject`, centred and framed from its bounding sphere, lit like the game) into any
+  2D canvas: `renderPartPreview(type, canvas, angle)`; `startSpin` animates it with `requestAnimationFrame` and returns
+  a stop function. Per-part resting angles are in `PART_INFO[type].previewAngle`; sizes/speeds in `PREVIEW`.
+- **`drag-drop`** (`src/ui/drag-drop.ts`) — pointer-event drag & drop (not the HTML5 API, flaky with canvases/touch): a
+  press that moves more than `DRAG.threshold` px shows a ghost image and highlights the slot under the pointer
+  (`[data-slot]`, `.drop-hover`); without movement it is a click. Drop targets are the hotbar slots.
 - **`confirmDialog`** (`src/ui/confirm-dialog.ts`) — reusable modal: `await confirmDialog({ title, message,
   confirmLabel, cancelLabel, danger })` resolves `true` on confirm and `false` on cancel, Escape or a click on the
   backdrop. It builds its DOM on demand (`.dialog-*` classes in `main.css`, `role="alertdialog"`, `aria-modal`), traps

@@ -119,6 +119,29 @@ export const ZOOM = {
   sliderStep: 0.001,
 } as const;
 
+export const HOTBAR = {
+  slots: 9,
+  /** Parts in the first slots on a fresh install; the rest start empty. */
+  defaultParts: ['block', 'wheel'] as const,
+} as const;
+
+/** Rotating 3D previews of parts (hotbar, catalog cards, inspector). */
+export const PREVIEW = {
+  /** Spin speed (rad/s) while hovering a catalog card or inspecting a part. */
+  hoverSpinSpeed: 2.2,
+  inspectSpinSpeed: 0.8,
+  /** Camera field of view (degrees) and direction from the part towards the camera. */
+  fov: 30,
+  cameraDirection: [1, 0.8, 1.3] as Vec3,
+  /** Extra room around the part, as a multiple of its bounding radius. */
+  margin: 1.12,
+} as const;
+
+/** Pointer travel (px) before a press on a catalog card / hotbar slot turns into a drag. */
+export const DRAG = {
+  threshold: 5,
+} as const;
+
 export const HISTORY = {
   /** Undo steps kept per session; the oldest are dropped beyond this. */
   maxSteps: 100,
@@ -126,6 +149,8 @@ export const HISTORY = {
 
 export const STORAGE = {
   savesKey: 'blocklab.saves.v2',
+  /** Hotbar layout and selected slot (per browser, not per save). */
+  hotbarKey: 'blocklab.hotbar.v1',
   /** Single-slot save used before the main menu existed; migrated once. */
   legacyKey: 'blocklab.v1',
 } as const;

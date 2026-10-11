@@ -36,5 +36,17 @@ export const SIZE = {
   helpPanelHeight: 380,
   /** Width of the key-caps column of a help row. */
   helpKeysWidth: 180,
+  hotbarSlot: 52,
+  hotbarPreview: 40,
+  /** Space kept free under a modal so the hotbar stays reachable (drag & drop target). */
+  hotbarClearance: 120,
+  catalogWidth: 900,
+  catalogCardPreview: 96,
+  catalogInspectorWidth: 280,
+  catalogGridHeight: 500,
+  /** Space the catalog keeps for its header and tabs, subtracted from the window height to size the body. */
+  catalogChrome: 340,
+  inspectorPreview: 160,
+  dragGhost: 64,
   zoomSliderHeight: 140,
 } as const;

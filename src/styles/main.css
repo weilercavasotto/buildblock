@@ -22,36 +22,103 @@ canvas {
   display: none !important;
 }
 
-/* ---- Bottom bar: tools ---- */
-#hud {
+/* ---- Hotbar (bottom centre) ---- */
+#hotbar {
   position: fixed;
   left: 50%;
   bottom: var(--space-xl);
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   background: var(--overlay-panel);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-lg);
   color: var(--color-text-primary);
   user-select: none;
 }
-#tools {
-  display: flex;
-  gap: var(--space-sm);
+/* While the catalog is open the hotbar stays above the dimmed backdrop, as a drop target. */
+#hotbar.over-dialog {
+  z-index: var(--z-index-hotbar-over-dialog);
 }
-#hud button {
+#hotbar-slots {
+  display: flex;
+  gap: var(--space-xs);
+}
+.slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-hotbar-slot);
+  height: var(--size-hotbar-slot);
+  padding: 0;
   border: var(--border-regular) solid transparent;
+  border-radius: var(--radius-md);
   background: var(--color-surface-control);
   color: var(--color-text-primary);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
   cursor: pointer;
 }
-#hud button:hover {
+.slot:hover {
   background: var(--color-surface-control-hover);
 }
-#hud button.active {
+.slot.selected {
   border-color: var(--color-accent-highlight);
+}
+.slot.drop-hover {
+  border-color: var(--color-accent-primary-hover);
+  background: var(--color-surface-control-hover);
+  transform: scale(1.08);
+}
+.slot-key {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  opacity: var(--opacity-muted);
+}
+.slot canvas {
+  pointer-events: none;
+}
+#catalog-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-hotbar-slot);
+  height: var(--size-hotbar-slot);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+#catalog-button:hover {
+  background: var(--color-surface-control-hover);
+}
+#catalog-button svg {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+
+/* Picture that follows the pointer while dragging a part (src/ui/drag-drop.ts). */
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-index-drag-ghost);
+  pointer-events: none;
+  opacity: 0.9;
+}
+.drag-ghost canvas {
+  width: var(--size-drag-ghost);
+  height: var(--size-drag-ghost);
+}
+body.dragging,
+body.dragging * {
+  cursor: grabbing !important;
+  user-select: none;
 }
 
 /* Vertical divider used inside the bars. */
@@ -208,6 +275,178 @@ canvas {
 }
 .help-note .help-text {
   opacity: 1;
+}
+
+/* ---- Parts catalog (src/ui/catalog-dialog.ts); reuses the .help-* header and tabs ---- */
+.dialog-backdrop.catalog-backdrop {
+  box-sizing: border-box;
+  padding-bottom: var(--size-hotbar-clearance);
+}
+.dialog.catalog {
+  width: min(var(--size-catalog-width), 96vw);
+  max-height: calc(100vh - var(--size-hotbar-clearance) - var(--space-xl));
+  display: flex;
+  flex-direction: column;
+}
+.catalog-body {
+  display: flex;
+  gap: var(--space-lg);
+  min-height: 0;
+}
+.catalog-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.catalog-hint {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-sm);
+  opacity: var(--opacity-muted);
+}
+.catalog-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  opacity: var(--opacity-muted);
+  font-size: var(--font-size-md);
+}
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--size-catalog-card-preview) + var(--space-xl)), 1fr));
+  align-content: start;
+  gap: var(--space-md);
+  max-height: min(var(--size-catalog-grid-height), calc(100vh - var(--size-catalog-chrome)));
+  overflow-y: auto;
+  padding: var(--space-xs);
+}
+.catalog-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-sm);
+  border: var(--border-regular) solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  cursor: grab;
+}
+.catalog-card:hover {
+  background: var(--color-surface-control-hover);
+  border-color: var(--color-surface-divider);
+}
+.catalog-card.selected {
+  border-color: var(--color-accent-highlight);
+}
+.catalog-card:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-highlight);
+}
+.catalog-card canvas {
+  pointer-events: none;
+}
+.catalog-card-name {
+  font-weight: var(--font-weight-semibold);
+}
+.catalog-card-category {
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-sm);
+  text-transform: uppercase;
+  opacity: var(--opacity-muted);
+}
+
+/* Inspector: opens on the right when a card is clicked. */
+.catalog-inspector {
+  flex: 0 0 var(--size-catalog-inspector-width);
+  box-sizing: border-box;
+  max-height: min(var(--size-catalog-grid-height), calc(100vh - var(--size-catalog-chrome)));
+  overflow-y: auto;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-input);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+.catalog-inspector canvas {
+  align-self: center;
+}
+.inspector-name {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  letter-spacing: var(--letter-spacing-sm);
+  text-align: center;
+}
+.inspector-chip {
+  align-self: center;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-control);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-sm);
+  text-transform: uppercase;
+}
+.inspector-tagline {
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-size-md);
+  color: var(--color-accent-highlight);
+}
+.inspector-description,
+.inspector-tips,
+.inspector-status {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  opacity: var(--opacity-muted);
+}
+.inspector-heading {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-md);
+  text-transform: uppercase;
+  color: var(--color-accent-highlight);
+}
+.inspector-props {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+.inspector-props dt {
+  opacity: var(--opacity-muted);
+}
+.inspector-props dd {
+  margin: 0;
+}
+.inspector-tips {
+  padding-left: var(--space-lg);
+}
+.catalog-action {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border: var(--border-regular) solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+.catalog-action.primary {
+  background: var(--color-accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.catalog-action.primary:hover {
+  background: var(--color-accent-primary-hover);
+}
+.catalog-action:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-highlight);
 }
 
 /* ---- Top bar (centre): undo / redo, clear and play ---- */

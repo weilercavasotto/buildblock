@@ -1,8 +1,6 @@
 import { TEXT } from '../constants';
-import { PartType } from '../types';
 
 export interface HudHandlers {
-  onTool(tool: PartType): void;
   onTogglePlay(): void;
   onClear(): void;
   onMenu(): void;
@@ -12,10 +10,9 @@ export interface HudHandlers {
 }
 
 export class Hud {
-  private toolButtons: Record<PartType, HTMLElement>;
   private playButton = document.getElementById('btn-play')!;
   private helpButton = document.getElementById('help-button')!;
-  private root = document.getElementById('hud')!;
+  private hotbar = document.getElementById('hotbar')!;
   private topLeft = document.getElementById('top-left')!;
   private topBar = document.getElementById('top-bar')!;
   /** Parts of the top bar that only make sense while building (undo, redo, clear). */
@@ -26,12 +23,6 @@ export class Hud {
   private mode: 'build' | 'play' = 'build';
 
   constructor(handlers: HudHandlers) {
-    this.toolButtons = {
-      block: document.getElementById('tool-block')!,
-      wheel: document.getElementById('tool-wheel')!,
-    };
-    this.toolButtons.block.onclick = () => handlers.onTool('block');
-    this.toolButtons.wheel.onclick = () => handlers.onTool('wheel');
     document.getElementById('btn-clear')!.onclick = handlers.onClear;
     this.playButton.onclick = handlers.onTogglePlay;
     document.getElementById('btn-menu')!.onclick = handlers.onMenu;
@@ -39,10 +30,6 @@ export class Hud {
     this.undoButton.onclick = handlers.onUndo;
     this.redoButton.onclick = handlers.onRedo;
     this.setMode('build');
-  }
-
-  setTool(tool: PartType): void {
-    for (const [name, el] of Object.entries(this.toolButtons)) el.classList.toggle('active', name === tool);
   }
 
   setVisible(visible: boolean): void {
@@ -56,13 +43,13 @@ export class Hud {
   }
 
   /**
-   * Menu: nothing is shown. Build: top-left buttons, top bar and the tools. Play: top-left buttons and a top bar with
+   * Menu: nothing is shown. Build: top-left buttons, top bar and the hotbar. Play: top-left buttons and a top bar with
    * only Play/Stop.
    */
   private updateVisibility(): void {
     const building = this.mode === 'build';
     this.topLeft.hidden = this.topBar.hidden = !this.visible;
-    this.root.hidden = !this.visible || !building;
+    this.hotbar.hidden = !this.visible || !building;
     this.buildOnly.forEach((el) => (el.hidden = !building));
   }
 

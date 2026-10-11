@@ -13,6 +13,9 @@ export const SHADOW = {
 /** Stacking order of fixed UI layers. */
 export const Z_INDEX = {
   dialog: 100,
+  /** The hotbar is raised above a modal's backdrop while the catalog is open, so parts can be dropped on it. */
+  hotbarOverDialog: 101,
+  dragGhost: 110,
 } as const;
 
 /** Transition durations in ms. */

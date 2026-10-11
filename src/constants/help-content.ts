@@ -33,8 +33,9 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'How it works',
         rows: [
-          { keys: ['1'], text: 'Place blocks to make a body. Blocks that touch become one rigid piece.' },
-          { keys: ['2'], text: 'Mount wheels on the side of a block. Four wheels and a body make a car.' },
+          { keys: ['Hotbar'], text: 'The bar at the bottom holds up to 9 parts. Press 1–9 or click a slot to choose what you place.' },
+          { keys: ['Catalog'], text: 'The button at the right of the hotbar (or B) opens the parts catalog, where you can inspect every part and drag it onto a slot.' },
+          { text: 'Place blocks to make a body (touching blocks become one rigid piece) and mount wheels on their sides. Four wheels and a body make a car.' },
           { keys: ['Play'], text: 'In the top bar: drive your creation. Stop brings you back to building, with your build untouched.' },
         ],
       },
@@ -78,6 +79,14 @@ export const HELP_TABS: HelpTab[] = [
     title: 'Build & drive',
     sections: [
       {
+        heading: 'Hotbar and catalog',
+        rows: [
+          { keys: ['1 – 9'], text: 'Select the part in that hotbar slot. An empty slot places nothing.' },
+          { keys: ['Drag a slot'], text: 'Drop it on another slot to swap them, or drag it out of the bar to empty it. A right click also empties a slot.' },
+          { keys: ['Catalog'], text: 'Parts are grouped in tabs by category. Hover a part to spin its 3D preview, click it to inspect it on the right, and drag it onto a hotbar slot.' },
+        ],
+      },
+      {
         heading: 'Parts',
         rows: [
           { keys: ['Block'], text: 'A cube. Place it on the ground or against any face of another block.' },
@@ -115,8 +124,8 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Build mode',
         rows: [
-          { keys: ['1'], text: 'Select the Block tool.' },
-          { keys: ['2'], text: 'Select the Wheel tool.' },
+          { keys: ['1 – 9'], text: 'Select the part in that hotbar slot.' },
+          { keys: ['B'], text: 'Open or close the parts catalog.' },
           { keys: ['Ctrl / Cmd + Z'], text: 'Undo.' },
           { keys: ['Ctrl / Cmd + Y', 'Ctrl / Cmd + Shift + Z'], text: 'Redo.' },
         ],

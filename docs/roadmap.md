@@ -16,7 +16,8 @@
 - Per-wheel key bindings (Besiege-style) and a steerable/non-driven wheel flag.
 - Copy/paste and save slots (export/import JSON); undo/redo that also survives reloading a save.
 - Painting for other tools (e.g. a row of wheels) and an erase-by-dragging mode.
-- Block colours and materials.
+- More parts for the catalog (slopes, thrusters, hinges, suspension...) in new categories; block colours and materials.
+- Catalog search, favourites and a hotbar per save (it is per browser now).
 - Frame-limit setting in an options menu (30/60/uncapped).
 - Day/night cycle and weather using the sky shader (sun position, cloud colour/coverage over time).
 - Breakable connections and damage.

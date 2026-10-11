@@ -24,11 +24,12 @@ import { FrameLimiter } from './frame-limiter';
 import { createSave, getSave, updateSave } from './save';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
+import { openCatalog } from './ui/catalog-dialog';
 import { Hud } from './ui/hud';
+import { Hotbar } from './ui/hotbar';
 import { isHelpOpen, toggleHelpDialog } from './ui/help-dialog';
 import { ZoomControl } from './ui/zoom-control';
 import { Menu } from './ui/menu';
-import { PartType } from './types';
 
 async function main(): Promise<void> {
   applyTheme();
@@ -113,11 +114,6 @@ async function main(): Promise<void> {
   let physics: PhysicsWorld | null = null;
   let vehicle: VehicleController | null = null;
 
-  const setTool = (tool: PartType) => {
-    build.setTool(tool);
-    hud.setTool(tool);
-  };
-
   const startPlay = () => {
     stopPlay();
     physics = new PhysicsWorld(grid);
@@ -190,9 +186,10 @@ async function main(): Promise<void> {
   });
 
   const fps = new FpsCounter();
+  const hotbar = new Hotbar(() => openCatalog(hotbar));
+  hotbar.subscribe((part) => build.setTool(part));
 
   const hud = new Hud({
-    onTool: setTool,
     onTogglePlay: () => (physics ? stop() : startPlay()),
     onClear: () => history.run(() => grid.clear()),
     onMenu: enterMenu,
@@ -202,7 +199,6 @@ async function main(): Promise<void> {
   });
   history.subscribe(() => hud.setHistoryState(history.canUndo, history.canRedo));
   hud.setHistoryState(history.canUndo, history.canRedo);
-  setTool('block');
   enterMenu();
 
   addEventListener('keydown', (e) => {
@@ -228,8 +224,8 @@ async function main(): Promise<void> {
       }
       return;
     }
-    if (e.code === 'Digit1') setTool('block');
-    if (e.code === 'Digit2') setTool('wheel');
+    if (/^Digit[1-9]$/.test(e.code)) hotbar.select(Number(e.code.slice(5)) - 1);
+    if (e.code === 'KeyB') openCatalog(hotbar);
   });
 
   addEventListener('resize', () => {
@@ -239,7 +235,7 @@ async function main(): Promise<void> {
   });
 
   if (import.meta.env.DEV) {
-    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build, history, zoom } });
+    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build, history, zoom, hotbar } });
   }
 
   const timer = new THREE.Timer();

@@ -31,7 +31,8 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/ui/zoom-control.ts`: zoom buttons/slider synced with the wheel; limits in `CAMERA.minDistance/maxDistance`
 - `src/ui/fps-counter.ts`: FPS readout (F3 toggles)
 - `src/ui/help-dialog.ts` + `src/constants/help-content.ts`: help modal with tabs (info button top-left, `H`). **Update `help-content.ts` whenever you add or change a control or shortcut**
-- `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: toolbar and the main menu with its saved-games panel (markup)
+- `src/ui/hotbar.ts`, `src/ui/catalog-dialog.ts`, `src/ui/part-preview.ts`, `src/ui/drag-drop.ts`, `src/ui/modal.ts`: hotbar (keys 1-9), parts catalog (B) with 3D previews, drag & drop, shared modal. **New parts: add them to `PartType`, `PART_INFO`/`PART_ORDER` (`constants/part-catalog.ts`) and `docs/adding-a-part.md`**
+- `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: top bars / hotbar visibility and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
 - `src/scene/sky.ts`: shader sky dome with blocky (voxel-style) clouds that drift with the wind (parameters in `SKY`, `src/constants/game.ts`)
 - `src/save.ts`: named save slots in localStorage (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
