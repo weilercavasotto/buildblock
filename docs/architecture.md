@@ -116,7 +116,10 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.
 - **Camera controls** (`main.ts`) — `OrbitControls.mouseButtons = { LEFT: null, MIDDLE: ROTATE, RIGHT: PAN }`: the left
   button is reserved for placing, the middle rotates, the right pans; scroll zooms. A `mousedown` handler
-  prevents the browser's middle-click autoscroll on the canvas.
+  prevents the browser's middle-click autoscroll on the canvas. **The camera cannot go under the terrain:**
+  `maxPolarAngle` only keeps the camera above its orbit target, but panning moves the target itself, so after every
+  `controls.update()` `keepCameraAboveGround` clamps the target to the ground (`GROUND_Y`) and the camera to
+  `GROUND_Y + CAMERA.minHeight` and re-aims it (it does nothing while the limits hold).
 - **`Hud`** — wires the buttons in `index.html` and decides what is visible. Three groups: `#top-left` (Menu and Help
   buttons), `#top-bar` (top centre: Undo, Redo, a divider, Clear and Play/Stop) and `#hotbar` (bottom: the hotbar).
   Menu: nothing is shown. Build: everything. Play: `#top-left` and a `#top-bar` reduced to Stop (the elements marked

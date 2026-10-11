@@ -16,8 +16,10 @@ export const CAMERA = {
   /** Low enough that the horizon and the sky show in the upper part of the screen. */
   startPosition: [9, 4, 12] as Vec3,
   startTarget: [0, 0.5, 0] as Vec3,
-  /** Fraction of PI; keeps the orbit camera above the ground. */
+  /** Fraction of PI; keeps the orbit camera above its target (not enough alone: panning moves the target). */
   maxPolarFactor: 0.495,
+  /** The camera never goes lower than this above the ground surface, and the orbit target never below the ground. */
+  minHeight: 0.4,
   /** Zoom limits: closest and farthest distance (world units) between the camera and its target. */
   minDistance: 3,
   maxDistance: 60,

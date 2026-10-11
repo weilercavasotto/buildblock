@@ -86,7 +86,7 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 | Left click | Place the selected part on press (the left button never moves the camera) |
 | Left drag (**Block** tool) | Keep the button down and move to **paint blocks**: every cell the pointer passes over gets a block. Painting is locked to the face where you started (ground, a block's top, or a side), so you draw a row, layer or wall without growing towards the camera. Fast moves leave no gaps. Other parts (the wheel) are placed once per press |
 | Right click | Remove the part under the cursor (removing a block also removes the wheels mounted on it) |
-| Right drag | Pan the camera (a right press that moves is not a click, so nothing is removed) |
+| Right drag | Pan the camera (a right press that moves is not a click, so nothing is removed). The camera stops at the ground: you cannot pan or orbit under the terrain |
 | Middle drag | Rotate the camera |
 | Scroll | Zoom |
 | **Undo / Redo** buttons (top bar) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |

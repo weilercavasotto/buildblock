@@ -53,6 +53,18 @@ async function main(): Promise<void> {
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI * CAMERA.maxPolarFactor;
   const zoom = new ZoomControl(controls, camera);
+
+  /**
+   * `maxPolarAngle` only keeps the camera above its target; panning (right drag) moves the target itself, which could
+   * take both below the terrain. Clamp the target to the ground and the camera to a minimum height above it.
+   */
+  const keepCameraAboveGround = () => {
+    const minCameraY = GROUND_Y + CAMERA.minHeight;
+    if (controls.target.y >= GROUND_Y && camera.position.y >= minCameraY) return;
+    controls.target.y = Math.max(controls.target.y, GROUND_Y);
+    camera.position.y = Math.max(camera.position.y, minCameraY);
+    camera.lookAt(controls.target);
+  };
   // Left button is reserved for placing blocks; middle rotates, right pans (a right click without moving removes).
   controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.PAN };
   // Stop browsers from starting "autoscroll" on a middle press.
@@ -256,7 +268,10 @@ async function main(): Promise<void> {
         controls.target.copy(next);
       }
     }
-    if (mode !== 'menu') controls.update();
+    if (mode !== 'menu') {
+      controls.update();
+      keepCameraAboveGround();
+    }
     sky.update(timer.getElapsed(), camera.position);
     fps.frame(timer.getElapsed());
     renderer.render(scene, camera);
