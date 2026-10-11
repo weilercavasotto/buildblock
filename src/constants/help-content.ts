@@ -109,7 +109,7 @@ export const HELP_TABS: HelpTab[] = [
         heading: 'Editing',
         rows: [
           { keys: ['Undo', 'Redo'], text: 'Buttons in the top bar. A whole paint stroke counts as one step.' },
-          { keys: ['Clear'], text: 'In the top bar: removes every part (you can undo it).' },
+          { keys: ['Clear'], text: 'In the top bar: removes every part after asking you to confirm (you can undo it).' },
           { keys: ['Menu'], text: 'Top-left button, just left of the help button: back to the main menu to open another game.' },
         ],
       },

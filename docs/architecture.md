@@ -178,8 +178,10 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   backdrop. It builds its DOM on demand (`.dialog-*` classes in `main.css`, `role="alertdialog"`, `aria-modal`), traps
   Tab between its two buttons, restores the previous focus, and sets all text with `textContent`. With `danger: true`
   the confirm button is red and **Cancel gets the initial focus**, so pressing Enter never deletes by accident. Only
-  one dialog is open at a time (opening another cancels the first). Used to confirm deleting a save; strings are in
-  `TEXT.menu.deleteDialog`.
+  one dialog is open at a time (opening another cancels the first). It swallows every key press while open, so the
+  game under it does not react (important now that it also appears while building). Used to confirm deleting a save
+  (`TEXT.menu.deleteDialog`) and **Clear** (`TEXT.clearDialog`, asked in `main.ts`; skipped when the grid is empty;
+  the clear itself is one undo step).
 - **`Menu`** — title screen and saved-games panel (load / delete / new). Uses `save.ts`; names are
   inserted with `textContent`.
 - **`save.ts`** — `listSaves`, `getSave`, `createSave`, `updateSave`, `deleteSave`; handles the one-time

@@ -106,7 +106,7 @@ building (in Play, `W` drives). The modes are hidden on narrow windows (< 1000 p
 | **Undo / Redo** buttons (top bar) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |
 | `1` – `9` or click a slot | Select the part in that hotbar slot (an empty slot places nothing) |
 | `B` or the catalog button | Open / close the **parts catalog** |
-| **Clear** (top bar) | Remove every part (can be undone) |
+| **Clear** (top bar) | Remove every part. A confirmation popup asks first (no popup when there is nothing to clear); the result can be undone |
 | **Play** (top bar) | Switch to Play mode |
 
 The ghost preview is **green** when the placement is valid and **red** when it is not.

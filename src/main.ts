@@ -13,6 +13,7 @@ import {
   LIGHTS,
   ROUGHNESS,
   SCENE,
+  TEXT,
   WORLD,
   applyTheme,
   hexToNumber,
@@ -27,6 +28,7 @@ import { CursorMode } from './types';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
 import { openCatalog } from './ui/catalog-dialog';
+import { confirmDialog } from './ui/confirm-dialog';
 import { Hud } from './ui/hud';
 import { Hotbar } from './ui/hotbar';
 import { PartInspector } from './ui/part-inspector';
@@ -204,7 +206,19 @@ async function main(): Promise<void> {
 
   const hud = new Hud({
     onTogglePlay: () => (physics ? stop() : startPlay()),
-    onClear: () => history.run(() => grid.clear()),
+    onClear: async () => {
+      const count = grid.all().length;
+      if (count === 0) return; // nothing to clear: no popup
+      const { title, message, confirm, cancel } = TEXT.clearDialog;
+      const confirmed = await confirmDialog({
+        title,
+        message: message(count),
+        confirmLabel: confirm,
+        cancelLabel: cancel,
+        danger: true,
+      });
+      if (confirmed) history.run(() => grid.clear());
+    },
     onMenu: enterMenu,
     onMode: (mode) => setCursorMode(mode),
     onHelp: toggleHelpDialog,

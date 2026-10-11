@@ -13,7 +13,8 @@ let close: ((confirmed: boolean) => void) | null = null;
  * Modal confirmation dialog. Resolves `true` when confirmed, `false` when cancelled (cancel button, Escape or a
  * click on the backdrop). Keyboard focus stays inside the dialog (Tab cycles) and returns to the previously
  * focused element afterwards. Only one dialog is open at a time: opening a new one cancels the previous.
- * Styles: `.dialog-*` in src/styles/main.css. All text is set with `textContent`.
+ * It swallows every key press while open (see `onKeyDown`). Styles: `.dialog-*` in src/styles/main.css. All text is set
+ * with `textContent`.
  */
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   close?.(false);
@@ -73,6 +74,9 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
         const step = e.shiftKey ? -1 : 1;
         order[(index + step + order.length) % order.length].focus();
       }
+      // Every key must stay away from the game under the dialog (tool/mode shortcuts, undo, ...). Browser shortcuts and
+      // the default action of the focused button (Enter / Space) are not prevented.
+      e.stopPropagation();
     };
 
     cancel.onclick = () => finish(false);

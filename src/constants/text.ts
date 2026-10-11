@@ -46,6 +46,13 @@ export const TEXT = {
     notInHotbar: 'Not in the hotbar',
     added: (slot: number) => `Added to slot ${slot}`,
   },
+  clearDialog: {
+    title: 'Clear everything?',
+    message: (count: number) =>
+      `All ${count === 1 ? '1 part' : `${count} parts`} will be removed. You can bring them back with Undo.`,
+    confirm: 'Clear',
+    cancel: 'Cancel',
+  },
   menu: {
     version: (v: string) => `v${v}`,
     noSaves: 'No saved games yet. Start a new one below.',
