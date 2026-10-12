@@ -91,7 +91,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
 
 ## Modules
 
-- **`Grid`** — `Map` keyed by `"x,y,z"`. `canPlace` enforces: free cell, `y >= 0`, and for wheels a
+- **`Grid`** — `Map` keyed by `"x,y,z"`. `canPlace` enforces: free cell, `y >= 0`, `|x|, |z| <= BUILD_LIMIT` (inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5), and for wheels a
   lateral `face` with a block behind it. `remove` cascades to wheels mounted on a removed block.
   Observers register with `subscribe`.
 - **`History`** (`src/build/history.ts`) — undo/redo as snapshots of the grid (parts are never mutated, so snapshots

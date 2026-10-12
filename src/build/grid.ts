@@ -1,4 +1,4 @@
-import { PART_INFO } from '../constants';
+import { BUILD_LIMIT, PART_INFO } from '../constants';
 import { Part, Vec3, addVec, cellKey, isHexColor, subVec } from '../types';
 
 export class Grid {
@@ -22,7 +22,9 @@ export class Grid {
   }
 
   canPlace(part: Part): boolean {
-    if (part.cell[1] < 0 || this.get(part.cell)) return false;
+    // Only cells over the floor grid that is drawn on the ground (see BUILD_LIMIT).
+    if (part.cell[1] < 0 || Math.abs(part.cell[0]) > BUILD_LIMIT || Math.abs(part.cell[2]) > BUILD_LIMIT) return false;
+    if (this.get(part.cell)) return false;
     if (part.type === 'wheel') {
       if (!part.face || part.face[1] !== 0) return false;
       return this.get(subVec(part.cell, part.face))?.type === 'block';

@@ -57,7 +57,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
   scroll = zoom (`controls.mouseButtons` in `main.ts`; click-vs-drag logic in `build-mode.ts`).
 - The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).
 - User-provided text (save names) is rendered with `textContent`, never `innerHTML`.
-- Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0`.
+- Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0` and `|x|, |z| <= BUILD_LIMIT` (inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5).
 - Shared geometries/materials are created once in `part-defs.ts`; do not dispose them per instance.
 - Adding a part type: follow [docs/adding-a-part.md](docs/adding-a-part.md).
 

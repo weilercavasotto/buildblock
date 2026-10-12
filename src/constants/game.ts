@@ -35,11 +35,22 @@ export const SCENE = {
   fogNear: 60,
   fogFar: 160,
   floorSize: 400,
-  gridSize: 60,
-  gridDivisions: 60,
+  /**
+   * Floor grid: one square per cell (`CELL_SIZE`). The count is odd so the lines fall on the cell borders (at n ± 0.5),
+   * the cell at the origin sits in the middle square and every block fills exactly one square.
+   */
+  gridCells: 61,
+  gridSize: 61 * CELL_SIZE,
+  gridDivisions: 61, // = gridCells
   /** Lifts the grid lines above the floor to avoid z-fighting. */
   gridLift: 0.001,
 } as const;
+
+/**
+ * Largest |x| and |z| of a buildable cell: the cells must stay inside the grid lines drawn on the floor
+ * (the outermost cell, centred on 30, ends on the last line, at 30.5).
+ */
+export const BUILD_LIMIT = Math.floor(SCENE.gridCells / 2);
 
 export const LIGHTS = {
   hemisphereIntensity: 1.1,
