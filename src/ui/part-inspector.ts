@@ -1,10 +1,12 @@
-import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, TEXT } from '../constants';
+import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, suspensionOf } from '../constants';
 import { Grid } from '../build/grid';
 import { Part, Vec3, partRotation, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
   onRemove(part: Part): void;
+  /** Sets the suspension strength (0-100) of a wheel. */
+  onSuspension(part: Part, strength: number): void;
   onClose(): void;
 }
 
@@ -64,6 +66,7 @@ export class PartInspector {
     body.append(
       summary,
       remove,
+      ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
       this.rows(this.placedRows(part)),
       text('h4', 'inspector-heading', TEXT.catalog.properties),
@@ -71,6 +74,40 @@ export class PartInspector {
       text('p', 'inspector-status', TEXT.inspector.removeHint),
     );
     this.root.replaceChildren(header, body);
+  }
+
+  /** Suspension slider (wheels only; it is the only place to change it, the catalog just lists the property). */
+  private suspensionSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasSuspension) return [];
+    const value = suspensionOf(part);
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'suspension-slider';
+    slider.min = String(SUSPENSION.min);
+    slider.max = String(SUSPENSION.max);
+    slider.step = String(SUSPENSION.step);
+    slider.value = String(value);
+    slider.setAttribute('aria-label', TEXT.inspector.suspension);
+    const readout = text('span', 'suspension-value', TEXT.inspector.suspensionValue(value));
+    // The readout follows the slider while it moves; the change (one undo step) is made when it is released.
+    slider.oninput = () => (readout.textContent = TEXT.inspector.suspensionValue(Number(slider.value)));
+    slider.onchange = () => this.handlers.onSuspension(part, Number(slider.value));
+
+    const reset = text('button', 'suspension-reset', TEXT.inspector.suspensionReset) as HTMLButtonElement;
+    reset.type = 'button';
+    reset.hidden = value === SUSPENSION.defaultStrength;
+    reset.onclick = () => this.handlers.onSuspension(part, SUSPENSION.defaultStrength);
+
+    const row = el('div', 'suspension-row');
+    row.append(slider, readout);
+    const ends = el('div', 'suspension-ends');
+    ends.append(text('span', '', TEXT.inspector.suspensionSoft), reset, text('span', '', TEXT.inspector.suspensionFirm));
+    return [
+      text('h4', 'inspector-heading', TEXT.inspector.suspension),
+      row,
+      ends,
+      text('p', 'inspector-status', TEXT.inspector.suspensionHint),
+    ];
   }
 
   /** Label / value rows that depend on where this particular part is. */
@@ -85,6 +122,7 @@ export class PartInspector {
       rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
+      rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
       rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
     }
     return rows;

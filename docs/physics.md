@@ -8,9 +8,20 @@ every time Play starts (and on `R`).
 1. **Chassis**: blocks are flood-filled over 6-neighbour adjacency. Each connected component becomes
    **one dynamic rigid body** with one `cuboid(0.5, 0.5, 0.5)` collider per block. A single body keeps
    structures stiff; joints between individual cubes would make them wobble.
-2. **Wheels**: every wheel is its **own body** with a cylinder collider (axis rotated to the wheel's `face`)
-   connected to the chassis body by a `RevoluteImpulseJoint` whose axis is the wheel's `face`.
-   The wheel body starts un-rotated so the joint axis is identical in both local frames.
+2. **Wheels**: every wheel is its **own body** with a cylinder collider (axis from the wheel's `rotation`, see
+   `wheelAxle`) spinning on a `RevoluteImpulseJoint`. The hinge is carried by a light **hub** body (no collider,
+   `SUSPENSION.hubMass` and a large `hubInertia`: the wheel motor is acceleration based, so it acts on the reduced inertia of hub and wheel and would be too weak to steer with a tiny hub) that hangs from the chassis by a vertical **spring**:
+   `chassis -prismatic spring- hub -revolute- wheel`. The wheel and hub bodies start un-rotated so the joint axes
+   are identical in both local frames.
+   - **Suspension**: the spring is a `PrismaticImpulseJoint` along the world up axis, limited to
+     `SUSPENSION.travelDown` / `travelUp`, with a position motor aiming at the rest position
+     (`configureMotorPosition`, `MotorModel.ForceBased`). The player sets the **strength** (0-100, `Part.suspension`,
+     default `SUSPENSION.defaultStrength` = 50) of each wheel in the part inspector. The strength maps
+     exponentially to a stiffness in 1/s² (`suspensionStiffness`, `minStiffness`…`maxStiffness`); the spring
+     constant is that stiffness times the mass the wheel supports (`chassis.mass() / wheels on that body`), so a
+     given strength sags about `gravity / stiffness` cells whatever the size of the build. Damping is
+     `2 · dampingRatio · √stiffness` (times the same mass). An acceleration-based motor was tried first and did
+     not work: it acts on the reduced mass of hub + wheel, far lighter than the chassis.
 3. **Scenery**: a large fixed floor plus a few fixed ramps/obstacles (far from the build area, only
    present during Play).
 
@@ -62,6 +73,7 @@ All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (s
 | `WHEEL.radius` / `WHEEL.width` | 0.65 / 0.4 | Wheel size (visual and collider) |
 | `WHEEL.friction` | 2.5 (combine: max) | Grip |
 | `CHASSIS.friction` | 0.6 | Chassis friction |
+| `SUSPENSION.*` | see file | Suspension strength range / default, stiffness range, damping ratio, travel, hub mass |
 | `WORLD.gravity` | -15 | World gravity |
 | `WORLD.step` / `WORLD.maxFrameTime` | 1/60 s / 0.1 s | Fixed step and frame-time clamp |
 | `SPAWN_LIFT` | 0.2 | Spawn height so wheels start above the floor |

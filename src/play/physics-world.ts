@@ -9,9 +9,12 @@ import {
   ROUGHNESS,
   SCENERY,
   SPAWN_LIFT,
+  SUSPENSION,
   WHEEL,
   WORLD,
   hexToNumber,
+  suspensionOf,
+  suspensionStiffness,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
 import { Part, Vec3, cellKey, subVec, wheelAxle } from '../types';
@@ -152,7 +155,15 @@ export class PhysicsWorld {
       }
     }
 
-    // Each wheel is its own body, attached to the block it is mounted on by a motorised hinge.
+    // Each wheel is its own body, spinning on a motorised hinge. The hinge is carried by a light "hub" body that hangs from
+    // the block the wheel is mounted on by a vertical spring (the suspension): chassis -spring- hub -hinge- wheel.
+    const up = { x: 0, y: 1, z: 0 };
+    // The spring must carry the chassis: its force is scaled by the mass each wheel of that body supports.
+    const wheelsOn = new Map<RAPIER.RigidBody, number>();
+    for (const wheel of parts.filter((p) => p.type === 'wheel' && p.face)) {
+      const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
+      if (host) wheelsOn.set(host.body, (wheelsOn.get(host.body) ?? 0) + 1);
+    }
     for (const wheel of parts.filter((p) => p.type === 'wheel' && p.face)) {
       // `face` is where the wheel is mounted (its host block); the axle comes from its rotation.
       const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
@@ -176,9 +187,32 @@ export class PhysicsWorld {
       );
       const axis = { x: axle[0], y: axle[1], z: axle[2] };
       const anchor = subVec(wheel.cell, host.origin);
+
+      const hub = this.world.createRigidBody(
+        RAPIER.RigidBodyDesc.dynamic()
+          .setTranslation(wheel.cell[0], wheel.cell[1] + SPAWN_LIFT, wheel.cell[2])
+          // A large rotational inertia keeps the wheel motor strong: it acts on the reduced inertia of hub and wheel.
+          .setAdditionalMassProperties(
+            SUSPENSION.hubMass,
+            { x: 0, y: 0, z: 0 },
+            { x: SUSPENSION.hubInertia, y: SUSPENSION.hubInertia, z: SUSPENSION.hubInertia },
+            { x: 0, y: 0, z: 0, w: 1 },
+          )
+          .setCanSleep(false),
+      );
+      const springData = RAPIER.JointData.prismatic({ x: anchor[0], y: anchor[1], z: anchor[2] }, { x: 0, y: 0, z: 0 }, up);
+      springData.limitsEnabled = true;
+      springData.limits = [-SUSPENSION.travelDown, SUSPENSION.travelUp];
+      const spring = this.world.createImpulseJoint(springData, host.body, hub, true) as RAPIER.PrismaticImpulseJoint;
+      // Spring constant (N/m) = stiffness (1/s², from the strength) x the mass this wheel supports; damping from the damping ratio.
+      const load = host.body.mass() / (wheelsOn.get(host.body) ?? 1);
+      const stiffness = suspensionStiffness(suspensionOf(wheel));
+      spring.configureMotorModel(RAPIER.MotorModel.ForceBased);
+      spring.configureMotorPosition(0, stiffness * load, 2 * SUSPENSION.dampingRatio * Math.sqrt(stiffness) * load);
+
       const joint = this.world.createImpulseJoint(
-        RAPIER.JointData.revolute({ x: anchor[0], y: anchor[1], z: anchor[2] }, { x: 0, y: 0, z: 0 }, axis),
-        host.body,
+        RAPIER.JointData.revolute({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, axis),
+        hub,
         body,
         true,
       ) as RAPIER.RevoluteImpulseJoint;

@@ -18,6 +18,46 @@ export const WHEEL = {
   density: 1,
 } as const;
 
+/**
+ * Wheel suspension: the wheel hangs from the chassis on a vertical spring (a prismatic joint with a position motor, see
+ * docs/physics.md). The player sets the strength (0-100, `Part.suspension`) of each wheel in the part inspector.
+ */
+export const SUSPENSION = {
+  min: 0,
+  max: 100,
+  step: 5,
+  /** Strength of a wheel whose `Part.suspension` is not set. */
+  defaultStrength: 50,
+  /**
+   * Spring stiffness (1/s²: the spring constant per kg the wheel supports) at strength `min` and `max`; in between it
+   * grows exponentially. At rest the chassis sinks about `gravity / stiffness` cells.
+   */
+  minStiffness: 160,
+  maxStiffness: 600,
+  /** Damping as a fraction of critical damping (1 = no bounce at all). */
+  dampingRatio: 0.7,
+  /** How far the wheel may move up / down from its rest position, in cells. */
+  travelUp: 0.4,
+  travelDown: 0.3,
+  /** Mass of the hub body between the chassis and the wheel (it has no collider). */
+  hubMass: 0.1,
+  /** Rotational inertia of the hub (kg·m²), much larger than a wheel's so the wheel motor keeps its strength. */
+  hubInertia: 5,
+} as const;
+
+/** The suspension strength of a part: its own, or the default; always an integer in `[min, max]`. */
+export const suspensionOf = (part: { suspension?: number }): number =>
+  clampSuspension(part.suspension ?? SUSPENSION.defaultStrength);
+
+export const clampSuspension = (value: number): number =>
+  Math.min(SUSPENSION.max, Math.max(SUSPENSION.min, Math.round(Number.isFinite(value) ? value : SUSPENSION.defaultStrength)));
+
+/** Spring stiffness for a strength. */
+export const suspensionStiffness = (strength: number): number => {
+  const t = (clampSuspension(strength) - SUSPENSION.min) / (SUSPENSION.max - SUSPENSION.min);
+  return SUSPENSION.minStiffness * (SUSPENSION.maxStiffness / SUSPENSION.minStiffness) ** t;
+};
+
 export const CHASSIS = {
   friction: 0.6,
   density: 1,

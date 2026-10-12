@@ -18,6 +18,8 @@ export interface PartInfo {
   rotatable: boolean;
   /** Can it be painted? Painting is done in the part inspector (inspect mode), never in the catalog. */
   paintable: boolean;
+  /** Does it have an adjustable suspension (set in the part inspector)? */
+  hasSuspension: boolean;
   /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
   previewAngle: number;
   /** One line shown under the name. */
@@ -35,6 +37,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     category: 'structure',
     rotatable: true,
     paintable: true,
+    hasSuspension: false,
     previewAngle: 0.6,
     tagline: 'The basic building cube.',
     description:
@@ -57,6 +60,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     // The axle points along X; turn it so the wheel face is seen at a three-quarter angle.
     rotatable: true,
     paintable: false,
+    hasSuspension: true,
     previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
     description:
@@ -67,6 +71,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Placement', value: 'Side faces of a block only' },
       { label: 'Rotation', value: 'A / D turn the axle a quarter turn from the face normal' },
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
+      { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
       { label: 'Grip', value: String(WHEEL.friction) },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],

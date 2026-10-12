@@ -19,6 +19,11 @@ export interface Part {
    * be painted (the wheel cannot). Missing = the default colour. Read it through `partColor()`.
    */
   color?: string;
+  /**
+   * Wheels only (`PART_INFO[type].hasSuspension`): strength of the wheel's suspension, 0-100. Missing = the default
+   * (`SUSPENSION.defaultStrength`). Read it through `suspensionOf()`.
+   */
+  suspension?: number;
 }
 
 export const cellKey = (c: Vec3): string => `${c[0]},${c[1]},${c[2]}`;

@@ -440,6 +440,42 @@ body.dragging * {
   border-color: var(--color-accent-highlight);
   box-shadow: 0 0 0 2px var(--color-accent-highlight);
 }
+.suspension-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.suspension-slider {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--color-accent-highlight);
+  cursor: pointer;
+}
+.suspension-value {
+  min-width: 3ch;
+  text-align: right;
+  font-size: var(--font-size-sm);
+}
+.suspension-ends {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  opacity: var(--opacity-muted);
+}
+.suspension-reset {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  padding: var(--space-xs) var(--space-sm);
+  font: inherit;
+  cursor: pointer;
+}
+.suspension-reset[hidden] {
+  display: none;
+}
 .inspector-tips {
   padding-left: var(--space-lg);
 }

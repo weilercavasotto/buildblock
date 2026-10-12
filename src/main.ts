@@ -291,6 +291,7 @@ async function main(): Promise<void> {
 
   const inspector = new PartInspector(grid, {
     onRemove: (part) => history.run(() => grid.remove(part.cell)),
+    onSuspension: (part, strength) => history.run(() => grid.setSuspension(part.cell, strength)),
     onClose: () => build.select(null),
   });
   build.onSelectionChange((part) => inspector.show(part));

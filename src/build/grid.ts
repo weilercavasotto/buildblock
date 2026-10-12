@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, PART_INFO, buildRange } from '../constants';
+import { DEFAULT_GRID_CELLS, PART_INFO, SUSPENSION, buildRange, clampSuspension } from '../constants';
 import { Part, Vec3, addVec, cellKey, isHexColor, subVec } from '../types';
 
 export class Grid {
@@ -75,6 +75,21 @@ export class Grid {
     return true;
   }
 
+  /**
+   * Sets the suspension strength (0-100) of the wheel at `cell`; the default strength is stored as "not set". Returns
+   * false, changing nothing, when there is no such part, it has no suspension or the value does not change it.
+   */
+  setSuspension(cell: Vec3, strength: number): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasSuspension || !Number.isFinite(strength)) return false;
+    const value = clampSuspension(strength);
+    if (clampSuspension(part.suspension ?? SUSPENSION.defaultStrength) === value) return false;
+    const { suspension: _old, ...rest } = part;
+    this.parts.set(cellKey(cell), value === SUSPENSION.defaultStrength ? rest : { ...rest, suspension: value });
+    this.emit();
+    return true;
+  }
+
   /** Removes the part at `cell`; removing a block also removes the wheels mounted on it. */
   remove(cell: Vec3): void {
     const part = this.get(cell);
@@ -97,14 +112,7 @@ export class Grid {
 
   load(parts: Part[]): void {
     this.parts.clear();
-    for (const p of parts) {
-      // Saves may carry a bad or forbidden paint: keep the part, drop the colour.
-      const valid = isHexColor(p.color) && PART_INFO[p.type].paintable;
-      if (p.color !== undefined && !valid) {
-        const { color: _bad, ...rest } = p;
-        this.parts.set(cellKey(p.cell), rest);
-      } else this.parts.set(cellKey(p.cell), p);
-    }
+    for (const p of parts) this.parts.set(cellKey(p.cell), sanitize(p));
     this.emit();
   }
 
@@ -133,4 +141,14 @@ export class Grid {
     const dirs: Vec3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
     return dirs.map((d) => this.get(addVec(cell, d))).filter((p): p is Part => !!p);
   }
+}
+
+/** Drops what a save may carry that its part type does not allow (a bad or forbidden paint / suspension). */
+function sanitize(part: Part): Part {
+  const { color, suspension, ...rest } = part;
+  const info = PART_INFO[part.type];
+  const out: Part = { ...rest };
+  if (color !== undefined && isHexColor(color) && info.paintable) out.color = color;
+  if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
+  return out;
 }
