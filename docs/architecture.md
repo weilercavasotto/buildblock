@@ -192,7 +192,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   `main.ts` calls `inspector.show(part)` from `build.onSelectionChange`, so it follows undo/redo and every other edit.
 - **`Hotbar`** (`src/ui/hotbar.ts`) — `HOTBAR.slots` (9) slots, each a part type or empty; the selected slot is what
   `BuildMode.setTool` places (`null` = place nothing). `main.ts` wires `hotbar.subscribe(part => build.setTool(part))`
-  and the keys `1`–`9` / `B`. Slots are persisted in `localStorage` (`STORAGE.hotbarKey`, per browser, not per save).
+  and the keys `1`–`9` / `B` / `C`. Slots are persisted in `localStorage` (`STORAGE.hotbarKey`, per browser, not per save).
   Drag a slot onto another to swap, out of the bar or right-click to empty it; `add(type)` puts a part in the slot that
   has it, the first empty one, or replaces the selected one; `onLayoutChange` lets the catalog refresh its inspector.
   The slot pictures come from `part-preview`.
@@ -200,7 +200,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   per part of `PART_ORDER`/`PART_INFO` (`src/constants/part-catalog.ts`). Hovering (or focusing) a card spins its
   preview (`startSpin`); clicking opens the **inspector** on the right (spinning preview, description, properties, tips,
   "Add to hotbar"/"Select in hotbar"); dragging a card onto a slot assigns it. While it is open the hotbar is raised above
-  the backdrop (`#hotbar.over-dialog`, `Z_INDEX.hotbarOverDialog`) so it stays a drop target. `B` closes it too.
+  the backdrop (`#hotbar.over-dialog`, `Z_INDEX.hotbarOverDialog`) so it stays a drop target. `B` and `C` (the modal's `closeCodes`) close it too.
 - **`part-preview`** (`src/ui/part-preview.ts`) — ONE shared off-screen `WebGLRenderer` (browsers cap WebGL contexts) that
   draws any part (built with `createPartObject`, centred and framed from its bounding sphere, lit like the game) into any
   2D canvas: `renderPartPreview(type, canvas, angle)`; `startSpin` animates it with `requestAnimationFrame` and returns

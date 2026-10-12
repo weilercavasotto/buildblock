@@ -38,7 +38,7 @@ export const TEXT = {
   hotbar: {
     emptySlot: (n: number) => `Slot ${n}: empty`,
     slot: (n: number, name: string) => `Slot ${n}: ${name}`,
-    catalog: 'Parts catalog (B)',
+    catalog: 'Parts catalog (B or C)',
   },
   catalog: {
     title: 'Parts catalog',

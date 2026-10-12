@@ -283,7 +283,7 @@ async function main(): Promise<void> {
     const modeKey = CURSOR_MODES.find((mode) => mode.code === e.code);
     if (modeKey && !e.shiftKey && !e.altKey) setCursorMode(modeKey.id);
     if (/^Digit[1-9]$/.test(e.code)) hotbar.select(Number(e.code.slice(5)) - 1);
-    if (e.code === 'KeyB') openCatalog(hotbar);
+    if (e.code === 'KeyB' || e.code === 'KeyC') openCatalog(hotbar);
   });
 
   addEventListener('resize', () => {

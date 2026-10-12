@@ -14,7 +14,7 @@ export const isCatalogOpen = (): boolean => open;
  * Parts catalog: a modal with one tab per category (plus "All"). Every card shows a 3D preview that spins while the
  * pointer is over it. Clicking a card opens the inspector on the right (big slowly-spinning preview, description,
  * properties and tips); dragging a card onto a hotbar slot (the hotbar is raised above the modal's backdrop) puts the
- * part there. `Esc` or `B` close it, Tab cycles inside it, Left/Right/Home/End change tab.
+ * part there. `Esc`, `B` or `C` close it, Tab cycles inside it, Left/Right/Home/End change tab.
  */
 export function openCatalog(hotbar: Hotbar): void {
   if (open) return;
@@ -145,7 +145,7 @@ export function openCatalog(hotbar: Hotbar): void {
     className: 'catalog',
     backdropClass: 'catalog-backdrop',
     labelledBy: 'catalog-title',
-    closeCodes: ['KeyB'],
+    closeCodes: ['KeyB', 'KeyC'],
     onClose: () => {
       open = false;
       closeAll();

@@ -20,7 +20,7 @@ select it with `1`–`9` or a click. A fresh install has the **Block** in slot 1
 empty. Rearrange it by dragging a slot onto another one (they swap), drag a slot out of the bar or right-click it to
 empty it. The layout and the selected slot are remembered in the browser (not per saved game).
 
-The button at the right of the hotbar (or `B`) opens the **parts catalog**, a modal with tabs (**All** plus one per
+The button at the right of the hotbar (or `B` / `C`) opens the **parts catalog**, a modal with tabs (**All** plus one per
 category) and a card with a 3D preview for each part:
 
 - **Hover** a card and its preview spins.
@@ -28,7 +28,7 @@ category) and a card with a 3D preview for each part:
   and tips, and a button that adds the part to the hotbar (or selects its slot if it is already there).
 - **Drag** a card onto a hotbar slot (the hotbar stays above the dimmed background while the catalog is open).
 
-`Esc`, `B` or the `×` button close the catalog.
+`Esc`, `B`, `C` or the `×` button close the catalog.
 
 ## Zoom control
 
@@ -125,7 +125,7 @@ shortest way round, also when you press quickly several times) and every part yo
 | Scroll | Zoom |
 | **Undo / Redo** buttons (top bar) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |
 | `1` – `9` or click a slot | Select the part in that hotbar slot (an empty slot places nothing) |
-| `B` or the catalog button | Open / close the **parts catalog** |
+| `B` / `C` or the catalog button | Open / close the **parts catalog** |
 | **Clear** (top bar) | Remove every part. A confirmation popup asks first (no popup when there is nothing to clear); the result can be undone |
 | **Play** (top bar) | Switch to Play mode |
 

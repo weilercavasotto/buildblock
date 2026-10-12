@@ -34,7 +34,7 @@ export const HELP_TABS: HelpTab[] = [
         heading: 'How it works',
         rows: [
           { keys: ['Hotbar'], text: 'The bar at the bottom holds up to 9 parts. Press 1–9 or click a slot to choose what you place.' },
-          { keys: ['Catalog'], text: 'The button at the right of the hotbar (or B) opens the parts catalog, where you can inspect every part and drag it onto a slot.' },
+          { keys: ['Catalog'], text: 'The button at the right of the hotbar (or B / C) opens the parts catalog, where you can inspect every part and drag it onto a slot.' },
           { text: 'Place blocks to make a body (touching blocks become one rigid piece) and mount wheels on their sides. Four wheels and a body make a car.' },
           { keys: ['Play'], text: 'In the top bar: drive your creation. Stop brings you back to building, with your build untouched.' },
         ],
@@ -137,7 +137,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Q', 'W', 'E'], text: 'Cursor mode: Build, Inspect, Remove.' },
           { keys: ['A', 'D'], text: 'Rotate the part to place (counter-clockwise / clockwise).' },
           { keys: ['1 – 9'], text: 'Select the part in that hotbar slot (and switch to Build).' },
-          { keys: ['B'], text: 'Open or close the parts catalog.' },
+          { keys: ['B', 'C'], text: 'Open or close the parts catalog.' },
           { keys: ['Ctrl / Cmd + Z'], text: 'Undo.' },
           { keys: ['Ctrl / Cmd + Y', 'Ctrl / Cmd + Shift + Z'], text: 'Redo.' },
         ],
