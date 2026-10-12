@@ -157,7 +157,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   the slider; slider/buttons move the camera along its line of sight (`setDistance`). The slider value is not rewritten
   while it is being dragged, and the control releases keyboard focus after a click so the arrow keys keep driving.
   Hidden in the menu (`main.ts` calls `setVisible` and `sync()` together with the HUD). `#zoom` is fixed at the top left, right
-  under the Menu button; inside, three same-width `.zoom-panel`s are stacked: `+`, `#zoom-bar` (percentage label +
+  under the home button; inside, three same-width `.zoom-panel`s are stacked: `+`, `#zoom-bar` (percentage label +
   slider) and `−`.
 - **`FpsCounter`** — counts frames over `FPS_COUNTER.updateInterval` and colours the number by threshold; the first
   window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.

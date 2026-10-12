@@ -165,18 +165,16 @@ body.dragging * {
   color: var(--color-text-primary);
   cursor: pointer;
 }
-#help-button {
-  width: var(--size-icon-button);
-}
+#help-button,
 #btn-menu {
-  padding: 0 var(--space-lg);
-  font-size: var(--font-size-md);
+  width: var(--size-icon-button);
 }
 #help-button:hover,
 #btn-menu:hover {
   background: var(--overlay-panel-hover);
 }
-#help-button svg {
+#help-button svg,
+#btn-menu svg {
   width: var(--size-icon);
   height: var(--size-icon);
 }
@@ -719,7 +717,7 @@ body[data-cursor-mode='remove'] > canvas {
   font-weight: var(--font-weight-semibold);
 }
 
-/* ---- Zoom control: top left, under the Menu button ---- */
+/* ---- Zoom control: top left, under the home button ---- */
 #zoom {
   position: fixed;
   left: var(--space-lg);

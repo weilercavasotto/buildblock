@@ -33,7 +33,7 @@ category) and a card with a 3D preview for each part:
 
 ## Zoom control
 
-In the **top-left corner, right under the Menu button**, there is a **zoom control** made of three parts stacked vertically: the `+` button on top (in its own panel), the
+In the **top-left corner, right under the home button**, there is a **zoom control** made of three parts stacked vertically: the `+` button on top (in its own panel), the
 bar in the middle, with no card around it (the zoom percentage at its top and a vertical slider below it, top = closest) and the `−` button
 at the bottom. The percentage is relative to the default view (`100%`). It works together with the mouse
 wheel: scrolling moves the slider, and dragging the slider or pressing the buttons zooms the camera. Zoom is limited
@@ -76,7 +76,7 @@ Press **Play** to open the *Saved games* panel:
 The bottom-right corner shows the game version (`vX.Y.Z`), read from `package.json` at build time
 (`vite.config.ts` defines `__APP_VERSION__`). Bump the `version` field there to release a new version.
 
-In the game, the **☰ Menu** button (top-left, next to the ⓘ help button, on its left) returns to the main menu.
+In the game, the **home icon** button (top-left, next to the ⓘ help button, on its left) returns to the main menu.
 
 ## Help
 
@@ -89,7 +89,7 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 
 | Where | What |
 |---|---|
-| Top left | **☰ Menu** and, next to it, **ⓘ Help**; the **zoom control** below the Menu button |
+| Top left | the **home** button (back to the main menu) and, next to it, **ⓘ Help**; the **zoom control** below the home button |
 | Top centre | Bar with the cursor modes **Q W E**, the rotate buttons **A ↺ D ↻**, **Undo** and **Redo**, then **Clear** and **Play** (while playing it only shows **Stop**) |
 | Right edge, centred | The **part inspector** (inspect mode, when a part is selected) |
 | Top right | **FPS counter** |

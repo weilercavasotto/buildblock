@@ -80,7 +80,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Middle drag'], text: 'Rotate the camera.' },
           { keys: ['Right drag'], text: 'Move (pan) the camera.' },
           { keys: ['Scroll'], text: 'Zoom in and out.' },
-          { text: 'The zoom panel (top left, under the Menu button) shows the zoom level and has + / − buttons and a slider. Zoom is limited so you cannot go too close or too far.' },
+          { text: 'The zoom panel (top left, under the home button) shows the zoom level and has + / − buttons and a slider. Zoom is limited so you cannot go too close or too far.' },
         ],
       },
     ],

@@ -21,7 +21,12 @@
   </head>
   <body>
     <div id="top-left" hidden>
-      <button id="btn-menu" title="Back to the main menu">☰ Menu</button>
+      <button id="btn-menu" title="Back to the main menu" aria-label="Back to the main menu">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 10.5 12 3l9 7.5" />
+          <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+        </svg>
+      </button>
       <button id="help-button" title="Help (H)" aria-label="Help">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
