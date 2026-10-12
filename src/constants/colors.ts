@@ -51,8 +51,9 @@ export const COLORS = {
   },
 
   part: {
-    block: '#d9453b',
-    blockEdge: '#5a1a16',
+    /** Default block colour: a soft blue. */
+    block: '#5fa0d6',
+    blockEdge: '#2b4a66',
     tire: '#23262d',
     rim: '#dfe3ea',
     rimRecess: '#8f98a8',

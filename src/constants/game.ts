@@ -6,8 +6,14 @@ export const CELL_SIZE = 1;
 /** Y of the ground's top surface: cells with `y = 0` sit exactly on it. */
 export const GROUND_Y = -CELL_SIZE / 2;
 
-/** A block's mesh is slightly smaller than its cell so neighbouring blocks show a seam. */
-export const BLOCK_VISUAL_SIZE = 0.98;
+/** A block's mesh fills its whole cell, like its collider, so neighbouring blocks touch without a gap. */
+export const BLOCK_VISUAL_SIZE = CELL_SIZE;
+
+/** The dark outline of a block is drawn this much larger than the cube, so it sits just outside the faces (no z-fighting). */
+export const BLOCK_EDGE_SCALE = 1.004;
+
+/** The placement ghost is a bit smaller than the cell so it does not z-fight with the faces of neighbouring blocks. */
+export const GHOST_BLOCK_SCALE = 0.985;
 
 export const CAMERA = {
   fov: 55,
@@ -41,6 +47,9 @@ export const LIGHTS = {
   sunPosition: [12, 20, 8] as Vec3,
   shadowMapSize: 2048,
   shadowExtent: 30,
+  /** Shadow-map offsets that stop faces from shadowing themselves ("acne") now that blocks touch without a gap. */
+  shadowBias: -0.0005,
+  shadowNormalBias: 0.03,
   shadowNear: 1,
   shadowFar: 80,
 } as const;

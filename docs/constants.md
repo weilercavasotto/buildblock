@@ -47,5 +47,6 @@ line height stay unitless. `applyTheme()` also sets the `theme-color` meta tag.
 ## Not covered by the tokens
 
 The SVG branding assets in `public/` (`logo-mark.svg`, `favicon.svg`) are static files with their own colours,
-chosen to match `COLORS.part.block` and `COLORS.surface.input`. Update them by hand if those change.
+the red brand brick and `COLORS.surface.input` (the icon background). The in-game block colour (`COLORS.part.block`, a soft
+blue) is independent of the logo; update the SVGs by hand if you want them to follow.
 The static `<meta name="theme-color">` in `index.html` is only a pre-JS fallback.

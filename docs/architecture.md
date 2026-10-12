@@ -142,6 +142,12 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   (`tire`, `rim`, `rimRecess`), rim roughness/metalness in `ROUGHNESS` / `METALNESS`.
 - **`part-defs`** — shared geometries/materials, `createPartObject(part, ghost?)` and
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
+  A block's mesh **fills its whole cell** (`BLOCK_VISUAL_SIZE = CELL_SIZE`, the same as its collider), so neighbouring blocks
+  touch with no gap. Each block still reads as a separate brick through its dark outline (`LineSegments` of the cube's edges),
+  drawn `BLOCK_EDGE_SCALE` (1.004) larger than the cube so it sits just outside the faces and stays continuous instead of
+  z-fighting; the faces use `polygonOffset` for the same reason. The placement ghost is `GHOST_BLOCK_SCALE` smaller so it
+  does not z-fight with the faces of its neighbours, and the sun's shadow has a `bias`/`normalBias` (`LIGHTS`) against
+  self-shadowing noise on faces that now touch.
 - **`PhysicsWorld`** — see [physics.md](physics.md).
 - **`VehicleController`** — see [physics.md](physics.md).
 - **`ZoomControl`** (`src/ui/zoom-control.ts`) — zoom is the camera's distance to the orbit target. The limits are
@@ -265,8 +271,9 @@ All three are linked from `index.html`.
 
 The SVGs are hand-written. The `.ico` and the apple-touch PNG are rasterised from `favicon.svg` and must be
 regenerated when the SVG changes (draw it on a canvas at 16/32/48/180 px, fill `#1a1f2b` under the 180 px one,
-and pack 16/32/48 into an ICO). Edit the SVG to change colours; the palette matches
-the in-game block (`#d9453b`) and the HUD (`#1a1f2b`).
+and pack 16/32/48 into an ICO). Edit the SVG to change colours. The logo is the red brand brick (`#d9453b`); the in-game blocks are a soft blue
+(`COLORS.part.block`), so the logo no longer matches them on purpose (recolour the SVGs and regenerate the rasters if you
+want it to). The favicon background matches the HUD (`#1a1f2b`).
 
 ## UI font
 

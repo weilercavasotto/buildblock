@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber } from '../constants';
+import { ALPHA, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber } from '../constants';
 import { Part, Vec3, partRotation, wheelAxle, yawOfTurns } from '../types';
 import { wheelGeometry } from './wheel-model';
 
@@ -9,7 +9,15 @@ const ghostMaterial = (hex: string) =>
 
 const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
 const edgeGeo = new THREE.EdgesGeometry(blockGeo);
-const blockMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.block), roughness: ROUGHNESS.block });
+// The faces are pushed back a little in depth (and the outline is drawn slightly larger than the cube, see
+// BLOCK_EDGE_SCALE) so the dark outline of each block is not eaten by the faces.
+const blockMat = new THREE.MeshStandardMaterial({
+  color: color(COLORS.part.block),
+  roughness: ROUGHNESS.block,
+  polygonOffset: true,
+  polygonOffsetFactor: 1,
+  polygonOffsetUnits: 1,
+});
 const tireMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.tire), roughness: ROUGHNESS.tire });
 const rimMat = new THREE.MeshStandardMaterial({
   color: color(COLORS.part.rim),
@@ -54,10 +62,12 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation'>,
   if (part.type === 'block') {
     const mesh = new THREE.Mesh(blockGeo, ghostMat ?? blockMat);
     mesh.castShadow = mesh.receiveShadow = !ghost;
+    if (ghost) mesh.scale.setScalar(GHOST_BLOCK_SCALE);
     root.add(mesh);
     if (!ghost) {
       const edges = new THREE.LineSegments(edgeGeo, edgeMat);
       Object.assign(edges, noRaycast);
+      edges.scale.setScalar(BLOCK_EDGE_SCALE);
       root.add(edges);
     }
     // Everything but wheels turns around the vertical axis; a wheel's rotation chooses its axle (see below).

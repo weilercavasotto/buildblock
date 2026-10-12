@@ -87,6 +87,8 @@ async function main(): Promise<void> {
   sun.position.set(...LIGHTS.sunPosition);
   sun.castShadow = true;
   sun.shadow.mapSize.set(LIGHTS.shadowMapSize, LIGHTS.shadowMapSize);
+  sun.shadow.bias = LIGHTS.shadowBias;
+  sun.shadow.normalBias = LIGHTS.shadowNormalBias;
   const extent = LIGHTS.shadowExtent;
   Object.assign(sun.shadow.camera, {
     left: -extent,
