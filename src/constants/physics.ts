@@ -14,9 +14,56 @@ export const WORLD = {
 export const WHEEL = {
   radius: 0.65,
   width: 0.4,
-  friction: 2.5,
   density: 1,
 } as const;
+
+/**
+ * Tire types a wheel can have (`Part.tire`, chosen in the part inspector). Each trades grip against top speed:
+ * `friction` is the wheel's friction coefficient, `speed` multiplies `VEHICLE.maxWheelSpeed` and `torque` multiplies
+ * `VEHICLE.motorStrength` (a grippier tire needs a stronger motor, or the car cannot turn). `grip` / `topSpeed` are the
+ * 1-5 ratings shown to the player (keep them in line with the numbers).
+ */
+export const TIRES = [
+  {
+    id: 'standard',
+    name: 'Standard',
+    description: 'All-round tires: good grip and a good top speed.',
+    friction: 2.5,
+    speed: 1,
+    torque: 1,
+    grip: 3,
+    topSpeed: 3,
+  },
+  {
+    id: 'speed',
+    name: 'Speed',
+    description: 'Slick, low-grip tires for speed. Fast on a straight line, they slide in turns.',
+    friction: 1.4,
+    speed: 1.35,
+    torque: 1,
+    grip: 2,
+    topSpeed: 5,
+  },
+  {
+    id: 'traction',
+    name: 'Traction',
+    description: 'Deep-tread tires for snow and rough ground: huge grip, but slower.',
+    friction: 4,
+    speed: 0.75,
+    torque: 3,
+    grip: 5,
+    topSpeed: 2,
+  },
+] as const;
+export type TireId = (typeof TIRES)[number]['id'];
+export const DEFAULT_TIRE: TireId = 'standard';
+
+/** Is `value` the id of a tire type? */
+export const isTireId = (value: unknown): value is TireId => TIRES.some((tire) => tire.id === value);
+
+/** The tire of a part: its own, or the default. */
+export const tireOf = (part: { tire?: string }): (typeof TIRES)[number] =>
+  TIRES.find((tire) => tire.id === part.tire) ?? TIRES.find((tire) => tire.id === DEFAULT_TIRE)!;
 
 /**
  * Wheel suspension: the wheel hangs from the chassis on a vertical spring (a prismatic joint with a position motor, see

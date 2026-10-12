@@ -15,6 +15,7 @@ import {
   hexToNumber,
   suspensionOf,
   suspensionStiffness,
+  tireOf,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
 import { Part, Vec3, cellKey, subVec, wheelAxle } from '../types';
@@ -27,6 +28,10 @@ export interface WheelDrive {
   joint: RAPIER.RevoluteImpulseJoint;
   axis: Vec3;
   cell: Vec3;
+  /** Multiplies the top wheel speed (the wheel's tire type). */
+  speed: number;
+  /** Multiplies the motor strength (the wheel's tire type). */
+  torque: number;
 }
 
 interface SyncPair {
@@ -180,7 +185,7 @@ export class PhysicsWorld {
         RAPIER.ColliderDesc.cylinder(WHEEL.width / 2, WHEEL.radius)
           .setRotation({ x: q.x, y: q.y, z: q.z, w: q.w })
           .setDensity(WHEEL.density)
-          .setFriction(WHEEL.friction)
+          .setFriction(tireOf(wheel).friction)
           .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Max)
           .setCollisionGroups(groups(WHEEL_GROUP, GROUND)),
         body,
@@ -216,7 +221,7 @@ export class PhysicsWorld {
         body,
         true,
       ) as RAPIER.RevoluteImpulseJoint;
-      this.wheels.push({ joint, axis: axle, cell: wheel.cell });
+      this.wheels.push({ joint, axis: axle, cell: wheel.cell, speed: tireOf(wheel).speed, torque: tireOf(wheel).torque });
 
       const obj = createPartObject(wheel);
       this.group.add(obj);

@@ -1,4 +1,4 @@
-import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, suspensionOf } from '../constants';
+import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, TIRES, suspensionOf, tireOf } from '../constants';
 import { Grid } from '../build/grid';
 import { Part, Vec3, partRotation, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
@@ -7,6 +7,8 @@ export interface InspectorHandlers {
   onRemove(part: Part): void;
   /** Sets the suspension strength (0-100) of a wheel. */
   onSuspension(part: Part, strength: number): void;
+  /** Sets the tire type (an id of `TIRES`) of a wheel. */
+  onTire(part: Part, tire: string): void;
   onClose(): void;
 }
 
@@ -66,6 +68,7 @@ export class PartInspector {
     body.append(
       summary,
       remove,
+      ...this.tireSection(part),
       ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
       this.rows(this.placedRows(part)),
@@ -74,6 +77,31 @@ export class PartInspector {
       text('p', 'inspector-status', TEXT.inspector.removeHint),
     );
     this.root.replaceChildren(header, body);
+  }
+
+  /** Tire type picker (wheels only): one card per `TIRES` entry with its grip / top-speed ratings. */
+  private tireSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasTire) return [];
+    const current = tireOf(part);
+    const options = el('div', 'tire-options');
+    options.setAttribute('role', 'radiogroup');
+    options.setAttribute('aria-label', TEXT.inspector.tire);
+    for (const tire of TIRES) {
+      const option = el('button', 'tire-option') as HTMLButtonElement;
+      option.type = 'button';
+      option.setAttribute('role', 'radio');
+      option.setAttribute('aria-checked', String(tire.id === current.id));
+      option.classList.toggle('selected', tire.id === current.id);
+      const dots = (n: number) => '●'.repeat(n) + '○'.repeat(5 - n);
+      option.append(
+        text('span', 'tire-name', tire.name),
+        text('span', 'tire-rating', `${TEXT.inspector.tireGrip} ${dots(tire.grip)}`),
+        text('span', 'tire-rating', `${TEXT.inspector.tireSpeed} ${dots(tire.topSpeed)}`),
+      );
+      option.onclick = () => this.handlers.onTire(part, tire.id);
+      options.append(option);
+    }
+    return [text('h4', 'inspector-heading', TEXT.inspector.tire), options, text('p', 'inspector-status', current.description)];
   }
 
   /** Suspension slider (wheels only; it is the only place to change it, the catalog just lists the property). */
@@ -122,6 +150,7 @@ export class PartInspector {
       rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
+      rows.push([TEXT.inspector.tire, tireOf(part).name]);
       rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
       rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
     }

@@ -440,6 +440,42 @@ body.dragging * {
   border-color: var(--color-accent-highlight);
   box-shadow: 0 0 0 2px var(--color-accent-highlight);
 }
+.tire-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.tire-option {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--space-md);
+  align-items: baseline;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-regular) solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tire-option:hover {
+  background: var(--color-surface-control-hover);
+}
+.tire-option.selected {
+  border-color: var(--color-accent-highlight);
+  background: var(--color-surface-control-hover);
+}
+.tire-name {
+  grid-row: span 2;
+  font-weight: var(--font-weight-semibold);
+}
+.tire-rating {
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-sm);
+  opacity: var(--opacity-muted);
+  text-align: right;
+}
 .suspension-row {
   display: flex;
   align-items: center;

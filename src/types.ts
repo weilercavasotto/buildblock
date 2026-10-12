@@ -24,6 +24,8 @@ export interface Part {
    * (`SUSPENSION.defaultStrength`). Read it through `suspensionOf()`.
    */
   suspension?: number;
+  /** Wheels only (`PART_INFO[type].hasTire`): id of the tire type (see `TIRES`). Missing = `DEFAULT_TIRE`. Read it through `tireOf()`. */
+  tire?: string;
 }
 
 export const cellKey = (c: Vec3): string => `${c[0]},${c[1]},${c[2]}`;

@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, PART_INFO, SUSPENSION, buildRange, clampSuspension } from '../constants';
+import { DEFAULT_GRID_CELLS, DEFAULT_TIRE, PART_INFO, SUSPENSION, buildRange, clampSuspension, isTireId } from '../constants';
 import { Part, Vec3, addVec, cellKey, isHexColor, subVec } from '../types';
 
 export class Grid {
@@ -90,6 +90,20 @@ export class Grid {
     return true;
   }
 
+  /**
+   * Sets the tire type (an id of `TIRES`) of the wheel at `cell`; the default tire is stored as "not set". Returns false,
+   * changing nothing, when there is no such part, it has no tires, the id is unknown or it does not change it.
+   */
+  setTire(cell: Vec3, tire: string): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasTire || !isTireId(tire)) return false;
+    if ((part.tire ?? DEFAULT_TIRE) === tire) return false;
+    const { tire: _old, ...rest } = part;
+    this.parts.set(cellKey(cell), tire === DEFAULT_TIRE ? rest : { ...rest, tire });
+    this.emit();
+    return true;
+  }
+
   /** Removes the part at `cell`; removing a block also removes the wheels mounted on it. */
   remove(cell: Vec3): void {
     const part = this.get(cell);
@@ -143,12 +157,13 @@ export class Grid {
   }
 }
 
-/** Drops what a save may carry that its part type does not allow (a bad or forbidden paint / suspension). */
+/** Drops what a save may carry that its part type does not allow (a bad or forbidden paint / suspension / tire). */
 function sanitize(part: Part): Part {
-  const { color, suspension, ...rest } = part;
+  const { color, suspension, tire, ...rest } = part;
   const info = PART_INFO[part.type];
   const out: Part = { ...rest };
   if (color !== undefined && isHexColor(color) && info.paintable) out.color = color;
   if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
+  if (tire !== undefined && isTireId(tire) && info.hasTire) out.tire = tire;
   return out;
 }

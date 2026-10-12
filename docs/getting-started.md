@@ -46,6 +46,13 @@ Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also s
 at 30+ and red below. Press **F3** to show or hide it. Thresholds and refresh rate: `FPS_COUNTER` in
 `src/constants/game.ts`.
 
+### Tires
+
+Each wheel has a **tire type**, chosen in the **Tire** section of the inspector (Inspect mode): **Standard** (all-round, the
+default), **Speed** (slick, low grip, the highest top speed) and **Traction** (deep tread, huge grip, slower: for snow and rough
+ground). Each option shows its grip and top-speed ratings. It is per wheel, undoable, saved with the game, applied in Play, and
+never changed in the catalog (which just lists the property). Mixing tires on one car is allowed.
+
 ### Wheel suspension
 
 A wheel hangs from its block on a spring. Select a wheel in Inspect mode and use the **Suspension** slider in the inspector
@@ -96,7 +103,7 @@ mouse button does (the middle button always rotates the camera, the right button
 
 | Mode | Key | Left button |
 |---|---|---|
-| **Inspect** | `Q` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode; wheels have a **Suspension** slider, see below) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
+| **Inspect** | `Q` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode; wheels have **Tire** and **Suspension** controls, see below) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
 | **Build** (default) | `W` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
 | **Paint** | `E` | A **palette** appears under the top bar; pick a colour (the first swatch is the default colour and removes paint) and click a block to paint it, or **drag** to paint several (one undo step). Wheels cannot be painted. Painting is undoable, saved and shown in Play. Not available in the catalog |
 | **Remove** | `R` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |

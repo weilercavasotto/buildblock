@@ -67,6 +67,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 
 - Connected blocks must stay **one rigid body** with one collider per block; do not joint individual cubes.
 - Wheel chain: `chassis -prismatic spring- hub -revolute- wheel` (`SUSPENSION`, `Part.suspension`, set only in `PartInspector`); the spring must stay `ForceBased` and scaled by the supported mass, an acceleration-based one cannot hold the chassis. The vehicle controller drives the hub-wheel revolute joint; the hub needs a large rotational inertia (`SUSPENSION.hubInertia`) or the motor is too weak and A / D stop steering.
+- Tires (`TIRES`, `Part.tire`, picked only in `PartInspector`) set wheel friction, top speed and motor torque; keep `torque` scaled with `friction`, or high-grip tires cannot skid-steer.
 - A wheel body must start **un-rotated**: Rapier's revolute joint uses the same axis numbers in both bodies'
   local frames, so only the wheel's *collider* and mesh are rotated toward the axle.
 - Wheels (radius 0.65) collide only with the ground; this is done with collision groups, keep it that way.

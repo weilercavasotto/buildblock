@@ -58,6 +58,10 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
   slow down or reverse while the left wheels speed up.
 - `setAutopilot({ throttle, steer })` overrides the keyboard; the main menu uses it with
   `{ keyboard: false }` so the background car does not react to keys.
+- **Tires**: each wheel's tire type (`Part.tire`, see `TIRES` in `physics.ts`) sets its collider friction and scales its
+  motor: top speed (`speed` × `VEHICLE.maxWheelSpeed`) and strength (`torque` × `VEHICLE.motorStrength`). A grippier tire needs a
+  stronger motor, otherwise the car cannot skid-steer (the traction tire has torque ×3 for that reason). Standard 2.5 / ×1 /
+  ×1, Speed 1.4 / ×1.35 / ×1, Traction 4 / ×0.75 / ×3.
 - With no keys pressed, wheels hold velocity 0 with a light damping (`VEHICLE.idleBrake`).
 
 ## Tuning constants
@@ -71,7 +75,7 @@ All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (s
 | `VEHICLE.idleBrake` | 12 | How quickly the car stops with no input |
 | `VEHICLE.steerGain` | 0.7 | Steering sharpness |
 | `WHEEL.radius` / `WHEEL.width` | 0.65 / 0.4 | Wheel size (visual and collider) |
-| `WHEEL.friction` | 2.5 (combine: max) | Grip |
+| `TIRES` | 3 types | Friction (combine: max), top-speed and motor-strength multipliers of each tire type |
 | `CHASSIS.friction` | 0.6 | Chassis friction |
 | `SUSPENSION.*` | see file | Suspension strength range / default, stiffness range, damping ratio, travel, hub mass |
 | `WORLD.gravity` | -15 | World gravity |
