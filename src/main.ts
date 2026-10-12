@@ -221,6 +221,7 @@ async function main(): Promise<void> {
     },
     onMenu: enterMenu,
     onMode: (mode) => setCursorMode(mode),
+    onRotate: (direction) => build.rotate(direction),
     onHelp: toggleHelpDialog,
     onUndo: () => history.undo(),
     onRedo: () => history.redo(),
@@ -238,8 +239,10 @@ async function main(): Promise<void> {
       RIGHT: THREE.MOUSE.PAN,
     };
     document.body.dataset.cursorMode = mode;
+    hud.setRotateEnabled(build.canRotate);
   };
   setCursorMode('build');
+  hotbar.subscribe(() => hud.setRotateEnabled(build.canRotate)); // after build.setTool(...) so canRotate is up to date
   hotbar.onUserSelect(() => setCursorMode('build')); // choosing a part to place means building
 
   const inspector = new PartInspector(grid, {
@@ -273,6 +276,8 @@ async function main(): Promise<void> {
       }
       return;
     }
+    // A / D rotate the part to place (they steer while playing, which is handled elsewhere).
+    if ((e.code === 'KeyA' || e.code === 'KeyD') && !e.shiftKey && !e.altKey) build.rotate(e.code === 'KeyD' ? 1 : -1);
     const modeKey = CURSOR_MODES.find((mode) => mode.code === e.code);
     if (modeKey && !e.shiftKey && !e.altKey) setCursorMode(modeKey.id);
     if (/^Digit[1-9]$/.test(e.code)) hotbar.select(Number(e.code.slice(5)) - 1);
@@ -286,7 +291,7 @@ async function main(): Promise<void> {
   });
 
   if (import.meta.env.DEV) {
-    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getMode: () => mode, menuScene, build, history, zoom, hotbar } });
+    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getVehicle: () => vehicle, getMode: () => mode, menuScene, build, history, zoom, hotbar } });
   }
 
   const timer = new THREE.Timer();
@@ -310,6 +315,7 @@ async function main(): Promise<void> {
     if (mode !== 'menu') {
       controls.update();
       keepCameraAboveGround();
+      build.update(dt);
     }
     sky.update(timer.getElapsed(), camera.position);
     fps.frame(timer.getElapsed());

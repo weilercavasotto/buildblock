@@ -69,6 +69,7 @@ export const HELP_TABS: HelpTab[] = [
             keys: ['Left drag'],
             text: 'Paint blocks: keep the button down and move to keep placing blocks on the face where you started (a row, a layer or a wall).',
           },
+          { keys: ['A', 'D'], text: 'Rotate the part to place a quarter turn (A counter-clockwise, D clockwise). The preview turns smoothly. Also available as the ↺ ↻ buttons in the top bar. A wheel is mounted on a side face and its axle is perpendicular to it; rotate it a quarter turn to make it lie along the face instead.' },
           { keys: ['Right click'], text: 'Remove the part under the cursor (Build and Remove modes). Removing a block also removes its wheels.' },
         ],
       },
@@ -101,7 +102,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Block'], text: 'A cube. Place it on the ground or against any face of another block.' },
           {
             keys: ['Wheel'],
-            text: 'Click the side of a block to mount a wheel. It spins on the axle of that face, so it cannot go on the top or bottom of a block.',
+            text: 'Click the side of a block to mount a wheel (not the top or bottom). By default its axle is perpendicular to that face; A / D turn it a quarter turn before placing.',
           },
         ],
       },
@@ -134,6 +135,7 @@ export const HELP_TABS: HelpTab[] = [
         heading: 'Build mode',
         rows: [
           { keys: ['Q', 'W', 'E'], text: 'Cursor mode: Build, Inspect, Remove.' },
+          { keys: ['A', 'D'], text: 'Rotate the part to place (counter-clockwise / clockwise).' },
           { keys: ['1 – 9'], text: 'Select the part in that hotbar slot (and switch to Build).' },
           { keys: ['B'], text: 'Open or close the parts catalog.' },
           { keys: ['Ctrl / Cmd + Z'], text: 'Undo.' },
@@ -143,7 +145,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Play mode',
         rows: [
-          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). Q/W/E only switch modes while building.' },
+          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). Q/W/E and A/D only switch modes / rotate while building.' },
           { keys: ['R'], text: 'Restart.' },
         ],
       },

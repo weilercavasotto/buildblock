@@ -77,6 +77,17 @@ interface Part {
 
 A wheel at `cell` with `face` is attached to the block at `cell - face`.
 
+`rotation` is the orientation around the vertical axis in **clockwise quarter turns seen from above** (0-3), stored
+for every placed part. Always read it with `partRotation(part)`; `yawOfTurns` converts it to a three.js yaw
+(counter-clockwise, hence negative). Saves from before rotation existed have no `rotation`: blocks then count as 0 and
+wheels as `rotationOfFace(face)`, which keeps their old axle.
+
+For a wheel, **`face` only says where it is mounted** (the host block is at `cell - face`; used by `Grid.canPlace`, the
+cascade removal and the physics host body) and **`rotation` chooses its axle**: `wheelAxle(part)` = +X, +Z, -X, -Z for
+0-3. `createPartObject` yaws non-wheel parts, and orients a wheel's cylinder along `wheelAxle` (also what `partBounds`,
+the physics collider/joint and the vehicle controller use). At placement a wheel's rotation is
+`rotationOfFace(face) + the user's turns`, so by default the axle is the face normal and A / D turn it a quarter turn.
+
 ## Modules
 
 - **`Grid`** — `Map` keyed by `"x,y,z"`. `canPlace` enforces: free cell, `y >= 0`, and for wheels a
@@ -92,9 +103,18 @@ A wheel at `cell` with `face` is attached to the block at `cell - face`.
   and `Ctrl/Cmd+Shift+Z` (ignored while a stroke is in progress and outside build mode).
 - **Cursor modes** (`CursorMode` in `types.ts`, `CURSOR_MODES` in `constants/cursor-modes.ts`) — `build`, `inspect`,
   `remove` (keys Q/W/E). `main.ts` `setCursorMode` applies one mode everywhere: `BuildMode.setMode`, the highlighted
-  button of the top bar (`Hud.setCursorMode`; the buttons are created from `CURSOR_MODES`), `body[data-cursor-mode]`
+  button of the top bar (`Hud.setCursorMode`; the buttons are created from `CURSOR_MODES`: key cap + an SVG icon taken from
+  the `icon` field, with the name in the tooltip and `aria-label`), `body[data-cursor-mode]`
   (cursor shape in CSS) and `controls.mouseButtons` (`LEFT` is `ROTATE` only in inspect mode, `null` otherwise, so a left
   drag never moves the camera while placing/erasing). Choosing a hotbar slot (`Hotbar.onUserSelect`) goes back to build.
+- **Rotation of the part to place** — `BuildMode.rotation` (0-3) is given to every block placed or painted;
+  `rotate(±1)` (keys `A`/`D` and the top-bar buttons, wired in `main.ts` / `Hud.setRotateEnabled`) is only active when
+  `canRotate` (Build mode, a part with `PART_INFO[type].rotatable`); the value resets to 0 when the selected part changes. The placement ghost is **one
+  persistent object** whose yaw is animated by `BuildMode.update(dt)` (called every frame from the main loop): an
+  exponential ease towards `ghostTargetYaw` (`ROTATION.smoothing`), taking the shortest way round
+  (`target = desired + 2π·round((yaw − desired)/2π)`), landing exactly on the target and dropping whole turns at rest. Wheel
+  ghosts are built with the axle along X and turned by the same yaw (a wheel's absolute rotation, which also changes when
+  the pointer moves to another face, so that turns smoothly too). `rotate` re-runs the hover with the last pointer position so the ghost reacts without moving the mouse.
 - **`BuildMode`** — raycasts against placed parts and the ground plane, picks the nearest hit and derives
   a target part (blocks go on the clicked face's neighbour cell; wheels only on side faces). In **build** mode the left button places on
   press; with the block tool, holding it and moving **paints** blocks (a `Stroke`): the pointer ray is intersected with

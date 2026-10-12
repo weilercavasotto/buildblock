@@ -14,7 +14,7 @@ import {
   hexToNumber,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
-import { Part, Vec3, cellKey, subVec } from '../types';
+import { Part, Vec3, cellKey, subVec, wheelAxle } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -154,11 +154,12 @@ export class PhysicsWorld {
 
     // Each wheel is its own body, attached to the block it is mounted on by a motorised hinge.
     for (const wheel of parts.filter((p) => p.type === 'wheel' && p.face)) {
-      const face = wheel.face!;
-      const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, face)));
+      // `face` is where the wheel is mounted (its host block); the axle comes from its rotation.
+      const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
+      const axle = wheelAxle(wheel);
       if (!host) continue;
 
-      const q = faceQuaternion(face);
+      const q = faceQuaternion(axle);
       const body = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.dynamic()
           .setTranslation(wheel.cell[0], wheel.cell[1] + SPAWN_LIFT, wheel.cell[2])
@@ -173,7 +174,7 @@ export class PhysicsWorld {
           .setCollisionGroups(groups(WHEEL_GROUP, GROUND)),
         body,
       );
-      const axis = { x: face[0], y: face[1], z: face[2] };
+      const axis = { x: axle[0], y: axle[1], z: axle[2] };
       const anchor = subVec(wheel.cell, host.origin);
       const joint = this.world.createImpulseJoint(
         RAPIER.JointData.revolute({ x: anchor[0], y: anchor[1], z: anchor[2] }, { x: 0, y: 0, z: 0 }, axis),
@@ -181,7 +182,7 @@ export class PhysicsWorld {
         body,
         true,
       ) as RAPIER.RevoluteImpulseJoint;
-      this.wheels.push({ joint, axis: face, cell: wheel.cell });
+      this.wheels.push({ joint, axis: axle, cell: wheel.cell });
 
       const obj = createPartObject(wheel);
       this.group.add(obj);

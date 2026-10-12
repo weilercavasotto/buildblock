@@ -14,6 +14,8 @@ export interface PartInfo {
   type: PartType;
   name: string;
   category: PartCategory;
+  /** Can the player rotate it before placing it (A / D)? */
+  rotatable: boolean;
   /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
   previewAngle: number;
   /** One line shown under the name. */
@@ -29,6 +31,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     type: 'block',
     name: 'Block',
     category: 'structure',
+    rotatable: true,
     previewAngle: 0.6,
     tagline: 'The basic building cube.',
     description:
@@ -37,6 +40,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Size', value: '1 × 1 × 1 cell' },
       { label: 'Placement', value: 'On the ground or against any face of another block' },
       { label: 'Physics', value: 'Touching blocks merge into one rigid body' },
+      { label: 'Rotation', value: 'Free, in 90° steps (A / D)' },
       { label: 'Friction', value: String(CHASSIS.friction) },
       { label: 'Density', value: String(CHASSIS.density) },
     ],
@@ -47,19 +51,22 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     name: 'Wheel',
     category: 'mobility',
     // The axle points along X; turn it so the wheel face is seen at a three-quarter angle.
+    rotatable: true,
     previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
     description:
-      'A motorised wheel mounted on the side of a block. It spins on the axle of the face you click and is driven with W/S, while A/D steer by slowing down one side.',
+      'A motorised wheel mounted on a side face of a block. Its axle is perpendicular to the face you mount it on; rotate it (A / D) a quarter turn before placing to make it lie along the face instead. In Play it is driven with W/S, and A/D steer by slowing down one side.',
     properties: [
       { label: 'Radius', value: `${WHEEL.radius} cells` },
       { label: 'Width', value: `${WHEEL.width} cells` },
       { label: 'Placement', value: 'Side faces of a block only' },
+      { label: 'Rotation', value: 'A / D turn the axle a quarter turn from the face normal' },
       { label: 'Grip', value: String(WHEEL.friction) },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],
     tips: [
       'Four wheels and a body of blocks make a car.',
+      'By default the axle is perpendicular to the face (a normal wheel). A quarter turn (A / D) makes a wheel that lies along the face, like a caster.',
       'Wheels are larger than a cell, which lifts the body off the ground.',
     ],
   },

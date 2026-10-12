@@ -1,6 +1,6 @@
 import { PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, TEXT } from '../constants';
 import { Grid } from '../build/grid';
-import { Part, Vec3, subVec } from '../types';
+import { Part, Vec3, partRotation, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
@@ -73,13 +73,16 @@ export class PartInspector {
 
   /** Label / value rows that depend on where this particular part is. */
   private placedRows(part: Part): Array<[string, string]> {
-    const rows: Array<[string, string]> = [[TEXT.inspector.position, coords(part.cell)]];
+    const rows: Array<[string, string]> = [
+      [TEXT.inspector.position, coords(part.cell)],
+      [TEXT.inspector.rotation, TEXT.inspector.degrees(partRotation(part))],
+    ];
     if (part.type === 'block') {
       rows.push([TEXT.inspector.rigidBody, TEXT.inspector.blocks(this.grid.connectedBlocks(part.cell))]);
       rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
-      rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[part.face.findIndex((v) => v !== 0)])]);
+      rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
     }
     return rows;
   }

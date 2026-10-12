@@ -73,7 +73,7 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 | Where | What |
 |---|---|
 | Top left | **☰ Menu** and, next to it, **ⓘ Help** |
-| Top centre | Bar with **Undo** and **Redo**, a divider, then **Clear** and **Play** (while playing it only shows **Stop**) |
+| Top centre | Bar with the cursor modes **Q W E**, the rotate buttons **A ↺ D ↻**, **Undo** and **Redo**, then **Clear** and **Play** (while playing it only shows **Stop**) |
 | Top right | FPS counter and zoom control |
 | Bottom centre | **Hotbar**: 9 slots (`1`–`9`) and the **parts catalog** button (build mode only) |
 
@@ -91,7 +91,27 @@ mouse button does (the middle button always rotates the camera, the right button
 | **Remove** | `E` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |
 
 Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The shortcuts only work while
-building (in Play, `W` drives). The modes are hidden on narrow windows (< 1000 px) to just the key caps.
+building (in Play, `W` drives). The modes are **icons** with their key cap beside them: a hammer (Build), a mouse
+cursor (Inspect) and a trash can (Remove); hover one for its name and description. Undo and Redo are icon-only buttons
+(curved arrows) in the same style; their tooltip gives the shortcut (`Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`), so they carry no key cap.
+
+### Rotating the part to place (`A` / `D`)
+
+In Build mode, **`D`** turns the part you are about to place a quarter turn **clockwise** and **`A`** counter-clockwise
+(seen from above); the **↺ ↻ buttons** in the top bar do the same. The placement preview **turns smoothly** (it takes the
+shortest way round, also when you press quickly several times) and every part you place or paint gets that rotation
+(0°, 90°, 180°, 270°). The inspector shows the **Rotation** of an inspected part and it is kept in saves and undo/redo.
+
+- Blocks are cubes, so a rotated block looks the same once placed; the rotation is stored and shown in the inspector,
+  and it will matter for parts that are not symmetric.
+- **Wheels can be rotated too, and it chooses their axle.** A wheel is mounted on a **side face** of a block (that face
+  decides where it sits). By default its axle is perpendicular to that face, a normal wheel. Press `A` / `D` for a
+  quarter turn and the wheel lies **along** the face instead (like a caster or roller); two quarter turns flip the axle
+  direction. The preview turns smoothly between these, and the physics uses the chosen axle (a car whose wheels are all
+  turned a quarter turn drives along the other horizontal axis). The inspector shows the rotation, the host block
+  (*Mounted on*) and the *Axle*. The rotation chosen for one part does not carry over to another.
+- The buttons are dimmed (and `A` / `D` do nothing) outside Build mode and with an empty hotbar slot. While playing,
+  `A` / `D` steer the car as always.
 
 ### Build mode
 

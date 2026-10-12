@@ -34,8 +34,8 @@ function partEntry(type: PartType) {
   const s = setup();
   let entry = s.parts.get(type);
   if (!entry) {
-    // Wheels are shown with the axle along X, as when mounted on the side of a block.
-    const object = createPartObject({ type, face: [1, 0, 0] as Vec3 });
+    // Rotation 0: a wheel is shown with its axle along X.
+    const object = createPartObject({ type });
     const box = new THREE.Box3().setFromObject(object);
     object.position.sub(box.getCenter(new THREE.Vector3()));
     const radius = box.getBoundingSphere(new THREE.Sphere()).radius;

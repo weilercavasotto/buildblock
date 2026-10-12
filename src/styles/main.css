@@ -457,7 +457,7 @@ body.dragging * {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   padding: var(--space-sm);
   border-radius: var(--radius-lg);
   background: var(--overlay-panel);
@@ -484,33 +484,42 @@ body.dragging * {
   cursor: default;
 }
 /* Cursor modes (Q / W / E): left side of the top bar. */
-#mode-switch {
+#mode-switch,
+#rotate-group,
+#history-group {
   display: flex;
   gap: var(--space-xs);
+}
+/* Icon-only buttons (undo / redo): same size and style as the other icon buttons of the bar. */
+#top-bar #history-group button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm);
+}
+#top-bar #rotate-group button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
 }
 #top-bar #mode-switch button {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+  padding: var(--space-sm);
 }
 #mode-switch button.active {
   border-color: var(--color-accent-highlight);
   background: var(--color-surface-control-hover);
 }
-#mode-switch kbd {
+#top-bar kbd {
   padding: 0 var(--space-xs);
   border-radius: var(--radius-sm);
   background: var(--color-surface-input);
   font: inherit;
   font-size: var(--font-size-xs);
   line-height: var(--space-lg);
-}
-/* Narrow windows: only the key caps (the tooltip names the mode) so the bar does not run under the top-left buttons.
-   (A media query cannot use the CSS variables, so the breakpoint is a literal.) */
-@media (max-width: 1000px) {
-  #mode-switch .mode-label {
-    display: none;
-  }
 }
 /* The pointer tells the mode on the 3D view. */
 body[data-cursor-mode='inspect'] > canvas {

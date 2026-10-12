@@ -8,6 +8,7 @@ export interface HudHandlers {
   onHelp(): void;
   onUndo(): void;
   onMode(mode: CursorMode): void;
+  onRotate(direction: 1 | -1): void;
   onRedo(): void;
 }
 
@@ -30,6 +31,7 @@ export class Hud {
     document.getElementById('btn-menu')!.onclick = handlers.onMenu;
     this.helpButton.onclick = handlers.onHelp;
     this.createModeButtons(handlers.onMode);
+    this.setupRotateButtons(handlers.onRotate);
     this.undoButton.onclick = handlers.onUndo;
     this.redoButton.onclick = handlers.onRedo;
     this.setMode('build');
@@ -38,6 +40,32 @@ export class Hud {
   setVisible(visible: boolean): void {
     this.visible = visible;
     this.updateVisibility();
+  }
+
+  private rotateButtons = [
+    document.getElementById('btn-rotate-left') as HTMLButtonElement,
+    document.getElementById('btn-rotate-right') as HTMLButtonElement,
+  ];
+
+  private setupRotateButtons(onRotate: (direction: 1 | -1) => void): void {
+    document.getElementById('rotate-group')!.setAttribute('aria-label', TEXT.rotation.group);
+    const [left, right] = this.rotateButtons;
+    left.onclick = () => onRotate(-1);
+    right.onclick = () => onRotate(1);
+    this.setRotateEnabled(true);
+  }
+
+  /** The rotate buttons only work in Build mode with a rotatable part selected; otherwise they are dimmed. */
+  setRotateEnabled(enabled: boolean): void {
+    const [left, right] = this.rotateButtons;
+    for (const [button, label, key] of [
+      [left, TEXT.rotation.left, 'A'],
+      [right, TEXT.rotation.right, 'D'],
+    ] as const) {
+      button.disabled = !enabled;
+      button.title = enabled ? TEXT.rotation.tooltip(label, key) : `${TEXT.rotation.tooltip(label, key)}: ${TEXT.rotation.unavailable}`;
+      button.setAttribute('aria-label', TEXT.rotation.tooltip(label, key));
+    }
   }
 
   /** Highlights the button of the active cursor mode. */
@@ -59,10 +87,19 @@ export class Hud {
       button.title = TEXT.modes.tooltip(mode.label, mode.key, mode.description);
       const key = document.createElement('kbd');
       key.textContent = mode.key;
-      const label = document.createElement('span');
-      label.className = 'mode-label';
-      label.textContent = mode.label;
-      button.append(key, label);
+      // An icon instead of the name; the tooltip and aria-label (below) still say it.
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('width', '18');
+      icon.setAttribute('height', '18');
+      icon.setAttribute('fill', 'none');
+      icon.setAttribute('stroke', 'currentColor');
+      icon.setAttribute('stroke-width', '2');
+      icon.setAttribute('stroke-linecap', 'round');
+      icon.setAttribute('stroke-linejoin', 'round');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = mode.icon; // trusted constant (src/constants/cursor-modes.ts)
+      button.append(key, icon);
       button.setAttribute('aria-label', `${mode.label} (${mode.key})`);
       button.onclick = () => onMode(mode.id);
       group.append(button);

@@ -2,11 +2,18 @@ import * as THREE from 'three';
 import { Grid } from './grid';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BUILD, COLORS, GROUND_Y, hexToNumber } from '../constants';
+import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, hexToNumber } from '../constants';
 import { createPartObject, partBounds } from '../parts/part-defs';
-import { CursorMode, Part, PartType, Vec3, addVec, cellKey } from '../types';
+import { CursorMode, Part, PartType, Vec3, addVec, cellKey, normalizeRotation, partRotation, rotationOfFace, yawOfTurns } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
+
+/** What the pick / hover code needs from a pointer event (so it can be re-run without one). */
+interface PointerLike {
+  clientX: number;
+  clientY: number;
+  buttons: number;
+}
 
 interface Pick {
   part: Part | null;
@@ -47,7 +54,13 @@ interface Erase {
 export class BuildMode {
   readonly group = new THREE.Group();
   private mode: CursorMode = 'build';
-  private ghost: THREE.Object3D | null = null;
+  /** The placement preview. It outlives pointer moves so that its rotation can be animated. */
+  private ghost: { object: THREE.Group; type: PartType; valid: boolean } | null = null;
+  private ghostYaw = 0;
+  private ghostTargetYaw = 0;
+  /** Rotation (clockwise quarter turns, 0-3) given to the next rotatable part placed; for a wheel it is relative to its face. */
+  private rotation = 0;
+  private lastPointer: { clientX: number; clientY: number } | null = null;
   private hover: { part: Part; outline: THREE.Group } | null = null;
   private selection: Part | null = null;
   private selectionOutline: THREE.Group | null = null;
@@ -73,7 +86,10 @@ export class BuildMode {
     this.rebuild();
 
     dom.addEventListener('pointermove', (e) => this.onMove(e));
-    dom.addEventListener('pointerleave', () => this.clearHints());
+    dom.addEventListener('pointerleave', () => {
+      this.lastPointer = null;
+      this.clearHints();
+    });
     dom.addEventListener('pointerdown', (e) => this.onDown(e));
     dom.addEventListener('pointerup', (e) => this.onUp(e));
     // A stroke must end even when the button is released outside the canvas or the window loses focus.
@@ -85,8 +101,35 @@ export class BuildMode {
   }
 
   setTool(tool: PartType | null): void {
+    if (tool !== this.tool) this.rotation = 0; // the rotation chosen for one part does not carry over to another
     this.tool = tool;
     this.setGhost(null);
+  }
+
+  /** True when `rotate` has an effect: build mode with a part that can be rotated. */
+  get canRotate(): boolean {
+    return this.mode === 'build' && this.tool !== null && PART_INFO[this.tool].rotatable;
+  }
+
+  /** Rotates the part to place by a quarter turn: `1` clockwise, `-1` counter-clockwise (seen from above). */
+  rotate(direction: 1 | -1): void {
+    if (!this.canRotate) return;
+    this.rotation = normalizeRotation(this.rotation + direction);
+    // Re-aim the ghost at its new orientation: it turns smoothly (see `update`).
+    if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
+  }
+
+  /** Call every frame: turns the placement ghost smoothly towards its target orientation. */
+  update(dt: number): void {
+    const delta = this.ghostTargetYaw - this.ghostYaw;
+    if (Math.abs(delta) > ROTATION.snapEpsilon) {
+      this.ghostYaw += delta * (1 - Math.exp(-ROTATION.smoothing * dt));
+    } else {
+      // At rest: land exactly on the target and drop whole turns so the angle does not grow without bound.
+      const wrapped = this.ghostTargetYaw % (2 * Math.PI);
+      this.ghostYaw = this.ghostTargetYaw = wrapped;
+    }
+    if (this.ghost) this.ghost.object.rotation.y = this.ghostYaw;
   }
 
   setMode(mode: CursorMode): void {
@@ -150,13 +193,13 @@ export class BuildMode {
     }
   }
 
-  private setRay(e: PointerEvent): void {
+  private setRay(e: PointerLike): void {
     const rect = this.dom.getBoundingClientRect();
     this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
   }
 
-  private pick(e: PointerEvent): Pick | null {
+  private pick(e: PointerLike): Pick | null {
     this.setRay(e);
 
     const hit = this.raycaster.intersectObjects(this.group.children, true)[0];
@@ -182,10 +225,13 @@ export class BuildMode {
     if (this.tool === null) return null;
     if (this.tool === 'block') {
       const cell: Vec3 = p.part ? addVec(p.part.cell, p.normal) : [Math.round(p.point.x), 0, Math.round(p.point.z)];
-      return { type: 'block', cell };
+      return { type: 'block', cell, rotation: this.rotation };
     }
     if (!p.part || p.part.type !== 'block' || p.normal[1] !== 0) return null;
-    return { type: 'wheel', cell: addVec(p.part.cell, p.normal), face: p.normal };
+    // `face` says where the wheel is mounted. Its axle is the face normal (a normal wheel) turned by the user's rotation:
+    // 0 turns = perpendicular to the face, an odd number = lying along it (like a caster).
+    const rotation = normalizeRotation(rotationOfFace(p.normal) + this.rotation);
+    return { type: 'wheel', cell: addVec(p.part.cell, p.normal), face: p.normal, rotation };
   }
 
   private onDown(e: PointerEvent): void {
@@ -241,7 +287,7 @@ export class BuildMode {
   }
 
   /** Removes the part under the pointer, unless the pointer has not moved since the previous removal. */
-  private eraseAt(e: PointerEvent, first = false): void {
+  private eraseAt(e: PointerLike, first = false): void {
     const s = this.erase!;
     if (!first && Math.hypot(e.clientX - s.x, e.clientY - s.y) < BUILD.clickMaxDistance) return;
     const part = this.pick(e)?.part;
@@ -256,7 +302,7 @@ export class BuildMode {
    * stroke started on (not with the blocks just placed, which would make the stroke grow towards the camera), and
    * the cells between the previous and the new position are filled so fast mouse moves leave no gaps.
    */
-  private paint(e: PointerEvent): void {
+  private paint(e: PointerLike): void {
     const s = this.stroke!;
     this.setRay(e);
     const normal = new THREE.Vector3();
@@ -272,13 +318,14 @@ export class BuildMode {
     const cells: Part[] = [];
     for (let step = 1; step <= steps; step++) {
       const cell = s.last.map((v, i) => Math.round(v + ((goal[i] - v) * step) / steps)) as Vec3;
-      cells.push({ type: 'block', cell });
+      cells.push({ type: 'block', cell, rotation: this.rotation });
     }
     this.grid.addMany(cells);
     s.last = goal;
   }
 
-  private onMove(e: PointerEvent): void {
+  private onMove(e: PointerLike): void {
+    this.lastPointer = { clientX: e.clientX, clientY: e.clientY };
     if (!this.enabled) return this.clearHints();
     if (this.stroke) {
       if (e.buttons & 1) return this.paint(e);
@@ -320,13 +367,32 @@ export class BuildMode {
     this.hover = { part, outline };
   }
 
+  /**
+   * Shows the placement preview for `part` (or hides it). The preview object is kept between pointer moves and only its
+   * yaw is animated: the target is the part's rotation (a wheel's rotation is its axle, built along X and turned by the yaw).
+   */
   private setGhost(part: Part | null): void {
-    if (this.ghost) this.scene.remove(this.ghost);
-    this.ghost = null;
-    if (!part) return;
-    this.ghost = createPartObject(part, this.grid.canPlace(part) ? 'ok' : 'bad');
-    this.ghost.position.set(...part.cell);
-    this.scene.add(this.ghost);
+    if (!part) {
+      if (this.ghost) this.scene.remove(this.ghost.object);
+      this.ghost = null;
+      return;
+    }
+    const valid = this.grid.canPlace(part);
+    const desired = yawOfTurns(partRotation(part));
+    // Shortest way round, continuing from where the animation currently is.
+    const target = desired + 2 * Math.PI * Math.round((this.ghostYaw - desired) / (2 * Math.PI));
+
+    if (!this.ghost) this.ghostYaw = target; // newly shown: no spin-in from an old orientation
+    if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid) {
+      if (this.ghost) this.scene.remove(this.ghost.object);
+      // Built unrotated (a wheel with its axle along X): the animated yaw does all the turning.
+      const object = createPartObject({ type: part.type }, valid ? 'ok' : 'bad');
+      this.scene.add(object);
+      this.ghost = { object, type: part.type, valid };
+    }
+    this.ghostTargetYaw = target;
+    this.ghost.object.position.set(...part.cell);
+    this.ghost.object.rotation.y = this.ghostYaw;
   }
 
   private onUp(e: PointerEvent): void {

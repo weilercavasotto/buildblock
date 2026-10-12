@@ -9,15 +9,17 @@ Example: a new part type `'thruster'`.
    depends on another part (as wheels depend on their block).
 4. **Build mode** — extend `BuildMode.target` in `src/build/build-mode.ts` to say where the part goes
    for a given pick.
-5. **Catalog and hotbar** — add its entry to `PART_INFO` (and `PART_ORDER`) in `src/constants/part-catalog.ts`: name,
+5. **Rotation** — set `rotatable` in its `PART_INFO` entry (`false` if its orientation must not be chosen by the player). `Part.rotation` (clockwise quarter turns) is applied by `createPartObject`; an asymmetric part must
+   also use `partRotation(part)` in its physics collider.
+6. **Catalog and hotbar** — add its entry to `PART_INFO` (and `PART_ORDER`) in `src/constants/part-catalog.ts`: name,
    category (add one to `PART_CATEGORIES` if needed), description, properties, tips and `previewAngle`. It then appears
    in the catalog with a 3D preview (built from `createPartObject`) and can be dragged onto the hotbar; nothing else
    to register. Keep the text in English.
-6. **Physics** — in `PhysicsWorld.buildCreation` create its collider/body/joint and push a `SyncPair`
+7. **Physics** — in `PhysicsWorld.buildCreation` create its collider/body/joint and push a `SyncPair`
    so the mesh follows. Pick its collision group (see [physics.md](physics.md)).
-7. **Control** — if it should react to input, extend `VehicleController` or add a sibling controller.
-8. **Persistence** — nothing to do: parts are saved as plain JSON. If you change the shape of `Part`
+8. **Control** — if it should react to input, extend `VehicleController` or add a sibling controller.
+9. **Persistence** — nothing to do: parts are saved as plain JSON. If you change the shape of `Part`
    incompatibly, bump `STORAGE_KEY` in `src/save.ts`.
-9. **Confirmations** — for destructive actions use `confirmDialog` from `src/ui/confirm-dialog.ts` (strings in `TEXT`),
+10. **Confirmations** — for destructive actions use `confirmDialog` from `src/ui/confirm-dialog.ts` (strings in `TEXT`),
    never `window.confirm`.
-10. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).
+11. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, HIGHLIGHT, ROUGHNESS, WHEEL, WHEEL_VISUAL, hexToNumber } from '../constants';
-import { Part, Vec3 } from '../types';
+import { Part, Vec3, partRotation, wheelAxle, yawOfTurns } from '../types';
 
 const color = (hex: string): number => hexToNumber(hex);
 const ghostMaterial = (hex: string) =>
@@ -29,7 +29,7 @@ export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face'>): THREE.Bo
     half.setScalar(BLOCK_VISUAL_SIZE / 2);
   } else {
     half.setScalar(WHEEL.radius);
-    const axle = (part.face ?? [1, 0, 0]).findIndex((v) => v !== 0);
+    const axle = wheelAxle(part).findIndex((v) => v !== 0);
     half.setComponent(axle, WHEEL.width / 2);
   }
   half.addScalar(HIGHLIGHT.margin);
@@ -37,13 +37,13 @@ export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face'>): THREE.Bo
   return new THREE.Box3(centre.clone().sub(half), centre.clone().add(half));
 }
 
-/** Rotation that maps the cylinder's Y axis onto the wheel axle (`face`). */
+/** Rotation that maps the cylinder's Y axis onto the wheel axle. */
 export function faceQuaternion(face: Vec3): THREE.Quaternion {
   return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...face));
 }
 
 /** Builds the visual for a part, centred on its own origin (cell centre). */
-export function createPartObject(part: Pick<Part, 'type' | 'face'>, ghost?: 'ok' | 'bad'): THREE.Group {
+export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation'>, ghost?: 'ok' | 'bad'): THREE.Group {
   const root = new THREE.Group();
   const ghostMat = ghost === 'ok' ? ghostOk : ghost === 'bad' ? ghostBad : undefined;
   const noRaycast = { raycast: () => {} };
@@ -57,9 +57,11 @@ export function createPartObject(part: Pick<Part, 'type' | 'face'>, ghost?: 'ok'
       Object.assign(edges, noRaycast);
       root.add(edges);
     }
+    // Everything but wheels turns around the vertical axis; a wheel's rotation chooses its axle (see below).
+    root.rotation.y = yawOfTurns(partRotation(part));
   } else {
     const pivot = new THREE.Group();
-    pivot.quaternion.copy(faceQuaternion(part.face ?? [1, 0, 0]));
+    pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));
     const tire = new THREE.Mesh(tireGeo, ghostMat ?? tireMat);
     tire.castShadow = !ghost;
     pivot.add(tire);

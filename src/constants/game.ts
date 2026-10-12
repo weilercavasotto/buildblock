@@ -153,6 +153,13 @@ export const DRAG = {
   threshold: 5,
 } as const;
 
+export const ROTATION = {
+  /** Exponential rate (1/s) at which the placement ghost turns towards its target orientation. */
+  smoothing: 14,
+  /** Below this angle (rad) the ghost snaps to the target. */
+  snapEpsilon: 0.002,
+} as const;
+
 export const HISTORY = {
   /** Undo steps kept per session; the oldest are dropped beyond this. */
   maxSteps: 100,
