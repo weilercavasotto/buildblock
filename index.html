@@ -63,11 +63,21 @@
       <div id="menu-saves" hidden>
         <h2>Saved games</h2>
         <div id="save-list"></div>
-        <div id="new-game">
-          <input id="new-name" type="text" placeholder="New game name" />
-          <button id="new-create" class="primary">New game</button>
+        <div id="menu-actions">
+          <button id="menu-back">Back</button>
+          <button id="new-open" class="primary">New game</button>
         </div>
-        <button id="menu-back">Back</button>
+      </div>
+      <div id="menu-new" hidden>
+        <h2>New game</h2>
+        <label class="field-label" for="new-name">Name</label>
+        <input id="new-name" type="text" />
+        <span class="field-label" id="grid-size-label">Grid size</span>
+        <div id="grid-size" role="radiogroup" aria-labelledby="grid-size-label"></div>
+        <div id="menu-actions-new">
+          <button id="new-back">Back</button>
+          <button id="new-create" class="primary">Create</button>
+        </div>
       </div>
       <div id="menu-version"></div>
     </div>
@@ -107,6 +117,7 @@
       </div>
       <span class="sep build-only"></span>
       <button id="btn-clear" class="build-only">Clear</button>
+      <button id="btn-reset" class="play-only" hidden></button>
       <button id="btn-play">▶ Play</button>
       <div id="paint-palette" role="group" hidden></div>
     </div>

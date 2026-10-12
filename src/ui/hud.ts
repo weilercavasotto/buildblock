@@ -3,6 +3,7 @@ import { CursorMode } from '../types';
 
 export interface HudHandlers {
   onTogglePlay(): void;
+  onReset(): void;
   onClear(): void;
   onMenu(): void;
   onHelp(): void;
@@ -22,12 +23,18 @@ export class Hud {
   private buildOnly = document.querySelectorAll<HTMLElement>('.build-only');
   private undoButton = document.getElementById('btn-undo') as HTMLButtonElement;
   private redoButton = document.getElementById('btn-redo') as HTMLButtonElement;
+  /** Parts of the top bar that only make sense while playing (reset). */
+  private playOnly = document.querySelectorAll<HTMLElement>('.play-only');
   private visible = true;
   private mode: 'build' | 'play' = 'build';
 
   constructor(handlers: HudHandlers) {
     document.getElementById('btn-clear')!.onclick = handlers.onClear;
     this.playButton.onclick = handlers.onTogglePlay;
+    const reset = document.getElementById('btn-reset')!;
+    reset.onclick = handlers.onReset;
+    reset.textContent = TEXT.hud.resetLabel;
+    reset.title = TEXT.hud.reset;
     document.getElementById('btn-menu')!.onclick = handlers.onMenu;
     this.helpButton.onclick = handlers.onHelp;
     this.createModeButtons(handlers.onMode);
@@ -120,6 +127,7 @@ export class Hud {
     this.topLeft.hidden = this.topBar.hidden = !this.visible;
     this.hotbar.hidden = !this.visible || !building;
     this.buildOnly.forEach((el) => (el.hidden = !building));
+    this.playOnly.forEach((el) => (el.hidden = building));
   }
 
   setMode(mode: 'build' | 'play'): void {

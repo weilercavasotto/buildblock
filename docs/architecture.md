@@ -91,7 +91,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
 
 ## Modules
 
-- **`Grid`** — `Map` keyed by `"x,y,z"`. `canPlace` enforces: free cell, `y >= 0`, `|x|, |z| <= BUILD_LIMIT` (inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5), and for wheels a
+- **`Grid`** — `Map` keyed by `"x,y,z"`. `canPlace` enforces: free cell, `y >= 0`, `x, z` within `buildRange(cells)` (`-n/2 … n/2 - 1`) and `0 <= y <= n - 1` for the current game's grid size (`Grid.setSize`; inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5), and for wheels a
   lateral `face` with a block behind it. `remove` cascades to wheels mounted on a removed block.
   Observers register with `subscribe`.
 - **`History`** (`src/build/history.ts`) — undo/redo as snapshots of the grid (parts are never mutated, so snapshots
@@ -219,9 +219,9 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   game under it does not react (important now that it also appears while building). Used to confirm deleting a save
   (`TEXT.menu.deleteDialog`) and **Clear** (`TEXT.clearDialog`, asked in `main.ts`; skipped when the grid is empty;
   the clear itself is one undo step).
-- **`Menu`** — title screen and saved-games panel (load / delete / new). Uses `save.ts`; names are
+- **`Menu`** — title screen, saved-games panel (load / delete) and the *New game* panel (name + grid size; `onNew(name, gridCells)`). `main.ts` `setGridSize` rebuilds the floor lines and calls `Grid.setSize` before a game is loaded or created. Uses `save.ts`; names are
   inserted with `textContent`.
-- **`save.ts`** — `listSaves`, `getSave`, `createSave`, `updateSave`, `deleteSave`; handles the one-time
+- **`save.ts`** — `listSaves`, `getSave`, `createSave(name, gridCells)`, `updateSave`, `deleteSave`, `gridCellsOf(save)` (`SaveGame.gridCells`, one of `GRID_SIZES`; missing = the default); handles the one-time
   migration from `blocklab.v1`.
 - **`main.ts`** — owns the mode state (`physics`/`vehicle` are non-null only in Play), the `R` restart and
   the animation loop (camera follow in Play).

@@ -122,7 +122,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['S', '↓'], text: 'Reverse.' },
           { keys: ['A', '←'], text: 'Steer left.' },
           { keys: ['D', '→'], text: 'Steer right.' },
-          { keys: ['R'], text: 'Restart the simulation from your build.' },
+          { keys: ['R'], text: 'Restart the simulation from your build (also the Reset button next to Stop).' },
           { text: 'Every wheel is driven. The front of the car is the direction the wheels roll, perpendicular to their axle.' },
         ],
       },

@@ -7,12 +7,14 @@ import { Grid } from './build/grid';
 import { History } from './build/history';
 import {
   CAMERA,
+  CELL_SIZE,
   COLORS,
   CURSOR_MODES,
   GROUND_Y,
   LIGHTS,
   ROUGHNESS,
   SCENE,
+  DEFAULT_GRID_CELLS,
   TEXT,
   WORLD,
   applyTheme,
@@ -23,7 +25,7 @@ import { Sky } from './scene/sky';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
 import { FrameLimiter } from './frame-limiter';
-import { createSave, getSave, updateSave } from './save';
+import { createSave, getSave, gridCellsOf, updateSave } from './save';
 import { CursorMode } from './types';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
@@ -115,16 +117,29 @@ async function main(): Promise<void> {
   floor.position.y = GROUND_Y;
   floor.receiveShadow = true;
   scene.add(floor);
-  const gridLines = new THREE.GridHelper(
-    SCENE.gridSize,
-    SCENE.gridDivisions,
-    hexToNumber(COLORS.scene.gridMajor),
-    hexToNumber(COLORS.scene.gridMinor),
-  );
-  gridLines.position.y = GROUND_Y + SCENE.gridLift;
-  scene.add(gridLines);
+  // The lines of the floor grid, one square per cell; rebuilt when a game with another grid size is opened.
+  let gridLines: THREE.GridHelper | undefined;
+  const setGridSize = (cells: number) => {
+    const visible = gridLines?.visible ?? false;
+    if (gridLines) {
+      scene.remove(gridLines);
+      gridLines.geometry.dispose();
+    }
+    gridLines = new THREE.GridHelper(
+      cells * CELL_SIZE,
+      cells,
+      hexToNumber(COLORS.scene.gridMajor),
+      hexToNumber(COLORS.scene.gridMinor),
+    );
+    // The grid spans the cells -n/2 … n/2 - 1, so it is shifted half a cell to put its lines on the cell borders.
+    gridLines.position.set(-CELL_SIZE / 2, GROUND_Y + SCENE.gridLift, -CELL_SIZE / 2);
+    gridLines.visible = visible;
+    scene.add(gridLines);
+    grid.setSize(cells);
+  };
 
   const grid = new Grid();
+  setGridSize(DEFAULT_GRID_CELLS);
   let activeSave: string | null = null;
   grid.subscribe(() => {
     if (activeSave) updateSave(activeSave, grid.all());
@@ -145,7 +160,7 @@ async function main(): Promise<void> {
     scene.add(physics.group);
     mode = 'play';
     build.setEnabled(false);
-    gridLines.visible = false;
+    gridLines!.visible = false;
     hud.setMode('play');
   };
 
@@ -162,7 +177,7 @@ async function main(): Promise<void> {
     stopPlay();
     mode = 'build';
     build.setEnabled(true);
-    gridLines.visible = true;
+    gridLines!.visible = true;
     hud.setMode('build');
   };
 
@@ -183,7 +198,7 @@ async function main(): Promise<void> {
     mode = 'menu';
     activeSave = null;
     build.setEnabled(false);
-    gridLines.visible = false;
+    gridLines!.visible = false;
     hud.setVisible(false);
     zoom.setVisible(false);
     menuScene.start();
@@ -200,6 +215,7 @@ async function main(): Promise<void> {
           label: TEXT.loading.loadGame,
           run: () => {
             activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
+            setGridSize(gridCellsOf(save));
             grid.load(save.parts);
             activeSave = id;
             history.clear();
@@ -208,14 +224,15 @@ async function main(): Promise<void> {
         { label: TEXT.loading.buildArea, run: enterBuild },
       ]);
     },
-    onNew: (name) => {
+    onNew: (name, gridCells) => {
       void loading.run([
         {
           label: TEXT.loading.newGame,
           run: () => {
             activeSave = null;
+            setGridSize(gridCells);
             grid.clear();
-            activeSave = createSave(name).id;
+            activeSave = createSave(name, gridCells).id;
             history.clear();
           },
         },
@@ -230,6 +247,7 @@ async function main(): Promise<void> {
 
   const hud = new Hud({
     onTogglePlay: () => (physics ? stop() : startPlay()),
+    onReset: () => startPlay(),
     onClear: async () => {
       const count = grid.all().length;
       if (count === 0) return; // nothing to clear: no popup

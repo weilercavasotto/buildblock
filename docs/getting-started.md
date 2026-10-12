@@ -53,8 +53,9 @@ Press **Play** to open the *Saved games* panel:
 
 - **Load** opens a save; **Delete** asks for confirmation in a dialog (Enter/Cancel/Esc/click outside keep the save;
   only the red **Delete** button removes it).
-- Type a name (optional) and press **New game** to start an empty creation.
-- **Back** returns to the title screen.
+- Each save shows its number of parts, its grid size and its date.
+- **New game** opens the *New game* panel: type a name (optional, it defaults to "Creation N") and pick the **grid size** (Small 16 × 16, Medium 32 × 32, Large 64 × 64, the default and the biggest), then **Create**. The size is fixed for that game: blocks can only be placed inside the floor grid, which is drawn with one square per cell. Saves from before sizes existed are Large. A grid of `n` squares covers the cells `-n/2 … n/2 - 1` on x and z, and the build height is limited to `n` cells (`y` from 0 to `n - 1`) too.
+- **Back** returns to the title screen (or from the New game panel to the saved games).
 
 The bottom-right corner shows the game version (`vX.Y.Z`), read from `package.json` at build time
 (`vite.config.ts` defines `__APP_VERSION__`). Bump the `version` field there to release a new version.
@@ -142,7 +143,7 @@ bottom) and click. The face you click defines the wheel's axle.
 |---|---|
 | `W` / `S` (or ↑ / ↓) | Accelerate / reverse |
 | `A` / `D` (or ← / →) | Steer left / right |
-| `R` | Restart the simulation from the build |
+| `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
 | **Stop** | Return to build mode; the build is untouched |
 
 ## Persistence

@@ -1,4 +1,4 @@
-import { BUILD_LIMIT, PART_INFO } from '../constants';
+import { DEFAULT_GRID_CELLS, PART_INFO, buildRange } from '../constants';
 import { Part, Vec3, addVec, cellKey, isHexColor, subVec } from '../types';
 
 export class Grid {
@@ -21,9 +21,18 @@ export class Grid {
     return [...this.parts.values()];
   }
 
+  /** Buildable cells (x / z and height), from the floor-grid size of the current game. */
+  private range = buildRange(DEFAULT_GRID_CELLS);
+
+  /** Sets the floor-grid size (squares per side) of the current game; call it before loading its parts. */
+  setSize(cells: number): void {
+    this.range = buildRange(cells);
+  }
+
   canPlace(part: Part): boolean {
-    // Only cells over the floor grid that is drawn on the ground (see BUILD_LIMIT).
-    if (part.cell[1] < 0 || Math.abs(part.cell[0]) > BUILD_LIMIT || Math.abs(part.cell[2]) > BUILD_LIMIT) return false;
+    // Only cells over the floor grid that is drawn on the ground (see `setSize`).
+    const { min, max, maxY } = this.range;
+    if (part.cell[1] < 0 || part.cell[1] > maxY || part.cell[0] < min || part.cell[0] > max || part.cell[2] < min || part.cell[2] > max) return false;
     if (this.get(part.cell)) return false;
     if (part.type === 'wheel') {
       if (!part.face || part.face[1] !== 0) return false;

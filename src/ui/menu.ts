@@ -1,16 +1,20 @@
-import { SAVE, TEXT } from '../constants';
-import { SaveGame, deleteSave, listSaves } from '../save';
+import { DEFAULT_GRID_CELLS, GRID_SIZES, SAVE, TEXT } from '../constants';
+import { SaveGame, deleteSave, gridCellsOf, listSaves } from '../save';
 import { confirmDialog } from './confirm-dialog';
 
 export interface MenuHandlers {
   onLoad(id: string): void;
-  onNew(name: string): void;
+  /** `name` is already defaulted; `gridCells` is one of `GRID_SIZES`. */
+  onNew(name: string, gridCells: number): void;
 }
 
 export class Menu {
   private root = document.getElementById('menu')!;
   private main = document.getElementById('menu-main')!;
   private saves = document.getElementById('menu-saves')!;
+  private newGame = document.getElementById('menu-new')!;
+  private sizes = document.getElementById('grid-size')!;
+  private gridCells = DEFAULT_GRID_CELLS;
   private list = document.getElementById('save-list')!;
   private nameInput = document.getElementById('new-name') as HTMLInputElement;
 
@@ -19,7 +23,15 @@ export class Menu {
     this.nameInput.maxLength = SAVE.nameMaxLength;
     document.getElementById('menu-play')!.onclick = () => this.showSaves();
     document.getElementById('menu-back')!.onclick = () => this.showMain();
+    document.getElementById('menu-back')!.textContent = TEXT.menu.back;
+    const open = document.getElementById('new-open')!;
+    open.textContent = TEXT.menu.newGame;
+    open.onclick = () => this.showNewGame();
+    document.getElementById('new-back')!.textContent = TEXT.menu.back;
+    document.getElementById('new-back')!.onclick = () => this.showSaves();
+    document.getElementById('new-create')!.textContent = TEXT.menu.newGamePanel.create;
     document.getElementById('new-create')!.onclick = () => this.create();
+    this.renderSizes();
     this.nameInput.onkeydown = (e) => {
       if (e.key === 'Enter') this.create();
     };
@@ -37,18 +49,62 @@ export class Menu {
   private showMain(): void {
     this.main.hidden = false;
     this.saves.hidden = true;
+    this.newGame.hidden = true;
   }
 
   private showSaves(): void {
     this.main.hidden = true;
     this.saves.hidden = false;
-    this.nameInput.value = '';
+    this.newGame.hidden = true;
     this.renderList();
   }
 
+  /** The "New game" panel: a name (optional, defaults to "Creation N") and the grid size. */
+  private showNewGame(): void {
+    this.main.hidden = true;
+    this.saves.hidden = true;
+    this.newGame.hidden = false;
+    this.nameInput.value = '';
+    this.nameInput.placeholder = TEXT.menu.newGamePanel.namePlaceholder(this.defaultName());
+    this.selectSize(DEFAULT_GRID_CELLS);
+    this.nameInput.focus();
+  }
+
+  private defaultName(): string {
+    return TEXT.menu.defaultSaveName(listSaves().length + 1);
+  }
+
   private create(): void {
-    const name = this.nameInput.value.trim() || TEXT.menu.defaultSaveName(listSaves().length + 1);
-    this.handlers.onNew(name);
+    this.handlers.onNew(this.nameInput.value.trim() || this.defaultName(), this.gridCells);
+  }
+
+  /** One radio-style card per `GRID_SIZES` entry. */
+  private renderSizes(): void {
+    for (const size of GRID_SIZES) {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'grid-size-option';
+      option.dataset.cells = String(size.cells);
+      option.setAttribute('role', 'radio');
+      const name = document.createElement('span');
+      name.className = 'size-name';
+      name.textContent = size.name;
+      const cells = document.createElement('span');
+      cells.className = 'size-cells';
+      cells.textContent = TEXT.menu.gridSize(size.cells);
+      option.append(name, cells);
+      option.onclick = () => this.selectSize(size.cells);
+      this.sizes.append(option);
+    }
+  }
+
+  private selectSize(cells: number): void {
+    this.gridCells = cells;
+    this.sizes.querySelectorAll<HTMLElement>('.grid-size-option').forEach((el) => {
+      const selected = el.dataset.cells === String(cells);
+      el.classList.toggle('selected', selected);
+      el.setAttribute('aria-checked', String(selected));
+    });
   }
 
   private renderList(): void {
@@ -76,7 +132,7 @@ export class Menu {
     const meta = document.createElement('div');
     meta.className = 'meta';
     const date = new Date(save.updatedAt).toLocaleString(TEXT.menu.dateLocale, { dateStyle: 'medium', timeStyle: 'short' });
-    meta.textContent = `${TEXT.menu.parts(save.parts.length)} · ${date}`;
+    meta.textContent = `${TEXT.menu.parts(save.parts.length)} · ${TEXT.menu.gridSize(gridCellsOf(save))} · ${date}`;
     info.append(name, meta);
 
     const load = document.createElement('button');

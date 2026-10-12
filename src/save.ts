@@ -1,4 +1,4 @@
-import { SAVE, STORAGE } from './constants';
+import { DEFAULT_GRID_CELLS, SAVE, STORAGE, validGridCells } from './constants';
 import { Part } from './types';
 
 export interface SaveGame {
@@ -6,7 +6,12 @@ export interface SaveGame {
   name: string;
   updatedAt: number;
   parts: Part[];
+  /** Floor-grid squares per side (one of `GRID_SIZES`); missing in older saves = the default size. */
+  gridCells?: number;
 }
+
+/** The grid size of a save, whatever it holds. */
+export const gridCellsOf = (save: Pick<SaveGame, 'gridCells'>): number => validGridCells(save.gridCells ?? DEFAULT_GRID_CELLS);
 
 function readAll(): SaveGame[] {
   try {
@@ -51,8 +56,8 @@ export function getSave(id: string): SaveGame | undefined {
   return readAll().find((s) => s.id === id);
 }
 
-export function createSave(name: string): SaveGame {
-  const save: SaveGame = { id: newId(), name, updatedAt: Date.now(), parts: [] };
+export function createSave(name: string, gridCells: number): SaveGame {
+  const save: SaveGame = { id: newId(), name, updatedAt: Date.now(), parts: [], gridCells: validGridCells(gridCells) };
   writeAll([...readAll(), save]);
   return save;
 }

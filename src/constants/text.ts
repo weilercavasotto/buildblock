@@ -6,6 +6,8 @@ export const TEXT = {
     zoom: (factor: number) => `${Math.round(factor * 100)}%`,
     play: '▶ Play',
     stop: '■ Stop',
+    resetLabel: '↺ Reset',
+    reset: 'Reset the simulation (R)',
     help: { title: 'Help', close: 'Close', or: 'or' },
   },
   modes: {
@@ -78,6 +80,16 @@ export const TEXT = {
   menu: {
     version: (v: string) => `v${v}`,
     noSaves: 'No saved games yet. Start a new one below.',
+    back: 'Back',
+    newGame: 'New game',
+    gridSize: (cells: number) => `${cells} × ${cells}`,
+    newGamePanel: {
+      title: 'New game',
+      nameLabel: 'Name',
+      namePlaceholder: (defaultName: string) => defaultName,
+      sizeLabel: 'Grid size',
+      create: 'Create',
+    },
     load: 'Load',
     delete: 'Delete',
     defaultSaveName: (n: number) => `Creation ${n}`,

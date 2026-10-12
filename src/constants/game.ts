@@ -35,22 +35,35 @@ export const SCENE = {
   fogNear: 60,
   fogFar: 160,
   floorSize: 400,
-  /**
-   * Floor grid: one square per cell (`CELL_SIZE`). The count is odd so the lines fall on the cell borders (at n ± 0.5),
-   * the cell at the origin sits in the middle square and every block fills exactly one square.
-   */
-  gridCells: 61,
-  gridSize: 61 * CELL_SIZE,
-  gridDivisions: 61, // = gridCells
   /** Lifts the grid lines above the floor to avoid z-fighting. */
   gridLift: 0.001,
 } as const;
 
 /**
- * Largest |x| and |z| of a buildable cell: the cells must stay inside the grid lines drawn on the floor
- * (the outermost cell, centred on 30, ends on the last line, at 30.5).
+ * Floor-grid sizes a new game can choose from (squares per side), one square per cell (`CELL_SIZE`). The count is even:
+ * the grid covers the cells `-cells / 2 … cells / 2 - 1` on both axes (see `buildRange`) and its lines fall on the cell
+ * borders (at n ± 0.5), so every block fills exactly one square. The largest is the default.
  */
-export const BUILD_LIMIT = Math.floor(SCENE.gridCells / 2);
+export const GRID_SIZES = [
+  { id: 'small', name: 'Small', cells: 16 },
+  { id: 'medium', name: 'Medium', cells: 32 },
+  { id: 'large', name: 'Large', cells: 64 },
+] as const;
+export const DEFAULT_GRID_CELLS: number = GRID_SIZES[GRID_SIZES.length - 1].cells;
+
+/** `cells` if it is one of `GRID_SIZES`, else the default (saves from before sizes existed, or a damaged one). */
+export const validGridCells = (cells: unknown): number =>
+  GRID_SIZES.find((size) => size.cells === cells)?.cells ?? DEFAULT_GRID_CELLS;
+
+/**
+ * Buildable cells on a grid with `cells` squares per side: x / z from `min` to `max` (inside the floor lines) and height
+ * y from 0 to `maxY`, so the build volume is as tall as the grid is wide.
+ */
+export const buildRange = (cells: number): { min: number; max: number; maxY: number } => ({
+  min: -cells / 2,
+  max: cells / 2 - 1,
+  maxY: cells - 1,
+});
 
 export const LIGHTS = {
   hemisphereIntensity: 1.1,

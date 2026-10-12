@@ -40,7 +40,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: top bars / hotbar visibility and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
 - `src/scene/sky.ts`: shader sky dome with blocky (voxel-style) clouds that drift with the wind (parameters in `SKY`, `src/constants/game.ts`)
-- `src/save.ts`: named save slots in localStorage (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
+- `src/save.ts`: named save slots in localStorage, each with its floor-grid size `gridCells` (one of `GRID_SIZES`; chosen in the New game panel, `ui/menu.ts`) (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
 
 See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/physics.md).
 
@@ -59,7 +59,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 - `index.html` hides the whole body until `main()` adds `html.ready` (after `applyTheme()`), and paints the page `#0a0e18` (= `COLORS.surface.vignette`) meanwhile, so no unstyled flash on first load; keep that colour in sync.
 - The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).
 - User-provided text (save names) is rendered with `textContent`, never `innerHTML`.
-- Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0` and `|x|, |z| <= BUILD_LIMIT` (inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5).
+- Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0` and x, z within `buildRange(cells)` (`-n/2 … n/2 - 1`) and `0 <= y <= n - 1` of the game's grid size (`Grid.setSize`; inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5).
 - Shared geometries/materials are created once in `part-defs.ts`; do not dispose them per instance.
 - Adding a part type: follow [docs/adding-a-part.md](docs/adding-a-part.md).
 
