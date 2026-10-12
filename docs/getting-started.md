@@ -224,7 +224,7 @@ building (they drive while playing).
 | **Clear** (top bar) | Remove every part. A confirmation popup asks first (no popup when there is nothing to clear); the result can be undone |
 | **Play** (top bar) | Switch to Play mode |
 
-The ghost preview is **green** when the placement is valid and **red** when it is not.
+The ghost preview is the **part itself, translucent**; it turns **red** when the placement is not valid.
 
 A **wheel** must be mounted on the **side** of a block: hover a side face of a block (not the top or
 bottom) and click. The face you click defines the wheel's axle.

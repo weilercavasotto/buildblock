@@ -62,7 +62,7 @@ export const COLORS = {
     tire: '#23262d',
     rim: '#dfe3ea',
     rimRecess: '#8f98a8',
-    ghostValid: '#4cd964',
+    /** The placement ghost turns this colour when the part cannot be placed (otherwise it is the part itself, translucent). */
     ghostInvalid: '#ff3b30',
   },
 } as const;

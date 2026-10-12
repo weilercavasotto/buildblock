@@ -42,7 +42,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Good to know',
         rows: [
-          { text: 'The ghost preview is green when a part can be placed there and red when it cannot.' },
+          { text: 'The ghost preview is the part itself, translucent, and turns red when it cannot be placed there.' },
           { text: 'Everything is saved automatically to the game you opened. Use Menu to switch or start a new game.' },
         ],
       },

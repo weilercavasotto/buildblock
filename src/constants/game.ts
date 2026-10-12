@@ -12,7 +12,7 @@ export const BLOCK_VISUAL_SIZE = CELL_SIZE;
 /** The dark outline of a block is drawn this much larger than the cube, so it sits just outside the faces (no z-fighting). */
 export const BLOCK_EDGE_SCALE = 1.004;
 
-/** The placement ghost is a bit smaller than the cell so it does not z-fight with the faces of neighbouring blocks. */
+/** The placement ghost (the part itself, translucent) is a bit smaller so it does not z-fight with the faces of neighbouring parts. */
 export const GHOST_BLOCK_SCALE = 0.985;
 
 export const CAMERA = {

@@ -7,8 +7,6 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { wheelGeometry } from './wheel-model';
 
 const color = (hex: string): number => hexToNumber(hex);
-const ghostMaterial = (hex: string) =>
-  new THREE.MeshBasicMaterial({ color: color(hex), transparent: true, opacity: ALPHA.ghost, depthWrite: false });
 
 const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
 const edgeGeo = new THREE.EdgesGeometry(blockGeo);
@@ -94,8 +92,34 @@ const rimRecessMat = new THREE.MeshStandardMaterial({
   metalness: METALNESS.rim,
 });
 const edgeMat = new THREE.LineBasicMaterial({ color: color(COLORS.part.blockEdge) });
-const ghostOk = ghostMaterial(COLORS.part.ghostValid);
-const ghostBad = ghostMaterial(COLORS.part.ghostInvalid);
+
+/** Translucent copies of the part materials used by the placement ghost, one per material and state (shared). */
+const ghostCache = new Map<THREE.Material, { ok: THREE.Material; bad: THREE.Material }>();
+function ghostMaterials(material: THREE.Material) {
+  let pair = ghostCache.get(material);
+  if (!pair) {
+    const make = (red: boolean) => {
+      const copy = material.clone() as THREE.Material & { color: THREE.Color; polygonOffset: boolean };
+      if (red) copy.color.setHex(color(COLORS.part.ghostInvalid));
+      copy.transparent = true;
+      copy.opacity = ALPHA.ghost;
+      return copy;
+    };
+    pair = { ok: make(false), bad: make(true) };
+    ghostCache.set(material, pair);
+  }
+  return pair;
+}
+
+/** Turns a built part into its placement ghost: the same part, translucent, red when it cannot be placed. */
+function makeGhost(root: THREE.Object3D, bad: boolean): void {
+  root.traverse((object) => {
+    const item = object as THREE.Mesh;
+    if (!item.isMesh && !(object as THREE.LineSegments).isLineSegments) return;
+    item.material = ghostMaterials(item.material as THREE.Material)[bad ? 'bad' : 'ok'];
+    item.castShadow = item.receiveShadow = false;
+  });
+}
 
 /** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
 export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs' | 'spin' | 'pitch'>): THREE.Box3 {
@@ -160,7 +184,6 @@ function socketsMesh(size: Vec3, studs: Vec3): THREE.Mesh {
 /** Builds the visual for a part, centred on its own origin (cell centre). */
 export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' | 'color' | 'studs' | 'spin' | 'pitch'>, ghost?: 'ok' | 'bad'): THREE.Group {
   const root = new THREE.Group();
-  const ghostMat = ghost === 'ok' ? ghostOk : ghost === 'bad' ? ghostBad : undefined;
   const noRaycast = { raycast: () => {} };
 
   if (isStructural(part.type)) {
@@ -169,19 +192,16 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' |
     for (const box of SHAPES[part.type].boxes) {
       const group = new THREE.Group();
       group.position.set(...box.offset);
-      const mesh = new THREE.Mesh(blockGeo, ghostMat ?? mats.face);
-      mesh.castShadow = mesh.receiveShadow = !ghost;
+      const mesh = new THREE.Mesh(blockGeo, mats.face);
+      mesh.castShadow = mesh.receiveShadow = true;
       mesh.scale.set(...box.size);
-      if (ghost) mesh.scale.multiplyScalar(GHOST_BLOCK_SCALE);
       group.add(mesh);
-      if (!ghost) {
-        const edges = new THREE.LineSegments(edgeGeo, mats.edge);
-        Object.assign(edges, noRaycast);
-        edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
-        group.add(edges);
-        group.add(studsMesh(mats.face, box.size, box.studs));
-        group.add(socketsMesh(box.size, box.studs));
-      }
+      const edges = new THREE.LineSegments(edgeGeo, mats.edge);
+      Object.assign(edges, noRaycast);
+      edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
+      group.add(edges);
+      group.add(studsMesh(mats.face, box.size, box.studs));
+      group.add(socketsMesh(box.size, box.studs));
       root.add(group);
     }
     root.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
@@ -189,17 +209,17 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' |
     const pivot = new THREE.Group();
     pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));
     pivot.scale.setScalar(wheelSizeOf(part.type).scale); // a large wheel is the same model, scaled
-    if (ghostMat) {
-      pivot.add(new THREE.Mesh(wheelGeometry.silhouette, ghostMat));
-    } else {
-      // Tire (rubber), rim (metal) and the darker recessed disc of the rim; see wheel-model.ts.
-      const tire = new THREE.Mesh(wheelGeometry.tire, tireMat);
-      tire.castShadow = true;
-      const rim = new THREE.Mesh(wheelGeometry.rim, rimMat);
-      rim.castShadow = true;
-      pivot.add(tire, rim, new THREE.Mesh(wheelGeometry.rimDisc, rimRecessMat));
-    }
+    // Tire (rubber), rim (metal) and the darker recessed disc of the rim; see wheel-model.ts.
+    const tire = new THREE.Mesh(wheelGeometry.tire, tireMat);
+    tire.castShadow = true;
+    const rim = new THREE.Mesh(wheelGeometry.rim, rimMat);
+    rim.castShadow = true;
+    pivot.add(tire, rim, new THREE.Mesh(wheelGeometry.rimDisc, rimRecessMat));
     root.add(pivot);
+  }
+  if (ghost) {
+    makeGhost(root, ghost === 'bad');
+    root.scale.setScalar(GHOST_BLOCK_SCALE); // a hair smaller: no z-fighting with the faces of its neighbours
   }
   return root;
 }

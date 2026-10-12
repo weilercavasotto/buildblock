@@ -8,7 +8,6 @@ import { WHEEL, WHEEL_VISUAL as V } from '../constants';
  * - `tire`: a lathe-turned rubber ring (flat sidewalls, rounded shoulders, flat tread) plus staggered tread lugs;
  * - `rim`: the light metal parts: lip ring, five spokes, hub cap and lug nuts;
  * - `rimDisc`: the darker recessed disc between the spokes.
- * (The ghost preview uses the plain `silhouette` cylinder: overlapping transparent meshes would look blotchy.)
  */
 export const wheelGeometry = (() => {
   const R = WHEEL.radius;
@@ -75,6 +74,5 @@ export const wheelGeometry = (() => {
   // ---- recessed disc between the spokes ----
   const rimDisc = new THREE.CylinderGeometry(V.rimRadius - V.rimLip, V.rimRadius - V.rimLip, rw - V.rimRecess * 2, V.segments);
 
-  const silhouette = new THREE.CylinderGeometry(R, R, WHEEL.width, V.segments);
-  return { tire, rim, rimDisc, silhouette };
+  return { tire, rim, rimDisc };
 })();

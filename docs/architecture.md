@@ -137,15 +137,14 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   sidewalls, rounded shoulders and a flat tread, plus staggered tread lugs) around a **rim** (lip ring, 5 spokes, hub cap
   and 6-sided lug nuts, merged into one light-metal mesh) and a darker **recessed disc** between the spokes. Each wheel is
   3 meshes (`mergeGeometries`), ~2k triangles. The tire is `R - lugHeight` thick plus the lugs, so nothing sticks out
-  of the physical radius `WHEEL.radius`; the ghost preview uses a plain cylinder (`silhouette`) because overlapping
-  transparent meshes look blotchy. Every measure is in `WHEEL_VISUAL` (`constants/game.ts`), colours in `COLORS.part`
+  of the physical radius `WHEEL.radius`; the placement ghost is the same model made translucent. Every measure is in `WHEEL_VISUAL` (`constants/game.ts`), colours in `COLORS.part`
   (`tire`, `rim`, `rimRecess`), rim roughness/metalness in `ROUGHNESS` / `METALNESS`.
 - **`part-defs`** — shared geometries/materials, `createPartObject(part, ghost?)` and
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
   A block's mesh **fills its whole cell** (`BLOCK_VISUAL_SIZE = CELL_SIZE`, the same as its collider), so neighbouring blocks
   touch with no gap. Each block still reads as a separate brick through its dark outline (`LineSegments` of the cube's edges),
   drawn `BLOCK_EDGE_SCALE` (1.004) larger than the cube so it sits just outside the faces and stays continuous instead of
-  z-fighting; the faces use `polygonOffset` for the same reason. The placement ghost is `GHOST_BLOCK_SCALE` smaller so it
+  z-fighting; the faces use `polygonOffset` for the same reason. The placement ghost is the part itself, translucent (`ALPHA.ghost`, red when it cannot be placed: `COLORS.part.ghostInvalid`; `makeGhost`) and `GHOST_BLOCK_SCALE` smaller so it
   does not z-fight with the faces of its neighbours, and the sun's shadow has a `bias`/`normalBias` (`LIGHTS`) against
   self-shadowing noise on faces that now touch.
 - **`PhysicsWorld`** — see [physics.md](physics.md).
