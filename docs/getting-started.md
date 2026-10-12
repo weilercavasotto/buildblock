@@ -32,8 +32,8 @@ category) and a card with a 3D preview for each part:
 
 ## Zoom control
 
-In the **top-left corner, right under the Menu button**, there is a **zoom control** made of three separate panels stacked vertically: the `+` button on top, the
-bar in the middle (the zoom percentage at its top and a vertical slider below it, top = closest) and the `−` button
+In the **top-left corner, right under the Menu button**, there is a **zoom control** made of three parts stacked vertically: the `+` button on top (in its own panel), the
+bar in the middle, with no card around it (the zoom percentage at its top and a vertical slider below it, top = closest) and the `−` button
 at the bottom. The percentage is relative to the default view (`100%`). It works together with the mouse
 wheel: scrolling moves the slider, and dragging the slider or pressing the buttons zooms the camera. Zoom is limited
 to a camera distance of **3 to 60 units** (`CAMERA.minDistance` / `CAMERA.maxDistance`, about `513%` to `26%`), for

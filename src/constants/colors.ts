@@ -32,6 +32,9 @@ export const COLORS = {
     primaryHover: '#38b765',
     danger: '#c8453b',
     highlight: '#ffd34e',
+    highlightHover: '#ffe07a',
+    /** Text on a highlight-coloured (yellow) button. */
+    onHighlight: '#141821',
   },
 
   /** Colours inside the 3D scene. */

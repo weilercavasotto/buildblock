@@ -454,11 +454,12 @@ body.dragging * {
   cursor: pointer;
 }
 .catalog-action.primary {
-  background: var(--color-accent-primary);
+  background: var(--color-accent-highlight);
+  color: var(--color-accent-on-highlight);
   font-weight: var(--font-weight-semibold);
 }
 .catalog-action.primary:hover {
-  background: var(--color-accent-primary-hover);
+  background: var(--color-accent-highlight-hover);
 }
 .catalog-action:focus-visible {
   outline: none;
@@ -563,14 +564,16 @@ body[data-cursor-mode='remove'] > canvas {
 }
 
 #top-bar #btn-play {
-  background: var(--color-accent-primary);
+  background: var(--color-accent-highlight);
+  color: var(--color-accent-on-highlight);
   font-weight: var(--font-weight-semibold);
 }
 #top-bar #btn-play:hover {
-  background: var(--color-accent-primary-hover);
+  background: var(--color-accent-highlight-hover);
 }
 #top-bar #btn-play.playing {
   background: var(--color-accent-danger);
+  color: var(--color-text-primary);
 }
 
 /* ---- Part inspector (inspect mode): centred on the right edge ---- */
@@ -649,15 +652,20 @@ body[data-cursor-mode='remove'] > canvas {
   border-radius: var(--radius-lg);
   background: var(--overlay-panel);
 }
+/* The bar itself has no card: the % label and the slider sit directly on the scene (the label gets a text shadow). */
+#zoom #zoom-bar {
+  background: none;
+  padding: 0;
+}
 #zoom button {
-  width: calc(var(--space-xl) + var(--space-lg));
-  height: calc(var(--space-xl) + var(--space-lg));
+  width: var(--size-zoom-button);
+  height: var(--size-zoom-button);
   padding: 0;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--color-surface-control);
   color: var(--color-text-primary);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   cursor: pointer;
 }
 #zoom button:hover {
@@ -669,11 +677,12 @@ body[data-cursor-mode='remove'] > canvas {
   direction: rtl;
   height: var(--size-zoom-slider-height);
   margin: 0;
-  accent-color: var(--color-accent-primary);
+  accent-color: var(--color-accent-highlight);
   cursor: pointer;
 }
 #zoom-label {
   color: var(--color-text-primary);
+  text-shadow: var(--shadow-text);
   font-size: var(--font-size-sm);
   letter-spacing: var(--letter-spacing-sm);
 }
@@ -755,11 +764,12 @@ body[data-cursor-mode='remove'] > canvas {
   background: var(--color-surface-control-hover);
 }
 .dialog-button.primary {
-  background: var(--color-accent-primary);
+  background: var(--color-accent-highlight);
+  color: var(--color-accent-on-highlight);
   font-weight: var(--font-weight-semibold);
 }
 .dialog-button.primary:hover {
-  background: var(--color-accent-primary-hover);
+  background: var(--color-accent-highlight-hover);
 }
 .dialog-button.danger {
   background: var(--color-accent-danger);
@@ -829,7 +839,7 @@ body[data-cursor-mode='remove'] > canvas {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: var(--color-accent-primary);
+  background: var(--color-accent-highlight);
   transition: width var(--motion-fast) ease-out;
 }
 #loading-label {
@@ -899,11 +909,12 @@ body[data-cursor-mode='remove'] > canvas {
   background: var(--color-surface-control-hover);
 }
 #menu button.primary {
-  background: var(--color-accent-primary);
+  background: var(--color-accent-highlight);
+  color: var(--color-accent-on-highlight);
   font-weight: var(--font-weight-semibold);
 }
 #menu button.primary:hover {
-  background: var(--color-accent-primary-hover);
+  background: var(--color-accent-highlight-hover);
 }
 #menu button.danger:hover {
   background: var(--color-accent-danger);
@@ -913,14 +924,23 @@ body[data-cursor-mode='remove'] > canvas {
   cursor: default;
 }
 #menu #menu-play {
-  background: var(--overlay-panel);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--color-accent-highlight);
+  color: var(--color-accent-on-highlight);
+  font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-xxl);
   letter-spacing: var(--letter-spacing-md);
   padding: var(--space-lg) var(--space-huge);
   border-radius: var(--radius-lg);
 }
 #menu #menu-play:hover {
-  background: var(--overlay-panel-hover);
+  background: var(--color-accent-highlight-hover);
+}
+#menu #menu-play svg {
+  width: var(--size-menu-play-icon);
+  height: var(--size-menu-play-icon);
 }
 #menu-saves {
   width: min(var(--size-panel-width), 90vw);

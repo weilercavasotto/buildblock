@@ -31,6 +31,8 @@ export const SIZE = {
   dialogWidth: 380,
   /** Icon buttons (the help button). */
   iconButton: 44,
+  /** The + / − buttons of the zoom control (with the panel padding they are as wide as an icon button). */
+  zoomButton: 28,
   icon: 24,
   helpWidth: 640,
   helpPanelHeight: 380,
@@ -52,6 +54,7 @@ export const SIZE = {
   partInspectorPreview: 72,
   paintSwatch: 28,
   loadingLogo: 96,
+  menuPlayIcon: 28,
   loadingBarWidth: 280,
   loadingBarHeight: 8,
   /** Gap between the top bar and the paint palette hanging under it. */
