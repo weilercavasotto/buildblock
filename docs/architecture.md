@@ -23,8 +23,8 @@ src/
   build/build-mode.ts          Mouse picking, ghost preview, place/remove
   play/physics-world.ts        Grid -> Rapier bodies/joints, scenery, stepping and sync
   play/vehicle-controller.ts   Keyboard -> wheel motors
-  ui/zoom-control.ts           Zoom buttons + slider (top-right), in sync with the mouse-wheel zoom
-  ui/fps-counter.ts            FPS readout (top-right), counted per rendered frame, toggled with F3
+  ui/zoom-control.ts           Zoom buttons + slider (top left, under Menu), in sync with the mouse-wheel zoom
+  ui/fps-counter.ts            FPS readout (top right), counted per rendered frame, toggled with F3
   ui/hud.ts                    Top-left buttons, top bar and hotbar visibility (DOM bound to index.html)
   ui/hotbar.ts                 Hotbar: 9 slots, selection, persistence, drag between slots
   ui/catalog-dialog.ts         Parts catalog modal: tabs, cards with 3D previews, inspector, drag to the hotbar
@@ -156,8 +156,8 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   zoom as a percentage: default distance divided by the current one (`100%` = default view). It listens to the controls' `change` event (wheel, damping, the camera following the car), so mouse zoom moves
   the slider; slider/buttons move the camera along its line of sight (`setDistance`). The slider value is not rewritten
   while it is being dragged, and the control releases keyboard focus after a click so the arrow keys keep driving.
-  Hidden in the menu (`main.ts` calls `setVisible` and `sync()` together with the HUD). The top-right `#corner` stacks
-  it under the FPS counter; inside, three same-width `.zoom-panel`s are stacked: `+`, `#zoom-bar` (percentage label +
+  Hidden in the menu (`main.ts` calls `setVisible` and `sync()` together with the HUD). `#zoom` is fixed at the top left, right
+  under the Menu button; inside, three same-width `.zoom-panel`s are stacked: `+`, `#zoom-bar` (percentage label +
   slider) and `−`.
 - **`FpsCounter`** — counts frames over `FPS_COUNTER.updateInterval` and colours the number by threshold; the first
   window (shader compilation) is discarded. `main.ts` calls `frame(elapsed)` every frame and toggles it on F3.
@@ -182,10 +182,10 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   swallows every other key (capture-phase listener + `stopPropagation`, so the game under it does not react: no
   hotbar selection, undo or driving) and allows a single modal at a time. Callers pass `build()` (fills the dialog and
   returns the element to focus), optional `onKeyDown` and `onClose`.
-- **`PartInspector`** (`src/ui/part-inspector.ts`) — the panel on the right in inspect mode (`#part-inspector`, inside
-  the top-right `#corner` column, **below the zoom control**. `#corner` is stretched from the top of the screen down to
-  `SIZE.hotbarReserved` above the bottom (so it never reaches the hotbar) and the panel is `flex: 1`: it **fills all the
-  height left under the zoom control** (taller windows give it more room; it scrolls when the window is short):
+- **`PartInspector`** (`src/ui/part-inspector.ts`) — the panel in inspect mode (`#part-inspector`, `position: fixed` on the
+  **right edge, vertically centred**: `top` and `bottom` are both `SIZE.hotbarReserved`, so the margins above and below
+  are equal, it never reaches the top bar or the hotbar and it **fills the height between them**; when the window is
+  short only the **body** scrolls: the header with the title and the × button is outside the scrolling `.inspector-body`, so it stays fixed):
   small spinning preview beside the name and category, a *Remove part* button
   (`history.run`), "This part" rows (position; for a block the size of its rigid body from `Grid.connectedBlocks` and its
   wheels from `Grid.wheelsOn`; for a wheel its host block and axle) and the properties from `PART_INFO`.
@@ -274,6 +274,14 @@ regenerated when the SVG changes (draw it on a canvas at 16/32/48/180 px, fill `
 and pack 16/32/48 into an ICO). Edit the SVG to change colours. The logo is the red brand brick (`#d9453b`); the in-game blocks are a soft blue
 (`COLORS.part.block`), so the logo no longer matches them on purpose (recolour the SVGs and regenerate the rasters if you
 want it to). The favicon background matches the HUD (`#1a1f2b`).
+
+## Scrollbars
+
+The panels that can scroll (help, catalog grid and its inspector, the part inspector's body, the saved-games list) use a
+**slim, styled scrollbar that always takes its own space** (`::-webkit-scrollbar` of `--space-sm` width with a
+`--color-surface-divider` thumb, `scrollbar-gutter: stable`; Firefox falls back to `scrollbar-width: thin`). The OS
+overlay scrollbar was painted over the content and cut buttons and texts at the right edge of the inspector. When you add
+another scrolling panel, add its selector to the `:is(...)` lists at the end of `src/styles/main.css`.
 
 ## UI font
 

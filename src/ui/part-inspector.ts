@@ -59,8 +59,9 @@ export class PartInspector {
     );
     summary.append(canvas, identity);
 
-    this.root.replaceChildren(
-      header,
+    // The header (title + close button) stays put; only the body below it scrolls.
+    const body = el('div', 'inspector-body');
+    body.append(
       summary,
       remove,
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
@@ -69,6 +70,7 @@ export class PartInspector {
       this.rows(info.properties.map(({ label, value }) => [label, value] as [string, string])),
       text('p', 'inspector-status', TEXT.inspector.removeHint),
     );
+    this.root.replaceChildren(header, body);
   }
 
   /** Label / value rows that depend on where this particular part is. */

@@ -32,7 +32,7 @@ category) and a card with a 3D preview for each part:
 
 ## Zoom control
 
-Below the FPS counter (top-right) there is a **zoom control** made of three separate panels stacked vertically: the `+` button on top, the
+In the **top-left corner, right under the Menu button**, there is a **zoom control** made of three separate panels stacked vertically: the `+` button on top, the
 bar in the middle (the zoom percentage at its top and a vertical slider below it, top = closest) and the `−` button
 at the bottom. The percentage is relative to the default view (`100%`). It works together with the mouse
 wheel: scrolling moves the slider, and dragging the slider or pressing the buttons zooms the camera. Zoom is limited
@@ -72,9 +72,10 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 
 | Where | What |
 |---|---|
-| Top left | **☰ Menu** and, next to it, **ⓘ Help** |
+| Top left | **☰ Menu** and, next to it, **ⓘ Help**; the **zoom control** below the Menu button |
 | Top centre | Bar with the cursor modes **Q W E**, the rotate buttons **A ↺ D ↻**, **Undo** and **Redo**, then **Clear** and **Play** (while playing it only shows **Stop**) |
-| Top right | FPS counter and zoom control |
+| Right edge, centred | The **part inspector** (inspect mode, when a part is selected) |
+| Top right | **FPS counter** |
 | Bottom centre | **Hotbar**: 9 slots (`1`–`9`) and the **parts catalog** button (build mode only) |
 
 ## Controls
@@ -87,7 +88,7 @@ mouse button does (the middle button always rotates the camera, the right button
 | Mode | Key | Left button |
 |---|---|---|
 | **Build** (default) | `Q` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
-| **Inspect** | `W` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens on the right, below the zoom control and filling the height down to the hotbar's level (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button). Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
+| **Inspect** | `W` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button). Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
 | **Remove** | `E` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |
 
 Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The shortcuts only work while

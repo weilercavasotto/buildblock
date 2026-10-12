@@ -540,14 +540,15 @@ body[data-cursor-mode='remove'] > canvas {
   background: var(--color-accent-danger);
 }
 
-/* ---- Part inspector (inspect mode): in the top-right column, below the zoom control ---- */
+/* ---- Part inspector (inspect mode): centred on the right edge ---- */
 #part-inspector {
-  pointer-events: auto;
+  position: fixed;
+  right: var(--space-lg);
+  /* Equal margins above and below, so the panel is centred on the right edge, and it fills the height between them. */
+  top: var(--size-hotbar-reserved);
+  bottom: var(--size-hotbar-reserved);
   width: var(--size-part-inspector-width);
-  /* Fills all the height left in the column (its content scrolls when it is taller). */
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   box-sizing: border-box;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
@@ -557,6 +558,16 @@ body[data-cursor-mode='remove'] > canvas {
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-sm);
+}
+/* Everything under the fixed header; this is the part that scrolls. */
+#part-inspector .inspector-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-right: var(--space-sm);
 }
 #part-inspector .inspector-summary {
   display: flex;
@@ -583,21 +594,11 @@ body[data-cursor-mode='remove'] > canvas {
   font-weight: var(--font-weight-semibold);
 }
 
-/* ---- Top-right corner: FPS counter and zoom control ---- */
-#corner {
-  position: fixed;
-  top: var(--space-lg);
-  right: var(--space-lg);
-  /* Down to the space reserved for the hotbar, so the part inspector can fill what is left below the zoom control. */
-  bottom: var(--size-hotbar-reserved);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-sm);
-  pointer-events: none;
-}
+/* ---- Zoom control: top left, under the Menu button ---- */
 #zoom {
-  pointer-events: auto;
+  position: fixed;
+  left: var(--space-lg);
+  top: calc(var(--space-lg) + var(--size-icon-button) + var(--space-sm));
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -644,8 +645,11 @@ body[data-cursor-mode='remove'] > canvas {
   letter-spacing: var(--letter-spacing-sm);
 }
 
-/* ---- FPS counter ---- */
+/* ---- FPS counter: top right ---- */
 #fps {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--overlay-panel);
@@ -658,6 +662,7 @@ body[data-cursor-mode='remove'] > canvas {
 #fps:empty {
   display: none;
 }
+
 #fps.good {
   color: var(--color-accent-primary-hover);
 }
@@ -901,4 +906,32 @@ body[data-cursor-mode='remove'] > canvas {
   letter-spacing: var(--letter-spacing-sm);
   opacity: var(--opacity-muted);
   text-shadow: var(--shadow-text-small);
+}
+
+/* ---- Slim dark scrollbars for the scrolling panels ----
+   The scrollbar is styled instead of using the OS overlay one, so it always takes its own space: the content is laid out
+   beside it and is never covered or clipped by it (a covered scrollbar cut the inspector's buttons and texts). */
+:is(.help-panel, .catalog-grid, .catalog-inspector, #part-inspector .inspector-body, #save-list) {
+  scrollbar-gutter: stable;
+}
+@supports selector(::-webkit-scrollbar) {
+  :is(.help-panel, .catalog-grid, .catalog-inspector, #part-inspector .inspector-body, #save-list)::-webkit-scrollbar {
+    width: var(--space-sm);
+  }
+  :is(.help-panel, .catalog-grid, .catalog-inspector, #part-inspector .inspector-body, #save-list)::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  :is(.help-panel, .catalog-grid, .catalog-inspector, #part-inspector .inspector-body, #save-list)::-webkit-scrollbar-thumb {
+    background: var(--color-surface-divider);
+    border-radius: var(--radius-sm);
+  }
+  :is(.help-panel, .catalog-grid, .catalog-inspector, #part-inspector .inspector-body, #save-list)::-webkit-scrollbar-thumb:hover {
+    background: var(--color-surface-control-hover);
+  }
+}
+@supports not selector(::-webkit-scrollbar) {
+  :is(.help-panel, .catalog-grid, .catalog-inspector, #part-inspector .inspector-body, #save-list) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface-divider) transparent;
+  }
 }

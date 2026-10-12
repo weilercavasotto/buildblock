@@ -50,7 +50,7 @@ export const SIZE = {
   dragGhost: 64,
   partInspectorWidth: 280,
   partInspectorPreview: 72,
-  /** Space kept free at the bottom for the hotbar; the top-right column (and the part inspector in it) stops above it. */
+  /** Margin above and below the part inspector (it is centred on the right edge); also the room kept free for the hotbar. */
   hotbarReserved: 100,
   zoomSliderHeight: 140,
 } as const;

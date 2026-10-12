@@ -56,7 +56,7 @@ export const HELP_TABS: HelpTab[] = [
         heading: 'Cursor modes',
         rows: [
           { keys: ['Q'], text: 'Build mode (default): the left button places the part of the selected hotbar slot.' },
-          { keys: ['W'], text: 'Inspect mode: click a part to select it and see its details in a panel on the right, below the zoom control. Clicking empty ground deselects. The left button also rotates the camera here.' },
+          { keys: ['W'], text: 'Inspect mode: click a part to select it and see its details in a panel centred on the right edge. Clicking empty ground deselects. The left button also rotates the camera here.' },
           { keys: ['E'], text: 'Remove mode: the left button removes the part under the cursor; drag to erase several (one undo step). Parts under the cursor are outlined in red.' },
           { text: 'The modes are in the top bar, on the left. Choosing a hotbar slot switches back to Build.' },
         ],
@@ -79,7 +79,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Middle drag'], text: 'Rotate the camera.' },
           { keys: ['Right drag'], text: 'Move (pan) the camera.' },
           { keys: ['Scroll'], text: 'Zoom in and out.' },
-          { text: 'The zoom panel (top right) shows the zoom level and has + / − buttons and a slider. Zoom is limited so you cannot go too close or too far.' },
+          { text: 'The zoom panel (top left, under the Menu button) shows the zoom level and has + / − buttons and a slider. Zoom is limited so you cannot go too close or too far.' },
         ],
       },
     ],

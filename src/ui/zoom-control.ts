@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CAMERA, TEXT, ZOOM } from '../constants';
 
 /**
- * Zoom control (top-right, under the FPS counter): +/- buttons and a vertical slider, kept in sync with the
+ * Zoom control (top left, under the Menu button): +/- buttons and a vertical slider, kept in sync with the
  * mouse-wheel zoom of the orbit controls. Zoom is the camera's distance to its target, limited to
  * [CAMERA.minDistance, CAMERA.maxDistance]; the slider is logarithmic (top = closest) and the label shows the
  * zoom relative to the default camera distance.
