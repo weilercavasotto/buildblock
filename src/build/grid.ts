@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, DEFAULT_TIRE, PART_INFO, SUSPENSION, buildRange, clampSuspension, isTireId } from '../constants';
+import { DEFAULT_GRID_CELLS, PART_INFO, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampWeight, legacyTireValue, tireValueOf, weightOf } from '../constants';
 import { Part, Vec3, addVec, cellKey, isHexColor, isWheelType, partCells, subVec } from '../types';
 
 export class Grid {
@@ -110,17 +110,43 @@ export class Grid {
   }
 
   /**
-   * Sets the tire type (an id of `TIRES`) of the wheel at `cell`; the default tire is stored as "not set". Returns false,
-   * changing nothing, when there is no such part, it has no tires, the id is unknown or it does not change it.
+   * Sets the weight (an integer from `WEIGHT.min` to `WEIGHT.max`) of the block at `cell`, or of every block welded to it
+   * with `connected`; the default weight is stored as "not set". Returns false, changing nothing, when there is no such
+   * block, it has no weight or no block changes.
    */
-  setTire(cell: Vec3, tire: string): boolean {
+  setWeight(cell: Vec3, weight: number, connected = false): boolean {
     const part = this.get(cell);
-    if (!part || !PART_INFO[part.type].hasTire || !isTireId(tire)) return false;
-    if ((part.tire ?? DEFAULT_TIRE) === tire) return false;
-    const { tire: _old, ...rest } = part;
-    this.parts.set(cellKey(part.cell), tire === DEFAULT_TIRE ? rest : { ...rest, tire });
-    this.emit();
-    return true;
+    if (!part || !PART_INFO[part.type].hasWeight || !Number.isFinite(weight)) return false;
+    const value = clampWeight(weight);
+    let changed = false;
+    for (const target of connected ? this.connectedBlockParts(part.cell) : [part]) {
+      if (weightOf(target) === value) continue;
+      const { weight: _old, ...rest } = target;
+      this.parts.set(cellKey(target.cell), value === WEIGHT.default ? rest : { ...rest, weight: value });
+      changed = true;
+    }
+    if (changed) this.emit();
+    return changed;
+  }
+
+  /**
+   * Sets the tire (an integer from `TIRE.min` to `TIRE.max`) of the wheel at `cell`, or of every wheel on the same body
+   * with `wholeBody` (see `wheelsOnBody`); the default tire is stored as "not set". Returns false, changing nothing,
+   * when there is no such part, it has no tires or no wheel changes.
+   */
+  setTire(cell: Vec3, tire: number, wholeBody = false): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasTire || !Number.isFinite(tire)) return false;
+    const value = clampTire(tire);
+    let changed = false;
+    for (const target of wholeBody ? this.wheelsOnBody(part.cell) : [part]) {
+      if (tireValueOf(target) === value) continue;
+      const { tire: _old, ...rest } = target;
+      this.parts.set(cellKey(target.cell), value === TIRE.default ? rest : { ...rest, tire: value });
+      changed = true;
+    }
+    if (changed) this.emit();
+    return changed;
   }
 
   /**
@@ -150,20 +176,42 @@ export class Grid {
     this.emit();
   }
 
-  /** Number of blocks welded together with the block at `cell` (touching blocks form one rigid body); 0 if none. */
-  connectedBlocks(cell: Vec3): number {
-    if (this.get(cell)?.type !== 'block') return 0;
-    const seen = new Set([cellKey(cell)]);
-    const queue: Vec3[] = [cell];
+  /** The blocks welded together with the block at `cell` (touching blocks form one rigid body), itself included; [] if none. */
+  connectedBlockParts(cell: Vec3): Part[] {
+    const start = this.get(cell);
+    if (start?.type !== 'block') return [];
+    const seen = new Map<string, Part>([[cellKey(start.cell), start]]);
+    const queue: Part[] = [start];
     while (queue.length) {
-      for (const n of this.neighbors(queue.pop()!)) {
+      for (const n of this.neighbors(queue.pop()!.cell)) {
         if (n.type === 'block' && !seen.has(cellKey(n.cell))) {
-          seen.add(cellKey(n.cell));
-          queue.push(n.cell);
+          seen.set(cellKey(n.cell), n);
+          queue.push(n);
         }
       }
     }
-    return seen.size;
+    return [...seen.values()];
+  }
+
+  /** Number of blocks welded together with the block at `cell`; 0 if none. */
+  connectedBlocks(cell: Vec3): number {
+    return this.connectedBlockParts(cell).length;
+  }
+
+  /** Total weight of the blocks welded together with the block at `cell` (what the rigid body weighs); 0 if none. */
+  connectedWeight(cell: Vec3): number {
+    return this.connectedBlockParts(cell).reduce((sum, p) => sum + weightOf(p), 0);
+  }
+
+  /**
+   * The wheels (of any size) mounted on the same rigid body as the wheel at `cell`: those on the host block of that wheel
+   * and on every block welded to it, the wheel itself included; [] when there is no such wheel.
+   */
+  wheelsOnBody(cell: Vec3): Part[] {
+    const wheel = this.get(cell);
+    if (!wheel || !isWheelType(wheel.type) || !wheel.face) return [];
+    const hostCell = subVec(wheel.cell, wheel.face);
+    return this.connectedBlockParts(hostCell).flatMap((block) => this.wheelsOn(block.cell));
   }
 
   /** Wheels (of any size) mounted on the block at `cell`. */
@@ -177,13 +225,15 @@ export class Grid {
   }
 }
 
-/** Drops what a save may carry that its part type does not allow (a bad or forbidden paint / suspension / tire). */
+/** Drops what a save may carry that its part type does not allow (a bad or forbidden paint / suspension / tire / weight). */
 function sanitize(part: Part): Part {
-  const { color, suspension, tire, ...rest } = part;
+  const { color, suspension, tire: savedTire, weight, ...rest } = part;
+  const tire = legacyTireValue(savedTire); // saves from when the tire was one of three named types
   const info = PART_INFO[part.type];
   const out: Part = { ...rest };
   if (color !== undefined && isHexColor(color) && info.paintable) out.color = color;
   if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
-  if (tire !== undefined && isTireId(tire) && info.hasTire) out.tire = tire;
+  if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
+  if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   return out;
 }

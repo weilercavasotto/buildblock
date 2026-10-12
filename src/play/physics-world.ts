@@ -18,6 +18,8 @@ import {
   suspensionOf,
   suspensionStiffness,
   tireOf,
+  weightMass,
+  weightOf,
   wheelSizeOf,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
@@ -153,7 +155,7 @@ export class PhysicsWorld {
         this.world.createCollider(
           RAPIER.ColliderDesc.cuboid(CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE / 2)
             .setTranslation(...local)
-            .setDensity(CHASSIS.density)
+            .setDensity(CHASSIS.density * weightMass(weightOf(p)))
             .setFriction(CHASSIS.friction)
             .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
           body,

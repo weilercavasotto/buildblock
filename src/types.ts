@@ -28,8 +28,10 @@ export interface Part {
    * (`SUSPENSION.defaultStrength`). Read it through `suspensionOf()`.
    */
   suspension?: number;
-  /** Wheels only (`PART_INFO[type].hasTire`): id of the tire type (see `TIRES`). Missing = `DEFAULT_TIRE`. Read it through `tireOf()`. */
-  tire?: string;
+  /** Wheels only (`PART_INFO[type].hasTire`): tire value, an integer 0-100 (0 speed tires, 100 traction tires, see `TIRE`). Missing = `TIRE.default`. Read it through `tireOf()`. */
+  tire?: number;
+  /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
+  weight?: number;
 }
 
 export const cellKey = (c: Vec3): string => `${c[0]},${c[1]},${c[2]}`;

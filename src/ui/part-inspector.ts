@@ -1,4 +1,4 @@
-import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, TIRES, suspensionOf, tireOf } from '../constants';
+import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { Grid } from '../build/grid';
 import { Part, Vec3, partCells, partRotation, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
@@ -7,8 +7,10 @@ export interface InspectorHandlers {
   onRemove(part: Part): void;
   /** Sets the suspension strength (0-100) of a wheel. */
   onSuspension(part: Part, strength: number): void;
-  /** Sets the tire type (an id of `TIRES`) of a wheel. */
-  onTire(part: Part, tire: string): void;
+  /** Sets the tire (0 speed tires … 100 traction tires, see `TIRE`) of a wheel, or of all the wheels on its body with `wholeBody`. */
+  onTire(part: Part, tire: number, wholeBody: boolean): void;
+  /** Sets the weight (an integer, see `WEIGHT`) of a block, or of all the blocks welded to it with `connected`. */
+  onWeight(part: Part, weight: number, connected: boolean): void;
   onClose(): void;
 }
 
@@ -69,6 +71,7 @@ export class PartInspector {
       summary,
       remove,
       ...this.tireSection(part),
+      ...this.weightSection(part),
       ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
       this.rows(this.placedRows(part)),
@@ -79,63 +82,108 @@ export class PartInspector {
     this.root.replaceChildren(header, body);
   }
 
-  /** Tire type picker (wheels only): one card per `TIRES` entry with its grip / top-speed ratings. */
+  /** Tire slider (wheels only): from speed tires to traction tires; also only changed here, the catalog lists the property. */
   private tireSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasTire) return [];
-    const current = tireOf(part);
-    const options = el('div', 'tire-options');
-    options.setAttribute('role', 'radiogroup');
-    options.setAttribute('aria-label', TEXT.inspector.tire);
-    for (const tire of TIRES) {
-      const option = el('button', 'tire-option') as HTMLButtonElement;
-      option.type = 'button';
-      option.setAttribute('role', 'radio');
-      option.setAttribute('aria-checked', String(tire.id === current.id));
-      option.classList.toggle('selected', tire.id === current.id);
-      const dots = (n: number) => '●'.repeat(n) + '○'.repeat(5 - n);
-      option.append(
-        text('span', 'tire-name', tire.name),
-        text('span', 'tire-rating', `${TEXT.inspector.tireGrip} ${dots(tire.grip)}`),
-        text('span', 'tire-rating', `${TEXT.inspector.tireSpeed} ${dots(tire.topSpeed)}`),
-      );
-      option.onclick = () => this.handlers.onTire(part, tire.id);
-      options.append(option);
-    }
-    return [text('h4', 'inspector-heading', TEXT.inspector.tire), options, text('p', 'inspector-status', current.description)];
+    const wheels = this.grid.wheelsOnBody(part.cell).length;
+    return this.sliderSection({
+      heading: TEXT.inspector.tire,
+      min: TIRE.min,
+      max: TIRE.max,
+      step: TIRE.step,
+      value: tireValueOf(part),
+      defaultValue: TIRE.default,
+      low: TEXT.inspector.tireSpeed,
+      high: TEXT.inspector.tireTraction,
+      hint: TEXT.inspector.tireHint,
+      onCommit: (value) => this.handlers.onTire(part, value, false),
+      applyAll: wheels > 1 ? { label: TEXT.inspector.tireApplyAll(wheels), run: () => this.handlers.onTire(part, tireValueOf(part), true) } : undefined,
+    });
   }
 
   /** Suspension slider (wheels only; it is the only place to change it, the catalog just lists the property). */
   private suspensionSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasSuspension) return [];
-    const value = suspensionOf(part);
+    return this.sliderSection({
+      heading: TEXT.inspector.suspension,
+      min: SUSPENSION.min,
+      max: SUSPENSION.max,
+      step: SUSPENSION.step,
+      value: suspensionOf(part),
+      defaultValue: SUSPENSION.defaultStrength,
+      low: TEXT.inspector.suspensionSoft,
+      high: TEXT.inspector.suspensionFirm,
+      hint: TEXT.inspector.suspensionHint,
+      onCommit: (value) => this.handlers.onSuspension(part, value),
+    });
+  }
+
+  /** Weight slider (blocks only), with a shortcut to give the same weight to every block welded to this one. */
+  private weightSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasWeight) return [];
+    const connected = this.grid.connectedBlocks(part.cell);
+    return this.sliderSection({
+      heading: TEXT.inspector.weight,
+      min: WEIGHT.min,
+      max: WEIGHT.max,
+      step: WEIGHT.step,
+      value: weightOf(part),
+      defaultValue: WEIGHT.default,
+      low: TEXT.inspector.weightLight,
+      high: TEXT.inspector.weightHeavy,
+      hint: TEXT.inspector.weightHint,
+      onCommit: (value) => this.handlers.onWeight(part, value, false),
+      applyAll: connected > 1 ? { label: TEXT.inspector.weightApplyAll(connected), run: () => this.handlers.onWeight(part, weightOf(part), true) } : undefined,
+    });
+  }
+
+  /**
+   * A heading, a slider with its value, the labels of its ends (with a button that restores the default value in
+   * between) and a hint. The value follows the slider while it moves; the change (one undo step) is made on release.
+   */
+  private sliderSection(o: {
+    heading: string;
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    defaultValue: number;
+    low: string;
+    high: string;
+    hint: string;
+    onCommit(value: number): void;
+    /** Optional button below the slider that applies the current value to the related parts (see `Grid.setWeight` / `setTire`). */
+    applyAll?: { label: string; run(): void };
+  }): HTMLElement[] {
     const slider = document.createElement('input');
     slider.type = 'range';
-    slider.className = 'suspension-slider';
-    slider.min = String(SUSPENSION.min);
-    slider.max = String(SUSPENSION.max);
-    slider.step = String(SUSPENSION.step);
-    slider.value = String(value);
-    slider.setAttribute('aria-label', TEXT.inspector.suspension);
-    const readout = text('span', 'suspension-value', TEXT.inspector.suspensionValue(value));
-    // The readout follows the slider while it moves; the change (one undo step) is made when it is released.
-    slider.oninput = () => (readout.textContent = TEXT.inspector.suspensionValue(Number(slider.value)));
-    slider.onchange = () => this.handlers.onSuspension(part, Number(slider.value));
+    slider.className = 'slider-input';
+    slider.min = String(o.min);
+    slider.max = String(o.max);
+    slider.step = String(o.step);
+    slider.value = String(o.value);
+    slider.setAttribute('aria-label', o.heading);
+    const readout = text('span', 'slider-value', String(o.value));
+    slider.oninput = () => (readout.textContent = slider.value);
+    slider.onchange = () => o.onCommit(Number(slider.value));
 
-    const reset = text('button', 'suspension-reset', TEXT.inspector.suspensionReset) as HTMLButtonElement;
+    const reset = text('button', 'slider-reset', TEXT.inspector.defaultValue) as HTMLButtonElement;
     reset.type = 'button';
-    reset.hidden = value === SUSPENSION.defaultStrength;
-    reset.onclick = () => this.handlers.onSuspension(part, SUSPENSION.defaultStrength);
+    reset.hidden = o.value === o.defaultValue;
+    reset.onclick = () => o.onCommit(o.defaultValue);
 
-    const row = el('div', 'suspension-row');
+    const row = el('div', 'slider-row');
     row.append(slider, readout);
-    const ends = el('div', 'suspension-ends');
-    ends.append(text('span', '', TEXT.inspector.suspensionSoft), reset, text('span', '', TEXT.inspector.suspensionFirm));
-    return [
-      text('h4', 'inspector-heading', TEXT.inspector.suspension),
-      row,
-      ends,
-      text('p', 'inspector-status', TEXT.inspector.suspensionHint),
-    ];
+    const ends = el('div', 'slider-ends');
+    ends.append(text('span', '', o.low), reset, text('span', '', o.high));
+    const all: HTMLElement[] = [];
+    if (o.applyAll) {
+      const apply = text('button', 'catalog-action', o.applyAll.label) as HTMLButtonElement;
+      apply.type = 'button';
+      apply.onclick = o.applyAll.run;
+      all.push(apply);
+    }
+    return [text('h4', 'inspector-heading', o.heading), row, ends, ...all, text('p', 'inspector-status', o.hint)];
   }
 
   /** Label / value rows that depend on where this particular part is. */
@@ -146,11 +194,13 @@ export class PartInspector {
     else rows.push([TEXT.inspector.occupies, TEXT.inspector.cells(partCells(part).length)]);
     if (part.type === 'block') {
       rows.push([TEXT.inspector.color, PAINT_COLORS.find((c) => c.hex.toLowerCase() === part.color)?.name ?? TEXT.inspector.defaultColor]);
+      rows.push([TEXT.inspector.weight, String(weightOf(part))]);
       rows.push([TEXT.inspector.rigidBody, TEXT.inspector.blocks(this.grid.connectedBlocks(part.cell))]);
+      rows.push([TEXT.inspector.bodyWeight, String(this.grid.connectedWeight(part.cell))]);
       rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
-      rows.push([TEXT.inspector.tire, tireOf(part).name]);
+      rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
       rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
       rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
     }

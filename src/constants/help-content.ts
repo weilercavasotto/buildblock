@@ -55,7 +55,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Cursor modes',
         rows: [
-          { keys: ['Q'], text: 'Inspect mode: click a part to select it and see its details in a panel centred on the right edge. Clicking empty ground deselects. The left button also rotates the camera here. The panel also shows the part\'s colour, and a wheel\'s Tire type (Standard, Speed or Traction) and Suspension slider (soft to firm), both applied in Play.' },
+          { keys: ['Q'], text: 'Inspect mode: click a part to select it and see its details in a panel centred on the right edge. Clicking empty ground deselects. The left button also rotates the camera here. The panel also shows the part\'s colour, a block\'s Weight slider (1-16: heavier blocks make the body slower to accelerate and steer), and a wheel\'s Tire slider (speed to traction) and Suspension slider (soft to firm), both applied in Play.' },
           { keys: ['W'], text: 'Build mode (default): the left button places the part of the selected hotbar slot.' },
           { keys: ['E'], text: 'Paint mode: pick a colour in the palette under the top bar (the first swatch restores the default colour), then click a block to paint it; drag to paint several (one undo step). Wheels cannot be painted.' },
           { keys: ['R'], text: 'Remove mode: the left button removes the part under the cursor; drag to erase several (one undo step). Parts under the cursor are outlined in red.' },

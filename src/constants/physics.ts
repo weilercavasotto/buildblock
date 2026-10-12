@@ -18,52 +18,43 @@ export const WHEEL = {
 } as const;
 
 /**
- * Tire types a wheel can have (`Part.tire`, chosen in the part inspector). Each trades grip against top speed:
- * `friction` is the wheel's friction coefficient, `speed` multiplies `VEHICLE.maxWheelSpeed` and `torque` multiplies
- * `VEHICLE.motorStrength` (a grippier tire needs a stronger motor, or the car cannot turn). `grip` / `topSpeed` are the
- * 1-5 ratings shown to the player (keep them in line with the numbers).
+ * Tire of a wheel (`Part.tire`, a slider in the part inspector): from `min` (speed tires: slick, low grip, fast) through
+ * `default` (standard tires) to `max` (traction tires: deep tread, huge grip, slower). The tire's properties are
+ * interpolated linearly between these three points: `friction` is the wheel's friction coefficient, `speed` multiplies
+ * `VEHICLE.maxWheelSpeed` and `torque` multiplies `VEHICLE.motorStrength` (a grippier tire needs a stronger motor, or the
+ * car cannot skid-steer).
  */
-export const TIRES = [
-  {
-    id: 'standard',
-    name: 'Standard',
-    description: 'All-round tires: good grip and a good top speed.',
-    friction: 2.5,
-    speed: 1,
-    torque: 1,
-    grip: 3,
-    topSpeed: 3,
-  },
-  {
-    id: 'speed',
-    name: 'Speed',
-    description: 'Slick, low-grip tires for speed. Fast on a straight line, they slide in turns.',
-    friction: 1.4,
-    speed: 1.35,
-    torque: 1,
-    grip: 2,
-    topSpeed: 5,
-  },
-  {
-    id: 'traction',
-    name: 'Traction',
-    description: 'Deep-tread tires for snow and rough ground: huge grip, but slower.',
-    friction: 4,
-    speed: 0.75,
-    torque: 3,
-    grip: 5,
-    topSpeed: 2,
-  },
-] as const;
-export type TireId = (typeof TIRES)[number]['id'];
-export const DEFAULT_TIRE: TireId = 'standard';
+export const TIRE = {
+  min: 0,
+  max: 100,
+  step: 5,
+  default: 50,
+  points: [
+    { at: 0, friction: 1.4, speed: 1.35, torque: 1 },
+    { at: 50, friction: 2.5, speed: 1, torque: 1 },
+    { at: 100, friction: 4, speed: 0.75, torque: 3 },
+  ],
+} as const;
 
-/** Is `value` the id of a tire type? */
-export const isTireId = (value: unknown): value is TireId => TIRES.some((tire) => tire.id === value);
+export const clampTire = (value: number): number =>
+  Math.min(TIRE.max, Math.max(TIRE.min, Math.round(Number.isFinite(value) ? value : TIRE.default)));
 
-/** The tire of a part: its own, or the default. */
-export const tireOf = (part: { tire?: string }): (typeof TIRES)[number] =>
-  TIRES.find((tire) => tire.id === part.tire) ?? TIRES.find((tire) => tire.id === DEFAULT_TIRE)!;
+/** The tire value of a part: its own, or the default; always an integer in `[min, max]`. */
+export const tireValueOf = (part: { tire?: number }): number => clampTire(part.tire ?? TIRE.default);
+
+/** Friction, top-speed and torque multipliers of a part's tire, interpolated between the points of `TIRE`. */
+export function tireOf(part: { tire?: number }): { friction: number; speed: number; torque: number } {
+  const value = tireValueOf(part);
+  const [low, mid, high] = TIRE.points;
+  const [from, to] = value <= mid.at ? [low, mid] : [mid, high];
+  const t = (value - from.at) / (to.at - from.at);
+  const lerp = (a: number, b: number) => a + (b - a) * t;
+  return { friction: lerp(from.friction, to.friction), speed: lerp(from.speed, to.speed), torque: lerp(from.torque, to.torque) };
+}
+
+/** Converts what an old save kept in `Part.tire` (a tire name) to a tire value; anything else is not changed. */
+export const legacyTireValue = (tire: unknown): unknown =>
+  tire === 'speed' ? TIRE.min : tire === 'traction' ? TIRE.max : tire === 'standard' ? TIRE.default : tire;
 
 /**
  * Wheel suspension: the wheel hangs from the chassis on a vertical spring (a prismatic joint with a position motor, see
@@ -126,6 +117,27 @@ export const WHEEL_SIZES = {
 } as const;
 export const wheelSizeOf = (type: PartType): { scale: number; speed: number; torque: number; cruise: number } =>
   type === 'bigWheel' ? WHEEL_SIZES.bigWheel : WHEEL_SIZES.wheel;
+
+/**
+ * Weight of a block (`Part.weight`, set with a slider in the part inspector): an integer from `min` to `max`. A block of
+ * the `default` weight has the mass of one unit of `CHASSIS.density`; the others scale linearly (`weightMass`), so the range
+ * goes from a quarter of that mass to four times as much.
+ */
+export const WEIGHT = {
+  min: 1,
+  max: 16,
+  step: 1,
+  default: 4,
+} as const;
+
+export const clampWeight = (value: number): number =>
+  Math.min(WEIGHT.max, Math.max(WEIGHT.min, Math.round(Number.isFinite(value) ? value : WEIGHT.default)));
+
+/** The weight of a part: its own, or the default; always an integer in `[min, max]`. */
+export const weightOf = (part: { weight?: number }): number => clampWeight(part.weight ?? WEIGHT.default);
+
+/** Mass multiplier (relative to `CHASSIS.density`) of a block of this weight. */
+export const weightMass = (weight: number): number => clampWeight(weight) / WEIGHT.default;
 
 export const CHASSIS = {
   friction: 0.6,

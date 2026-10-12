@@ -6,7 +6,9 @@ every time Play starts (and on `R`).
 ## From grid to bodies
 
 1. **Chassis**: blocks are flood-filled over 6-neighbour adjacency. Each connected component becomes
-   **one dynamic rigid body** with one `cuboid(0.5, 0.5, 0.5)` collider per block. A single body keeps
+   **one dynamic rigid body** with one `cuboid(0.5, 0.5, 0.5)` collider per block, whose density is
+   `CHASSIS.density × weightMass(weight)` (the block's `Part.weight`, 1-16, default 4 = ×1: the body's mass is the sum of
+   weight / 4 over its blocks). A single body keeps
    structures stiff; joints between individual cubes would make them wobble.
 2. **Wheels**: every wheel is its **own body** with a cylinder collider (axis from the wheel's `rotation`, see
    `wheelAxle`) spinning on a `RevoluteImpulseJoint`. The hinge is carried by a light **hub** body (no collider,
@@ -71,10 +73,12 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
   slow down or reverse while the left wheels speed up.
 - `setAutopilot({ throttle, steer })` overrides the keyboard; the main menu uses it with
   `{ keyboard: false }` so the background car does not react to keys.
-- **Tires**: each wheel's tire type (`Part.tire`, see `TIRES` in `physics.ts`) sets its collider friction and scales its
-  motor: top speed (`speed` × `VEHICLE.maxWheelSpeed`) and strength (`torque` × `VEHICLE.motorStrength`). A grippier tire needs a
-  stronger motor, otherwise the car cannot skid-steer (the traction tire has torque ×3 for that reason). Standard 2.5 / ×1 /
-  ×1, Speed 1.4 / ×1.35 / ×1, Traction 4 / ×0.75 / ×3.
+- **Tires**: each wheel's tire (`Part.tire`, 0-100, see `TIRE` in `physics.ts`) sets its collider friction and scales its
+  motor: top speed (`speed` × `VEHICLE.maxWheelSpeed`) and strength (`torque` × `VEHICLE.motorStrength`), interpolated
+  linearly between three points: 0 (speed) friction 1.4 / ×1.35 / ×1, 50 (standard, default) 2.5 / ×1 / ×1, 100 (traction)
+  4 / ×0.75 / ×3. A grippier tire needs a stronger motor, otherwise the car cannot skid-steer (hence torque ×3). Measured
+  on a 2 × 3 car, straight-line speed after 1.5 s goes 11.2 → 9.8 → 8.5 → 7.9 → 6.8 m/s at tire 0 / 25 / 50 / 75 / 100 and
+  it turns at every point (−3.8 to −2.2 rad).
 - With no keys pressed, wheels hold velocity 0 with a light damping (`VEHICLE.idleBrake`).
 
 ## Tuning constants
@@ -88,7 +92,7 @@ All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (s
 | `VEHICLE.idleBrake` | 12 | How quickly the car stops with no input |
 | `VEHICLE.steerGain` | 0.7 | Steering sharpness |
 | `WHEEL.radius` / `WHEEL.width` | 0.65 / 0.4 | Wheel size (visual and collider) |
-| `TIRES` | 3 types | Friction (combine: max), top-speed and motor-strength multipliers of each tire type |
+| `TIRE` | 0-100, 3 points | Friction (combine: max), top-speed and motor-strength multipliers along the tire slider (speed / standard / traction) |
 | `CHASSIS.friction` | 0.6 | Chassis friction |
 | `WHEEL_SIZES` | wheel / bigWheel | Scale, angular speed, motor torque and straight-line (`cruise`) torque of each wheel size |
 | `SUSPENSION.*` | see file | Suspension strength range / default, stiffness range, damping ratio, travel, hub mass |

@@ -453,67 +453,31 @@ body.dragging * {
   border-color: var(--color-accent-highlight);
   box-shadow: 0 0 0 2px var(--color-accent-highlight);
 }
-.tire-options {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-.tire-option {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0 var(--space-md);
-  align-items: baseline;
-  padding: var(--space-sm) var(--space-md);
-  border: var(--border-regular) solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-control);
-  color: var(--color-text-primary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.tire-option:hover {
-  background: var(--color-surface-control-hover);
-}
-.tire-option.selected {
-  border-color: var(--color-accent-highlight);
-  background: var(--color-surface-control-hover);
-}
-.tire-name {
-  grid-row: span 2;
-  font-weight: var(--font-weight-semibold);
-}
-.tire-rating {
-  font-size: var(--font-size-xs);
-  letter-spacing: var(--letter-spacing-sm);
-  opacity: var(--opacity-muted);
-  text-align: right;
-}
-.suspension-row {
+.slider-row {
   display: flex;
   align-items: center;
   gap: var(--space-md);
 }
-.suspension-slider {
+.slider-input {
   flex: 1;
   min-width: 0;
   margin: 0;
   accent-color: var(--color-accent-highlight);
   cursor: pointer;
 }
-.suspension-value {
+.slider-value {
   min-width: 3ch;
   text-align: right;
   font-size: var(--font-size-sm);
 }
-.suspension-ends {
+.slider-ends {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: var(--font-size-xs);
   opacity: var(--opacity-muted);
 }
-.suspension-reset {
+.slider-reset {
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-surface-control);
@@ -522,7 +486,7 @@ body.dragging * {
   font: inherit;
   cursor: pointer;
 }
-.suspension-reset[hidden] {
+.slider-reset[hidden] {
   display: none;
 }
 .inspector-tips {

@@ -12,7 +12,7 @@ Every colour, size, spacing, font, physics number and user-facing string lives i
 | `game.ts` | Cell size, ground height, camera (incl. zoom limits), wheel model (`WHEEL_VISUAL`), hotbar slots, 3D preview, drag and highlight settings, rotation smoothing (`ROTATION`), zoom control, scene, lights, undo history, frame limit, FPS counter, sky (`SKY`: cloud cell size, wind, coverage, bevel...), roughness, wheel visuals, build input, storage keys, save limits, main-menu scene and random-car parameters |
 | `game.ts` | also `GRID_SIZES` / `DEFAULT_GRID_CELLS` / `validGridCells` (the selectable floor-grid sizes, 16 / 32 / 64 squares per side; the largest is the default) and `buildRange(cells)` (min / max x and z of a buildable cell) |
 | `game.ts` | also `LOADING` (loading-screen minimum duration, paint wait) |
-| `physics.ts` | also `WHEEL_SIZES` / `wheelSizeOf`, `TIRES` / `DEFAULT_TIRE` / `tireOf` and `SUSPENSION` with `suspensionOf` / `clampSuspension` / `suspensionStiffness` |
+| `physics.ts` | also `WEIGHT` / `weightOf` / `weightMass`, `WHEEL_SIZES` / `wheelSizeOf`, `TIRE` / `tireOf` / `tireValueOf` and `SUSPENSION` with `suspensionOf` / `clampSuspension` / `suspensionStiffness` |
 | `physics.ts` | `WORLD`, `WHEEL`, `CHASSIS`, `VEHICLE`, `COLLISION_GROUP`, `SPAWN_LIFT`, `GROUND_COLLIDER`, `SCENERY` |
 | `colors.ts` | also `PAINT_COLORS` (inspector palette; first = default colour) and `PAINT_EDGE_FACTOR` |
 | `cursor-modes.ts` | `CURSOR_MODES`: id, label, shortcut key/code, description and SVG `icon` of the Build / Inspect / Paint / Remove modes |

@@ -47,12 +47,27 @@ Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also s
 at 30+ and red below. Press **F3** to show or hide it. Thresholds and refresh rate: `FPS_COUNTER` in
 `src/constants/game.ts`.
 
+### Block weight
+
+Every **block** has a **weight**, an integer from **1 to 16** (default **4**, which is the mass blocks always had), set
+with the **Weight** slider in the inspector (Inspect mode; step 1, *Light* … *Heavy*, a **Default** button appears when it
+differs). The block's weight is its mass in Play (weight / 4: from a quarter to four times the default), so it changes how
+hard the body is to accelerate and to steer and how much the suspension sinks. When the block is welded to others, the
+button **Apply to the N connected blocks** gives them all the same weight (one undo step). The inspector also shows the
+**Body weight**, the sum of the weights of the welded blocks. A light roof on a heavy base (or a heavy base for a low
+centre of gravity) is the point. Weight is per block, saved with the game and undoable; it is not offered in the catalog.
+Wheels have no weight setting.
+
 ### Tires
 
-Each wheel has a **tire type**, chosen in the **Tire** section of the inspector (Inspect mode): **Standard** (all-round, the
-default), **Speed** (slick, low grip, the highest top speed) and **Traction** (deep tread, huge grip, slower: for snow and rough
-ground). Each option shows its grip and top-speed ratings. It is per wheel, undoable, saved with the game, applied in Play, and
-never changed in the catalog (which just lists the property). Mixing tires on one car is allowed.
+Each wheel has a **tire**, set with the **Tire** slider in the inspector (Inspect mode), the same kind of control as the
+suspension's: from **0** (*Speed*: slick, low grip, the highest top speed) through **50** (the default, standard tires) to **100**
+(*Traction*: deep tread, huge grip, slower: for snow and rough ground), in steps of 5; the **Default** button appears when it
+differs, and the button **Apply to the N wheels on this body** (shown when the body has more than one wheel) gives the wheel's
+current tire to every wheel mounted on the blocks welded to its block, wheels of both sizes (one undo step). Grip, top speed and
+motor strength change smoothly along the slider. It is per wheel, undoable, saved with the game,
+applied in Play, and never changed in the catalog (which just lists the property). Mixing tires on one car is allowed. Saves
+from when the tire was one of three named types are converted (speed 0, standard 50, traction 100).
 
 ### Wheel suspension
 
@@ -104,7 +119,7 @@ mouse button does (the middle button always rotates the camera, the right button
 
 | Mode | Key | Left button |
 |---|---|---|
-| **Inspect** | `Q` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode; wheels have **Tire** and **Suspension** controls, see below) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
+| **Inspect** | `Q` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode, and a **Weight** slider; wheels have **Tire** and **Suspension** controls, see below) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
 | **Build** (default) | `W` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
 | **Paint** | `E` | A **palette** appears under the top bar; pick a colour (the first swatch is the default colour and removes paint) and click a block to paint it, or **drag** to paint several (one undo step). Wheels cannot be painted. Painting is undoable, saved and shown in Play. Not available in the catalog |
 | **Remove** | `R` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |

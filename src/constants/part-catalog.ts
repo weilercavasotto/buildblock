@@ -22,6 +22,8 @@ export interface PartInfo {
   hasSuspension: boolean;
   /** Can it have a tire type chosen in the part inspector? */
   hasTire: boolean;
+  /** Does it have an adjustable weight (set in the part inspector)? */
+  hasWeight: boolean;
   /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
   previewAngle: number;
   /** One line shown under the name. */
@@ -41,6 +43,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     paintable: true,
     hasSuspension: false,
     hasTire: false,
+    hasWeight: true,
     previewAngle: 0.6,
     tagline: 'The basic building cube.',
     description:
@@ -52,7 +55,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Rotation', value: 'Free, in 90° steps (A / D)' },
       { label: 'Paint', value: 'Yes, in paint mode (E)' },
       { label: 'Friction', value: String(CHASSIS.friction) },
-      { label: 'Density', value: String(CHASSIS.density) },
+      { label: 'Weight', value: 'Adjustable in the inspector (1-16, default 4)' },
     ],
     tips: ['Hold the left button and drag to paint a row, a layer or a wall of blocks.'],
   },
@@ -65,6 +68,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     paintable: false,
     hasSuspension: true,
     hasTire: true,
+    hasWeight: false,
     previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
     description:
@@ -76,7 +80,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Rotation', value: 'A / D turn the axle a quarter turn from the face normal' },
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
-      { label: 'Tire', value: 'Standard, Speed or Traction (inspector)' },
+      { label: 'Tire', value: 'Adjustable in the inspector, from speed to traction (0-100, default 50)' },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],
     tips: [
@@ -94,6 +98,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     paintable: false,
     hasSuspension: true,
     hasTire: true,
+    hasWeight: false,
     previewAngle: -0.45,
     tagline: 'A wheel twice the size, for big machines.',
     description:
@@ -106,7 +111,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Rotation', value: 'A / D choose the side it extends toward' },
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
-      { label: 'Tire', value: 'Standard, Speed or Traction (inspector)' },
+      { label: 'Tire', value: 'Adjustable in the inspector, from speed to traction (0-100, default 50)' },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],
     tips: [
