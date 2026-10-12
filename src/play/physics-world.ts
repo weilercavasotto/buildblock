@@ -222,11 +222,12 @@ export class PhysicsWorld {
       springData.limitsEnabled = true;
       springData.limits = [-SUSPENSION.travelDown * scale, SUSPENSION.travelUp * scale];
       const spring = this.world.createImpulseJoint(springData, host.body, hub, true) as RAPIER.PrismaticImpulseJoint;
-      // Spring constant (N/m) = stiffness (1/s², from the strength) x the mass this wheel supports; damping from the damping ratio.
+      // The spring constant (N/m) is fixed by the strength (stiffness x a reference load), so the more mass a wheel carries
+      // the more it sinks. The damping follows the actual load, so a heavy body is not left bouncing.
       const load = host.body.mass() / (wheelsOn.get(host.body) ?? 1);
-      const stiffness = suspensionStiffness(suspensionOf(wheel));
+      const springConstant = suspensionStiffness(suspensionOf(wheel)) * SUSPENSION.referenceLoad;
       spring.configureMotorModel(RAPIER.MotorModel.ForceBased);
-      spring.configureMotorPosition(0, stiffness * load, 2 * SUSPENSION.dampingRatio * Math.sqrt(stiffness) * load);
+      spring.configureMotorPosition(-SUSPENSION.rideHeight * scale, springConstant, 2 * SUSPENSION.dampingRatio * Math.sqrt(springConstant * load));
 
       const joint = this.world.createImpulseJoint(
         RAPIER.JointData.revolute({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, axis),

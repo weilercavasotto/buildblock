@@ -59,7 +59,7 @@ never changed in the catalog (which just lists the property). Mixing tires on on
 A wheel hangs from its block on a spring. Select a wheel in Inspect mode and use the **Suspension** slider in the inspector
 (0 = soft and bouncy, 100 = firm and stiff; the default is 50; the **Default** button appears when it differs). The value
 is per wheel, it is undoable, saved with the game, and only takes effect in Play (use **Reset** to try a new value). Soft
-springs make the body sink and bounce more; firm ones keep it level. It is only changed in the inspector, never in the
+springs make the body sink more; firm ones keep it level. **The heavier the creation, the more the springs compress** (stack blocks on a car and it sits lower, until it scrapes the floor: use a firmer setting for heavy builds). It is only changed in the inspector, never in the
 catalog (which just lists the property).
 
 ## Main menu and saved games

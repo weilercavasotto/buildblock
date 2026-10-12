@@ -76,16 +76,24 @@ export const SUSPENSION = {
   /** Strength of a wheel whose `Part.suspension` is not set. */
   defaultStrength: 50,
   /**
-   * Spring stiffness (1/s²: the spring constant per kg the wheel supports) at strength `min` and `max`; in between it
-   * grows exponentially. At rest the chassis sinks about `gravity / stiffness` cells.
+   * Spring stiffness (1/s²: the spring constant per kg of `referenceLoad`) at strength `min` and `max`; in between it
+   * grows exponentially. The spring constant itself is fixed (stiffness x `referenceLoad`), so the heavier the load on a
+   * wheel the more it sinks: a wheel carrying `referenceLoad` sinks about `gravity / stiffness` cells.
    */
-  minStiffness: 160,
-  maxStiffness: 600,
+  minStiffness: 200,
+  maxStiffness: 1000,
+  /** Mass (kg) a wheel carries in a typical small car (6 blocks on 4 wheels): the load the strength scale is calibrated for. */
+  referenceLoad: 1.5,
   /** Damping as a fraction of critical damping (1 = no bounce at all). */
   dampingRatio: 0.7,
-  /** How far the wheel may move up / down from its rest position, in cells. */
+  /**
+   * Ride height: the spring's rest position holds the wheel this far below the mount (in cells), so the body rides higher
+   * and has room to sink under load before it reaches the floor. Must be less than `travelDown`.
+   */
+  rideHeight: 0.15,
+  /** How far the wheel may move up / down from its mount (the nominal position, 0), in cells. */
   travelUp: 0.4,
-  travelDown: 0.3,
+  travelDown: 0.35,
   /** Mass of the hub body between the chassis and the wheel (it has no collider). */
   hubMass: 0.1,
   /** Rotational inertia of the hub (kg·m²), much larger than a wheel's so the wheel motor keeps its strength. */
@@ -113,7 +121,7 @@ export const suspensionStiffness = (strength: number): number => {
  * same torque in a straight line would tip a light body backwards (a wheelie), so it is eased off (see `VehicleController`).
  */
 export const WHEEL_SIZES = {
-  wheel: { scale: 1, speed: 1, torque: 1, cruise: 1 },
+  wheel: { scale: 1, speed: 1, torque: 1, cruise: 0.3 },
   bigWheel: { scale: 2, speed: 0.75, torque: 0.6, cruise: 0.2 },
 } as const;
 export const wheelSizeOf = (type: PartType): { scale: number; speed: number; torque: number; cruise: number } =>

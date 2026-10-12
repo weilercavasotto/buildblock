@@ -23,10 +23,16 @@ every time Play starts (and on `R`).
      `SUSPENSION.travelDown` / `travelUp`, with a position motor aiming at the rest position
      (`configureMotorPosition`, `MotorModel.ForceBased`). The player sets the **strength** (0-100, `Part.suspension`,
      default `SUSPENSION.defaultStrength` = 50) of each wheel in the part inspector. The strength maps
-     exponentially to a stiffness in 1/s² (`suspensionStiffness`, `minStiffness`…`maxStiffness`); the spring
-     constant is that stiffness times the mass the wheel supports (`chassis.mass() / wheels on that body`), so a
-     given strength sags about `gravity / stiffness` cells whatever the size of the build. Damping is
-     `2 · dampingRatio · √stiffness` (times the same mass). An acceleration-based motor was tried first and did
+     exponentially to a stiffness in 1/s² (`suspensionStiffness`, `minStiffness`…`maxStiffness`); the spring constant is
+     that stiffness times a fixed `SUSPENSION.referenceLoad` (the mass a wheel carries in a 6-block, 4-wheel car), so it
+     does **not** depend on the build: **the more mass a wheel carries, the more its spring is compressed**
+     (`sag ≈ load · gravity / springConstant`), until the travel or the ground stops it (the body can scrape the floor
+     when overloaded: ground clearance is 0.15 cells with normal wheels). Damping follows the actual load,
+     `2 · dampingRatio · √(springConstant · load)`, so a heavy body is not left bouncing. `load` is
+     `chassis.mass() / wheels on that body`. The spring's rest position holds the wheel `SUSPENSION.rideHeight` (0.15 cells, scaled for big wheels) below its mount, so
+     the body rides higher (the wheel alone leaves only 0.15 cells under the blocks) and has room to sink before it reaches the
+     floor. Measured ground clearance of the blocks at rest, strength 50: 0.27 (2 × 2 base, 4 blocks), 0.26 (2 × 3 base) and
+     0.16 with 2 extra layers on the 2 × 3 base. An acceleration-based motor was tried first and did
      not work: it acts on the reduced mass of hub + wheel, far lighter than the chassis.
 3. **Scenery**: a large fixed floor plus a few fixed ramps/obstacles (far from the build area, only
    present during Play).
@@ -59,6 +65,7 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
 - **Roll sign** per wheel is `sign((axle × up) · forward)`, so `W` rolls every wheel forward regardless
   of which side it is on.
 - **Side** per wheel is its position relative to the average wheel position, projected on `forward × up`.
+- **Cruise**: the motor strength is scaled by the wheel's `cruise` factor (`WHEEL_SIZES`: 0.3 for the normal wheel, 0.2 for the large one) when driving straight and goes up to the full value with the steering input. Steering needs the full strength to skid the car round; the same strength in a straight line makes short, light cars do a wheelie (the 2 × 2 car, wheelbase 1 cell, still pitches ~19° at full throttle).
 - **Motor**: `target = rollSign * (throttle - steer * side * STEER_GAIN) * MAX_WHEEL_SPEED`, applied with
   `configureMotorVelocity(target, MOTOR_STRENGTH)`. Steering is differential: on `D` the right wheels
   slow down or reverse while the left wheels speed up.
