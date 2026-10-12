@@ -1,3 +1,4 @@
+import { PLATE } from './game';
 import { CHASSIS, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType } from '../types';
 
@@ -47,17 +48,42 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     previewAngle: 0.6,
     tagline: 'The basic building cube.',
     description:
-      'A solid 1×1×1 cube. Blocks that touch each other are welded into a single rigid body, so they are what you use to make the frame of a vehicle or any structure.',
+      'A solid 1×1×1 cube with 4 studs on top, like a toy brick. A block is welded to the blocks and plates it is stacked with (at least one stud engaged), so they make the frame of a vehicle or any structure. It can rest on half of another block (2 studs) or on a corner (1 stud).',
     properties: [
       { label: 'Size', value: '1 × 1 × 1 cell' },
-      { label: 'Placement', value: 'On the ground or against any face of another block' },
-      { label: 'Physics', value: 'Touching blocks merge into one rigid body' },
-      { label: 'Rotation', value: 'Free, in 90° steps (A / D)' },
+      { label: 'Studs', value: '4 on top (2 × 2, half a cell apart)' },
+      { label: 'Placement', value: 'On the ground, or on / under another block or plate with at least 1 stud engaged; half-cell steps in x and z' },
+      { label: 'Physics', value: 'Stacked blocks and plates (studs engaged) merge into one rigid body; blocks side by side are not welded' },
+      { label: 'Rotation', value: 'Any face up: A / D turn, ↑ / ↓ tilt (90° steps); the studs go with it' },
       { label: 'Paint', value: 'Yes, in paint mode (E)' },
       { label: 'Friction', value: String(CHASSIS.friction) },
       { label: 'Weight', value: 'Adjustable in the inspector (1-16, default 4)' },
     ],
-    tips: ['Hold the left button and drag to paint a row, a layer or a wall of blocks.'],
+    tips: ['Move the pointer over the block below to choose how much rests on it (4, 2 or 1 stud).', 'Blocks side by side are not welded: tie them together with a plate or a layer of blocks on top.', 'Hold the left button and drag to place a row or a layer of blocks.'],
+  },
+  plate: {
+    type: 'plate',
+    name: 'Plate',
+    category: 'structure',
+    // Can be turned to stand on any of its faces (the studs go with it).
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: true,
+    previewAngle: 0.6,
+    tagline: 'A thin square panel with studs.',
+    description:
+      'A flat square plate, a fifth of a block thick, with 4 studs on top like a block. Use it for floors, roofs and body panels, and to tie blocks together: a plate resting on two blocks side by side welds them into one body. Place it on the ground or on top of (or under) a block or plate; it must engage at least one stud.',
+    properties: [
+      { label: 'Size', value: `1 x 1 x ${PLATE.thickness} cell` },
+      { label: 'Studs', value: '4 on its top face; welds to what it rests on or hangs from' },
+      { label: 'Rotation', value: 'Any face up: A / D turn, ↑ / ↓ tilt (90° steps); stood on its edge it is a wall' },
+      { label: 'Placement', value: 'On the ground, or on / under a block or plate (at least 1 stud engaged), in half-cell steps' },
+      { label: 'Paint', value: 'Yes, in paint mode (E)' },
+      { label: 'Weight', value: 'Adjustable in the inspector (1-16, default 4)' },
+    ],
+    tips: ['Move the pointer over the part below to choose how much of the plate rests on it (4, 2 or 1 stud).', 'Two plates, offset by half a cell, make a strong deck for blocks side by side.'],
   },
   wheel: {
     type: 'wheel',
@@ -77,7 +103,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Radius', value: `${WHEEL.radius} cells` },
       { label: 'Width', value: `${WHEEL.width} cells` },
       { label: 'Placement', value: 'Side faces of a block only' },
-      { label: 'Rotation', value: 'A / D turn the axle a quarter turn from the face normal' },
+      { label: 'Rotation', value: 'A / D turn the axle a quarter turn from the face normal; ↑ / ↓ point it straight up or down' },
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
       { label: 'Tire', value: 'Adjustable in the inspector, from speed to traction (0-100, default 50)' },
@@ -122,4 +148,4 @@ export const PART_INFO: Record<PartType, PartInfo> = {
 };
 
 /** Parts in catalog order. */
-export const PART_ORDER: ReadonlyArray<PartType> = ['block', 'wheel', 'bigWheel'];
+export const PART_ORDER: ReadonlyArray<PartType> = ['block', 'plate', 'wheel', 'bigWheel'];

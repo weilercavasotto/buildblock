@@ -264,13 +264,14 @@ async function main(): Promise<void> {
     onMenu: () => void loading.run([{ label: TEXT.loading.toMenu, run: enterMenu }]),
     onMode: (mode) => setCursorMode(mode),
     onRotate: (direction) => build.rotate(direction),
+    onTilt: (direction) => build.tilt(direction),
     onHelp: toggleHelpDialog,
     onUndo: () => history.undo(),
     onRedo: () => history.redo(),
   });
   history.subscribe(() => hud.setHistoryState(history.canUndo, history.canRedo));
 
-  // Cursor modes (Q / W / E / R): what the left mouse button does. The camera buttons depend on it: in build and remove
+  // Cursor modes (I / B / E / R): what the left mouse button does. The camera buttons depend on it: in build and remove
   // mode the left button is taken, in inspect mode it also rotates the camera (a click without movement inspects).
   const palette = new PaintPalette((color) => build.setPaintColor(color));
   const setCursorMode = (mode: CursorMode) => {
@@ -284,9 +285,13 @@ async function main(): Promise<void> {
     };
     document.body.dataset.cursorMode = mode;
     hud.setRotateEnabled(build.canRotate);
+    hud.setTiltEnabled(build.canTilt);
   };
   setCursorMode('build');
-  hotbar.subscribe(() => hud.setRotateEnabled(build.canRotate)); // after build.setTool(...) so canRotate is up to date
+  hotbar.subscribe(() => {
+    hud.setRotateEnabled(build.canRotate); // after build.setTool(...) so canRotate is up to date
+    hud.setTiltEnabled(build.canTilt);
+  });
   hotbar.onUserSelect(() => setCursorMode('build')); // choosing a part to place means building
 
   const inspector = new PartInspector(grid, {
@@ -326,10 +331,16 @@ async function main(): Promise<void> {
     }
     // A / D rotate the part to place (they steer while playing, which is handled elsewhere).
     if ((e.code === 'KeyA' || e.code === 'KeyD') && !e.shiftKey && !e.altKey) build.rotate(e.code === 'KeyD' ? 1 : -1);
+    // W / S (and the Up / Down arrows) tilt the part to place; with A / D they only rotate it while building (while playing
+    // they drive, which is handled elsewhere).
+    if ((e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      build.tilt(e.code === 'KeyW' || e.code === 'ArrowUp' ? 1 : -1);
+    }
     const modeKey = CURSOR_MODES.find((mode) => mode.code === e.code);
     if (modeKey && !e.shiftKey && !e.altKey) setCursorMode(modeKey.id);
     if (/^Digit[1-9]$/.test(e.code)) hotbar.select(Number(e.code.slice(5)) - 1);
-    if (e.code === 'KeyB' || e.code === 'KeyC') openCatalog(hotbar);
+    if (e.code === 'KeyC') openCatalog(hotbar);
   });
 
   addEventListener('resize', () => {

@@ -24,6 +24,10 @@ Example: a new part type `'thruster'`.
    never `window.confirm`.
 11. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).
 
+## Parts that connect with studs
+
+Blocks and plates (`isStructural`) weld through studs: give a new one a `partBox` size in `parts/part-geometry.ts`, the visual (studs included via `studsMesh`), and decide how `BuildMode.structuralTarget` places it. A part that hangs off a host (wheels) uses `face` instead.
+
 ## Parts that occupy several cells
 
 The large wheel is the example (2 × 2 cells). `partCells(part)` (in `src/types.ts`) lists the cells a part occupies and

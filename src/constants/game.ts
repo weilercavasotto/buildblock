@@ -65,6 +65,25 @@ export const buildRange = (cells: number): { min: number; max: number; maxY: num
   maxY: cells - 1,
 });
 
+/** The plate: a thin square the size of a block's footprint, lying flat (it has studs on top like a block). */
+export const PLATE = {
+  /** Thickness, in cells. */
+  thickness: 0.2,
+} as const;
+
+/**
+ * Connectors ("studs") of blocks and plates: a 2 x 2 grid of round pegs on the top face, `pitch` cells apart. Two parts are
+ * welded when one sits on the other and at least one pair of studs lines up; positions snap to the stud pitch in x and z,
+ * so a part can rest on half of another (2 studs), or on a corner (1 stud).
+ */
+export const STUD = {
+  pitch: 0.5,
+  /** Visual size of a peg, in cells. */
+  radius: 0.15,
+  height: 0.08,
+  segments: 16,
+} as const;
+
 export const LIGHTS = {
   hemisphereIntensity: 1.1,
   sunIntensity: 2.2,

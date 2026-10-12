@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { Grid } from './grid';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, hexToNumber } from '../constants';
-import { createPartObject, partBounds } from '../parts/part-defs';
-import { CursorMode, Part, PartType, Vec3, addVec, cellKey, normalizeRotation, partCells, partCentre, partRotation, rotationOfFace, yawOfTurns } from '../types';
+import { BUILD, CELL_SIZE, COLORS, GROUND_Y, PART_INFO, PLATE, ROTATION, STUD, hexToNumber } from '../constants';
+import { createPartObject, faceQuaternion, partBounds } from '../parts/part-defs';
+import { partBox } from '../parts/part-geometry';
+import { CursorMode, Part, PartType, Vec3, addVec, cellKey, isStructural, normalizeRotation, partCentre, partRotation, rotationOfFace, roundCoord, studsOf, turnAbout, yawOfTurns } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -57,10 +58,14 @@ export class BuildMode {
   private mode: CursorMode = 'build';
   /** The placement preview. It outlives pointer moves so that its rotation can be animated. */
   private ghost: { object: THREE.Group; type: PartType; valid: boolean; key: string } | null = null;
-  private ghostYaw = 0;
-  private ghostTargetYaw = 0;
+  /** Current and target orientation of the placement ghost: it turns smoothly from one to the other (see `update`). */
+  private ghostQuat = new THREE.Quaternion();
+  private ghostTargetQuat = new THREE.Quaternion();
   /** Rotation (clockwise quarter turns, 0-3) given to the next rotatable part placed; for a wheel it is relative to its face. */
   private rotation = 0;
+  /** Direction the studs of the next block / plate point (up by default); a wheel's pitch is `pitch`. */
+  private studs: Vec3 = [0, 1, 0];
+  private pitch: 1 | -1 | undefined;
   private lastPointer: { clientX: number; clientY: number } | null = null;
   private hover: { part: Part; outline: THREE.Group } | null = null;
   private selection: Part | null = null;
@@ -104,7 +109,12 @@ export class BuildMode {
   }
 
   setTool(tool: PartType | null): void {
-    if (tool !== this.tool) this.rotation = 0; // the rotation chosen for one part does not carry over to another
+    if (tool !== this.tool) {
+      // the orientation chosen for one part does not carry over to another
+      this.rotation = 0;
+      this.studs = [0, 1, 0];
+      this.pitch = undefined;
+    }
     this.tool = tool;
     this.setGhost(null);
   }
@@ -114,26 +124,67 @@ export class BuildMode {
     return this.mode === 'build' && this.tool !== null && PART_INFO[this.tool].rotatable;
   }
 
-  /** Rotates the part to place by a quarter turn: `1` clockwise, `-1` counter-clockwise (seen from above). */
+  /** True when `tilt` has an effect: blocks, plates and (small) wheels can point up / down; the large wheel cannot. */
+  get canTilt(): boolean {
+    return this.canRotate && this.tool !== 'bigWheel';
+  }
+
+  /**
+   * Rotates the part to place by a quarter turn around the vertical axis: `1` clockwise, `-1` counter-clockwise (seen from
+   * above). For a block or plate it turns the direction of the studs (nothing changes while they point up); for a wheel it
+   * turns the axle.
+   */
   rotate(direction: 1 | -1): void {
     if (!this.canRotate) return;
-    this.rotation = normalizeRotation(this.rotation + direction);
+    if (this.tool === 'block' || this.tool === 'plate') this.studs = turnAbout(this.studs, [0, 1, 0], -direction);
+    else this.rotation = normalizeRotation(this.rotation + direction);
     // Re-aim the ghost at its new orientation: it turns smoothly (see `update`).
     if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
   }
 
+  /**
+   * Tilts the part to place by a quarter turn up (`1`: the top turns away from the camera) or down (`-1`: towards it), around
+   * the horizontal axis that is the screen's left-right (snapped to x or z). For a block or plate it turns the studs, so a
+   * plate can stand as a wall and a block can lie with its studs to the side; a wheel's axle goes straight up or down and back.
+   */
+  tilt(direction: 1 | -1): void {
+    if (!this.canTilt) return;
+    if (this.tool === 'block' || this.tool === 'plate') {
+      const axis = this.screenRight();
+      let next = turnAbout(this.studs, axis, -direction);
+      if (next.every((v, i) => v === this.studs[i])) {
+        // The studs lie along the tilt axis, so turning around it changes nothing: roll around the other horizontal axis so
+        // the key still does something, `↑` pointing the studs up and `↓` down.
+        const other: Vec3 = axis[0] !== 0 ? [0, 0, 1] : [1, 0, 0];
+        const [a, b] = [turnAbout(this.studs, other, 1), turnAbout(this.studs, other, -1)];
+        next = direction > 0 ? (a[1] >= b[1] ? a : b) : (a[1] <= b[1] ? a : b);
+      }
+      this.studs = next;
+    } else {
+      // axle: horizontal -> down (-1) / up (+1) -> horizontal
+      const next = (this.pitch ?? 0) + direction;
+      this.pitch = next === 0 || Math.abs(next) > 1 ? undefined : (next as 1 | -1);
+    }
+    if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
+  }
+
+  /** The horizontal axis (x or z, signed) that points to the right of the screen. */
+  private screenRight(): Vec3 {
+    const forward = new THREE.Vector3();
+    this.camera.getWorldDirection(forward);
+    // right = forward x up
+    return Math.abs(forward.x) >= Math.abs(forward.z) ? [0, 0, Math.sign(forward.x) || 1] : [-(Math.sign(forward.z) || 1), 0, 0];
+  }
+
   /** Call every frame: turns the placement ghost smoothly towards its target orientation. */
   update(dt: number): void {
-    const delta = this.ghostTargetYaw - this.ghostYaw;
-    if (Math.abs(delta) > ROTATION.snapEpsilon) {
-      this.ghostYaw += delta * (1 - Math.exp(-ROTATION.smoothing * dt));
+    if (this.ghostQuat.angleTo(this.ghostTargetQuat) > ROTATION.snapEpsilon) {
+      this.ghostQuat.slerp(this.ghostTargetQuat, 1 - Math.exp(-ROTATION.smoothing * dt));
     } else {
-      // At rest: land exactly on the target and drop whole turns so the angle does not grow without bound.
-      const wrapped = this.ghostTargetYaw % (2 * Math.PI);
-      this.ghostYaw = this.ghostTargetYaw = wrapped;
+      this.ghostQuat.copy(this.ghostTargetQuat);
     }
-    // A large wheel's ghost is built facing the right way and does not turn.
-    if (this.ghost && this.ghost.type !== 'bigWheel') this.ghost.object.rotation.y = this.ghostYaw;
+    // The large wheel's ghost is built facing the right way and does not turn.
+    if (this.ghost && this.ghost.type !== 'bigWheel') this.ghost.object.quaternion.copy(this.ghostQuat);
   }
 
   setPaintColor(color: string | null): void {
@@ -231,10 +282,7 @@ export class BuildMode {
   /** The part that a click would place for the current pick, or null when nothing sensible. */
   private target(p: Pick): Part | null {
     if (this.tool === null) return null;
-    if (this.tool === 'block') {
-      const cell: Vec3 = p.part ? addVec(this.hitCell(p.part, p.point), p.normal) : [Math.round(p.point.x), 0, Math.round(p.point.z)];
-      return { type: 'block', cell, rotation: this.rotation };
-    }
+    if (this.tool === 'block' || this.tool === 'plate') return this.structuralTarget(this.tool, p);
     if (!p.part || p.part.type !== 'block' || p.normal[1] !== 0) return null;
     if (this.tool === 'bigWheel') {
       // The axle is the face normal; the rotation (A / D) only picks the side the wheel extends toward (see `partCells`).
@@ -243,15 +291,37 @@ export class BuildMode {
     // `face` says where the wheel is mounted. Its axle is the face normal (a normal wheel) turned by the user's rotation:
     // 0 turns = perpendicular to the face, an odd number = lying along it (like a caster).
     const rotation = normalizeRotation(rotationOfFace(p.normal) + this.rotation);
-    return { type: 'wheel', cell: addVec(p.part.cell, p.normal), face: p.normal, rotation };
+    return { type: 'wheel', cell: addVec(p.part.cell, p.normal), face: p.normal, rotation, ...(this.pitch ? { pitch: this.pitch } : {}) };
   }
 
-  /** The cell of `part` that contains (or is nearest to) the picked `point`: a large wheel occupies 4 cells. */
-  private hitCell(part: Part, point: THREE.Vector3): Vec3 {
-    const cells = partCells(part);
-    if (cells.length === 1) return part.cell;
-    const dist = (c: Vec3) => point.distanceToSquared(new THREE.Vector3(...c));
-    return cells.reduce((best, c) => (dist(c) < dist(best) ? c : best));
+  /**
+   * Where a block or plate goes for the current pick, turned as the user chose (`this.studs`). Positions snap to the stud
+   * pitch. On the ground the part sits on the floor under the pointer. On a face of another block or plate it touches that
+   * face (on top, underneath or beside) with its footprint shifted by the pointer, so it can engage 4 studs, 2, or 1.
+   * Beside a block with the studs up it goes level with the bottom, so building on the ground stays easy.
+   * `Grid.canPlace` then checks that it is supported (ground or at least one stud engaged) and nothing is in the way.
+   */
+  private structuralTarget(type: 'block' | 'plate', p: Pick): Part | null {
+    const studs = this.studs;
+    const shape = (cell: Vec3): Part => ({ type, cell: [roundCoord(cell[0]), roundCoord(cell[1]), roundCoord(cell[2])], ...(studs[1] === 1 ? {} : { studs }) });
+    const half = partBox({ type, cell: [0, 0, 0], studs }).max; // half sizes of the new part
+    const snap = (v: number) => roundCoord(Math.round(v / STUD.pitch) * STUD.pitch);
+    if (!p.part) return shape([snap(p.point.x), GROUND_Y + half[1], snap(p.point.z)]);
+
+    const base = p.part;
+    if (!isStructural(base.type)) return null; // nothing is built on a wheel
+    const box = partBox(base);
+    const halfBase = box.max.map((v, i) => (v - box.min[i]) / 2);
+    const axis = p.normal.findIndex((v) => v !== 0);
+    const sign = p.normal[axis];
+    const cell: Vec3 = [0, 0, 0];
+    for (let i = 0; i < 3; i++) {
+      if (i === axis) cell[i] = base.cell[i] + sign * (halfBase[i] + half[i]);
+      else cell[i] = Math.min(base.cell[i] + halfBase[i], Math.max(base.cell[i] - halfBase[i], snap(p.point.getComponent(i))));
+    }
+    // Beside a block with its studs up: level with the bottom of the part it is next to.
+    if (axis !== 1 && studs[1] === 1) cell[1] = box.min[1] + half[1];
+    return shape(cell);
   }
 
   private onDown(e: PointerEvent): void {
@@ -331,15 +401,15 @@ export class BuildMode {
     const point = this.raycaster.ray.intersectPlane(new THREE.Plane(normal, -s.surface), new THREE.Vector3());
     if (!point) return;
 
-    const goal: Vec3 = [Math.round(point.x), Math.round(point.y), Math.round(point.z)];
-    goal[s.axis] = s.layer;
+    // Whole cells from where the stroke started, so a stroke that starts on a half cell keeps its offset.
+    const goal: Vec3 = [0, 1, 2].map((i) => (i === s.axis ? s.layer : roundCoord(s.start[i] + Math.round(point.getComponent(i) - s.start[i])))) as Vec3;
     if (goal.some((v, i) => Math.abs(v - s.start[i]) > BUILD.maxPaintDistance)) return;
 
-    const steps = Math.max(...goal.map((v, i) => Math.abs(v - s.last[i])));
+    const steps = Math.round(Math.max(...goal.map((v, i) => Math.abs(v - s.last[i]))));
     const cells: Part[] = [];
     for (let step = 1; step <= steps; step++) {
-      const cell = s.last.map((v, i) => Math.round(v + ((goal[i] - v) * step) / steps)) as Vec3;
-      cells.push({ type: 'block', cell, rotation: this.rotation });
+      const cell = s.last.map((v, i) => roundCoord(s.start[i] + Math.round(v + ((goal[i] - v) * step) / steps - s.start[i]))) as Vec3;
+      cells.push({ type: 'block', cell, ...(this.studs[1] === 1 ? {} : { studs: this.studs }) });
     }
     this.grid.addMany(cells);
     s.last = goal;
@@ -389,8 +459,10 @@ export class BuildMode {
   }
 
   /**
-   * Shows the placement preview for `part` (or hides it). The preview object is kept between pointer moves and only its
-   * yaw is animated: the target is the part's rotation (a wheel's rotation is its axle, built along X and turned by the yaw).
+   * Shows the placement preview for `part` (or hides it). The preview is built unturned (a block with its studs up, a wheel
+   * with its axle along X) and only its orientation is animated towards the part's: where the studs point, or the wheel's
+   * axle (yaw from its rotation, pitch up / down). The large wheel's axle is its face normal, so it is built facing the right
+   * way and not turned.
    */
   private setGhost(part: Part | null): void {
     if (!part) {
@@ -399,24 +471,35 @@ export class BuildMode {
       return;
     }
     const valid = this.grid.canPlace(part);
-    const desired = yawOfTurns(partRotation(part));
-    // Shortest way round, continuing from where the animation currently is.
-    const target = desired + 2 * Math.PI * Math.round((this.ghostYaw - desired) / (2 * Math.PI));
+    this.ghostTargetQuat.copy(this.orientationOf(part));
+    if (!this.ghost) this.ghostQuat.copy(this.ghostTargetQuat); // newly shown: no spin-in from an old orientation
 
-    if (!this.ghost) this.ghostYaw = target; // newly shown: no spin-in from an old orientation
     const big = part.type === 'bigWheel';
     const key = big ? String(part.face) : '';
     if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid || this.ghost.key !== key) {
       if (this.ghost) this.scene.remove(this.ghost.object);
-      // Built unrotated (a wheel with its axle along X): the animated yaw does all the turning. A large wheel's axle is
-      // its face normal and its rotation only picks a side, so it is built facing the right way and not turned.
       const object = createPartObject(big ? { type: part.type, face: part.face } : { type: part.type }, valid ? 'ok' : 'bad');
       this.scene.add(object);
       this.ghost = { object, type: part.type, valid, key };
     }
-    this.ghostTargetYaw = target;
     this.ghost.object.position.set(...partCentre(part));
-    this.ghost.object.rotation.y = big ? 0 : this.ghostYaw;
+    this.ghost.object.quaternion.copy(big ? new THREE.Quaternion() : this.ghostQuat);
+  }
+
+  /** The turn that takes a part built unturned to the orientation of `part`. */
+  private orientationOf(part: Part): THREE.Quaternion {
+    if (part.type === 'block' || part.type === 'plate') {
+      // A block or plate looks the same after a quarter turn around its studs, so of those 4 equivalent orientations take the
+      // one nearest to where the ghost is now: the turn looks like the quarter turn it is, without an extra twist.
+      const facing = faceQuaternion(studsOf(part));
+      const spins = [0, 1, 2, 3].map((k) => facing.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (k * Math.PI) / 2)));
+      return spins.reduce((best, q) => (q.angleTo(this.ghostQuat) < best.angleTo(this.ghostQuat) ? q : best));
+    }
+    if (part.type !== 'wheel') return new THREE.Quaternion();
+    // A wheel is built with its axle along X: pitch turns it up / down, then the yaw of its rotation turns it around.
+    const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yawOfTurns(partRotation(part)));
+    if (part.pitch) turn.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), (part.pitch * Math.PI) / 2));
+    return turn;
   }
 
   private onUp(e: PointerEvent): void {

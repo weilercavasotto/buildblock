@@ -1,5 +1,5 @@
 import { COLORS } from './colors';
-import { CELL_SIZE, GROUND_Y } from './game';
+import { CELL_SIZE, GROUND_Y, PLATE } from './game';
 import { PartType, Vec3 } from '../types';
 
 export const WORLD = {
@@ -135,6 +135,9 @@ export const clampWeight = (value: number): number =>
 
 /** The weight of a part: its own, or the default; always an integer in `[min, max]`. */
 export const weightOf = (part: { weight?: number }): number => clampWeight(part.weight ?? WEIGHT.default);
+
+/** Volume of a part relative to a block (a plate is a thin slab), which is what makes it lighter at the same weight. */
+export const partVolume = (part: { type: PartType }): number => (part.type === 'plate' ? PLATE.thickness : 1);
 
 /** Mass multiplier (relative to `CHASSIS.density`) of a block of this weight. */
 export const weightMass = (weight: number): number => clampWeight(weight) / WEIGHT.default;

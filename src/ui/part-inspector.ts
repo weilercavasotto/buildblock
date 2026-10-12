@@ -1,6 +1,6 @@
 import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { Grid } from '../build/grid';
-import { Part, Vec3, partCells, partRotation, subVec, wheelAxle } from '../types';
+import { Part, Vec3, isStructural, partCells, partRotation, studsOf, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
@@ -190,14 +190,15 @@ export class PartInspector {
   private placedRows(part: Part): Array<[string, string]> {
     const rows: Array<[string, string]> = [[TEXT.inspector.position, coords(part.cell)]];
     // A large wheel's axle is fixed (its rotation only picks a side), so a rotation in degrees would mislead.
-    if (part.type !== 'bigWheel') rows.push([TEXT.inspector.rotation, TEXT.inspector.degrees(partRotation(part))]);
-    else rows.push([TEXT.inspector.occupies, TEXT.inspector.cells(partCells(part).length)]);
-    if (part.type === 'block') {
+    if (part.type === 'bigWheel') rows.push([TEXT.inspector.occupies, TEXT.inspector.cells(partCells(part).length)]);
+    else if (isStructural(part.type)) rows.push([TEXT.inspector.studs, TEXT.inspector.studsDirection(studsOf(part))]);
+    else rows.push([TEXT.inspector.rotation, TEXT.inspector.degrees(partRotation(part))]);
+    if (isStructural(part.type)) {
       rows.push([TEXT.inspector.color, PAINT_COLORS.find((c) => c.hex.toLowerCase() === part.color)?.name ?? TEXT.inspector.defaultColor]);
       rows.push([TEXT.inspector.weight, String(weightOf(part))]);
       rows.push([TEXT.inspector.rigidBody, TEXT.inspector.blocks(this.grid.connectedBlocks(part.cell))]);
       rows.push([TEXT.inspector.bodyWeight, String(this.grid.connectedWeight(part.cell))]);
-      rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
+      if (part.type === 'block') rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
       rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);

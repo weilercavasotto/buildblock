@@ -23,7 +23,8 @@ import {
   wheelSizeOf,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
-import { Part, Vec3, cellKey, isWheelType, partCentre, subVec, wheelAxle } from '../types';
+import { partBox } from '../parts/part-geometry';
+import { Part, Vec3, cellKey, isStructural, isWheelType, partCentre, subVec, wheelAxle } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -113,7 +114,7 @@ export class PhysicsWorld {
 
   private buildCreation(grid: Grid): void {
     const parts = grid.all();
-    const blocks = parts.filter((p) => p.type === 'block');
+    const blocks = parts.filter((p) => isStructural(p.type)); // blocks and plates
     const wheelParts = parts.filter((p) => isWheelType(p.type) && p.face);
     // Everything spawns raised so that the largest wheel starts just above the floor (the wheel centre is `partCentre`).
     const lift = Math.max(
@@ -124,7 +125,7 @@ export class PhysicsWorld {
     const bodyOfBlock = new Map<string, { body: RAPIER.RigidBody; origin: Vec3 }>();
     let biggest = 0;
 
-    // Connected blocks become ONE rigid body with a collider per block (keeps the structure stiff).
+    // Blocks and plates linked by studs become ONE rigid body with a collider per part (keeps the structure stiff).
     for (const start of blocks) {
       if (seen.has(cellKey(start.cell))) continue;
       const comp: Part[] = [];
@@ -133,8 +134,8 @@ export class PhysicsWorld {
       while (queue.length) {
         const cur = queue.pop()!;
         comp.push(cur);
-        for (const n of grid.neighbors(cur.cell)) {
-          if (n.type === 'block' && !seen.has(cellKey(n.cell))) {
+        for (const n of grid.linkedParts(cur)) {
+          if (!seen.has(cellKey(n.cell))) {
             seen.add(cellKey(n.cell));
             queue.push(n);
           }
@@ -152,8 +153,11 @@ export class PhysicsWorld {
       const visual = new THREE.Group();
       for (const p of comp) {
         const local = subVec(p.cell, origin);
+        // A block fills a unit cube, a plate is a thin slab: the collider is the part's box, centred on its `cell`.
+        const box = partBox(p);
+        const half = box.max.map((v, i) => (v - box.min[i]) / 2);
         this.world.createCollider(
-          RAPIER.ColliderDesc.cuboid(CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE / 2)
+          RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
             .setTranslation(...local)
             .setDensity(CHASSIS.density * weightMass(weightOf(p)))
             .setFriction(CHASSIS.friction)

@@ -1,11 +1,10 @@
-import { DEFAULT_GRID_CELLS, PART_INFO, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampWeight, legacyTireValue, tireValueOf, weightOf } from '../constants';
-import { Part, Vec3, addVec, cellKey, isHexColor, isWheelType, partCells, subVec } from '../types';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampWeight, legacyTireValue, tireValueOf, partVolume, weightOf } from '../constants';
+import { EPS, boxesOverlap, partBox, studsEngaged } from '../parts/part-geometry';
+import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, subVec } from '../types';
 
 export class Grid {
-  /** Every part, keyed by its own `cell`. */
+  /** Every part, keyed by its own `cell` (see `cellKey`). */
   private parts = new Map<string, Part>();
-  /** Which part occupies each cell (key of the occupied cell -> key of the part's `cell`); a large wheel occupies 4 cells. */
-  private occupant = new Map<string, string>();
   private listeners: Array<() => void> = [];
 
   subscribe(fn: () => void): void {
@@ -16,22 +15,15 @@ export class Grid {
     this.listeners.forEach((fn) => fn());
   }
 
-  /** The part occupying `cell` (for a large wheel, any of its 4 cells), if any. */
+  /** The part whose centre (`cell`) is exactly `cell`, if any. */
   get(cell: Vec3): Part | undefined {
-    const owner = this.occupant.get(cellKey(cell));
-    return owner === undefined ? undefined : this.parts.get(owner);
+    return this.parts.get(cellKey(cell));
   }
 
-  /** Stores `part` and marks the cells it occupies. */
-  private put(part: Part): void {
-    this.parts.set(cellKey(part.cell), part);
-    for (const cell of partCells(part)) this.occupant.set(cellKey(cell), cellKey(part.cell));
-  }
-
-  /** Forgets `part` and frees its cells. */
-  private drop(part: Part): void {
-    this.parts.delete(cellKey(part.cell));
-    for (const cell of partCells(part)) this.occupant.delete(cellKey(cell));
+  /** The parts whose box overlaps `part`'s box (the ones in the way if it were placed), `part` itself excluded. */
+  private overlapping(part: Part): Part[] {
+    const box = partBox(part);
+    return this.all().filter((other) => cellKey(other.cell) !== cellKey(part.cell) && boxesOverlap(box, partBox(other)));
   }
 
   all(): Part[] {
@@ -46,23 +38,39 @@ export class Grid {
     this.range = buildRange(cells);
   }
 
+  /**
+   * Can `part` be placed? It must be inside the build area, not overlap another part and, for a block or plate, be
+   * supported: on the ground, or resting on / hanging from another block or plate with at least one stud engaged
+   * (a wheel needs the block it is mounted on instead).
+   */
   canPlace(part: Part): boolean {
-    // Only cells over the floor grid that is drawn on the ground (see `setSize`).
+    // Only the area of the floor grid that is drawn on the ground (see `setSize`).
     const { min, max, maxY } = this.range;
-    for (const cell of partCells(part)) {
-      if (cell[1] < 0 || cell[1] > maxY || cell[0] < min || cell[0] > max || cell[2] < min || cell[2] > max) return false;
-      if (this.get(cell)) return false;
-    }
+    const box = partBox(part);
+    if (box.min[0] < min - 0.5 - EPS || box.max[0] > max + 0.5 + EPS || box.min[2] < min - 0.5 - EPS || box.max[2] > max + 0.5 + EPS) return false;
+    if (box.min[1] < GROUND_Y - EPS || box.max[1] > maxY + 0.5 + EPS) return false;
+    if (this.get(part.cell) || this.overlapping(part).length > 0) return false;
     if (isWheelType(part.type)) {
       if (!part.face || part.face[1] !== 0) return false;
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
-    return true;
+    // Blocks and plates: on the ground, or at least one stud engaged with a part above or below.
+    return box.min[1] <= GROUND_Y + EPS || this.engagedStuds(part) > 0;
+  }
+
+  /** How many studs `part` would engage with the blocks and plates touching it above and below. */
+  engagedStuds(part: Part): number {
+    return this.all().reduce((sum, other) => sum + studsEngaged(part, other), 0);
+  }
+
+  /** The blocks and plates connected to `part` by studs (one rests on the other with at least one stud engaged). */
+  linkedParts(part: Part): Part[] {
+    return this.all().filter((other) => cellKey(other.cell) !== cellKey(part.cell) && studsEngaged(part, other) > 0);
   }
 
   add(part: Part): boolean {
     if (!this.canPlace(part)) return false;
-    this.put(part);
+    this.parts.set(cellKey(part.cell), part);
     this.emit();
     return true;
   }
@@ -72,7 +80,7 @@ export class Grid {
     let added = 0;
     for (const part of parts) {
       if (!this.canPlace(part)) continue;
-      this.put(part);
+      this.parts.set(cellKey(part.cell), part);
       added++;
     }
     if (added > 0) this.emit();
@@ -150,41 +158,42 @@ export class Grid {
   }
 
   /**
-   * Removes the part occupying `cell` (any of the cells of a large wheel); removing a block also removes the wheels
-   * mounted on it.
+   * Removes the part whose centre is `cell`; removing a block also removes the wheels mounted on it. Parts that rested on
+   * it stay where they are (they simply stop being supported).
    */
   remove(cell: Vec3): void {
     const part = this.get(cell);
     if (!part) return;
-    this.drop(part);
+    this.parts.delete(cellKey(part.cell));
     if (part.type === 'block') {
-      for (const wheel of this.wheelsOn(part.cell)) this.drop(wheel);
+      for (const wheel of this.wheelsOn(part.cell)) this.parts.delete(cellKey(wheel.cell));
     }
     this.emit();
   }
 
   clear(): void {
     this.parts.clear();
-    this.occupant.clear();
     this.emit();
   }
 
   load(parts: Part[]): void {
     this.parts.clear();
-    this.occupant.clear();
-    for (const p of parts) this.put(sanitize(p));
+    for (const p of parts) {
+      const clean = sanitize(p);
+      if (clean) this.parts.set(cellKey(clean.cell), clean);
+    }
     this.emit();
   }
 
-  /** The blocks welded together with the block at `cell` (touching blocks form one rigid body), itself included; [] if none. */
+  /** The blocks and plates welded together with the part at `cell` (linked by studs, see `linkedParts`: they form one rigid body), itself included; [] if none. */
   connectedBlockParts(cell: Vec3): Part[] {
     const start = this.get(cell);
-    if (start?.type !== 'block') return [];
+    if (!start || !isStructural(start.type)) return [];
     const seen = new Map<string, Part>([[cellKey(start.cell), start]]);
     const queue: Part[] = [start];
     while (queue.length) {
-      for (const n of this.neighbors(queue.pop()!.cell)) {
-        if (n.type === 'block' && !seen.has(cellKey(n.cell))) {
+      for (const n of this.linkedParts(queue.pop()!)) {
+        if (!seen.has(cellKey(n.cell))) {
           seen.set(cellKey(n.cell), n);
           queue.push(n);
         }
@@ -198,9 +207,13 @@ export class Grid {
     return this.connectedBlockParts(cell).length;
   }
 
-  /** Total weight of the blocks welded together with the block at `cell` (what the rigid body weighs); 0 if none. */
+  /**
+   * Total weight of the blocks and plates welded together with the part at `cell` (what the rigid body weighs): the weight of
+   * each part times its volume (a plate is thin, so it weighs a fraction of a block), to one decimal; 0 if none.
+   */
   connectedWeight(cell: Vec3): number {
-    return this.connectedBlockParts(cell).reduce((sum, p) => sum + weightOf(p), 0);
+    const sum = this.connectedBlockParts(cell).reduce((total, p) => total + weightOf(p) * partVolume(p), 0);
+    return Math.round(sum * 10) / 10;
   }
 
   /**
@@ -219,21 +232,31 @@ export class Grid {
     return this.all().filter((p) => isWheelType(p.type) && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
   }
 
-  neighbors(cell: Vec3): Part[] {
-    const dirs: Vec3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
-    return dirs.map((d) => this.get(addVec(cell, d))).filter((p): p is Part => !!p);
-  }
 }
 
-/** Drops what a save may carry that its part type does not allow (a bad or forbidden paint / suspension / tire / weight). */
-function sanitize(part: Part): Part {
-  const { color, suspension, tire: savedTire, weight, ...rest } = part;
-  const tire = legacyTireValue(savedTire); // saves from when the tire was one of three named types
+/**
+ * Cleans a part from a save: drops what its type does not allow (a bad or forbidden paint / suspension / tire / weight) and
+ * converts older shapes. Returns null for a part that cannot be kept.
+ */
+function sanitize(part: Part): Part | null {
+  const { color, suspension, tire: savedTire, weight, studs, pitch, ...rest } = part as Part & { layers?: number };
   const info = PART_INFO[part.type];
-  const out: Part = { ...rest };
+  let out: Part = { ...rest };
+  delete (out as { layers?: number }).layers;
+  if (part.type === 'plate') {
+    // Plates used to be thin slabs inside a cell, lying against any face. They now rest on studs, so only the flat ones
+    // survive: the slab's centre becomes the part's centre.
+    const face = part.face;
+    delete out.face;
+    if (face && face[1] === 0) return null; // a standing plate cannot be connected
+    if (face) out = { ...out, cell: [part.cell[0], part.cell[1] + (face[1] > 0 ? -0.4 : 0.4), part.cell[2]] };
+  }
+  const tire = legacyTireValue(savedTire); // saves from when the tire was one of three named types
   if (color !== undefined && isHexColor(color) && info.paintable) out.color = color;
   if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
   if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
+  if (isStructural(part.type) && isAxisDirection(studs) && !(studs[0] === 0 && studs[1] === 1 && studs[2] === 0)) out.studs = studs;
+  if (part.type === 'wheel' && (pitch === 1 || pitch === -1)) out.pitch = pitch;
   return out;
 }

@@ -20,7 +20,7 @@ select it with `1`–`9` or a click. A fresh install has the **Block** in slot 1
 empty. Rearrange it by dragging a slot onto another one (they swap), drag a slot out of the bar or right-click it to
 empty it. The layout and the selected slot are remembered in the browser (not per saved game).
 
-The button at the right of the hotbar (or `B` / `C`) opens the **parts catalog**, a modal with tabs (**All** plus one per
+The button at the right of the hotbar (or `C`) opens the **parts catalog**, a modal with tabs (**All** plus one per
 category) and a card with a 3D preview for each part:
 
 - **Hover** a card and its preview spins. All the previews in the catalog (cards and inspector) share one scale, so a part's
@@ -29,7 +29,7 @@ category) and a card with a 3D preview for each part:
   and tips, and a button that adds the part to the hotbar (or selects its slot if it is already there).
 - **Drag** a card onto a hotbar slot (the hotbar stays above the dimmed background while the catalog is open).
 
-`Esc`, `B`, `C` or the `×` button close the catalog.
+`Esc`, `C` or the `×` button close the catalog.
 
 ## Zoom control
 
@@ -112,22 +112,52 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 
 ## Controls
 
-### Cursor modes (`Q` / `W` / `E` / `R`)
+### Cursor modes (`I` / `B` / `E` / `R`)
 
 The left part of the top bar has three **cursor modes**; press the key or click the button. They decide what the left
 mouse button does (the middle button always rotates the camera, the right button pans, scroll zooms):
 
 | Mode | Key | Left button |
 |---|---|---|
-| **Inspect** | `Q` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode, and a **Weight** slider; wheels have **Tire** and **Suspension** controls, see below) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
-| **Build** (default) | `W` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
+| **Inspect** | `I` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode, and a **Weight** slider; wheels have **Tire** and **Suspension** controls, see below) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
+| **Build** (default) | `B` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
 | **Paint** | `E` | A **palette** appears under the top bar; pick a colour (the first swatch is the default colour and removes paint) and click a block to paint it, or **drag** to paint several (one undo step). Wheels cannot be painted. Painting is undoable, saved and shown in Play. Not available in the catalog |
 | **Remove** | `R` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |
 
-Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The shortcuts only work while
-building (in Play, `W` drives). The modes are **icons** with their key cap beside them: a mouse cursor (Inspect), a hammer
+Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The key caps next to the icons are only drawn in windows
+at least 1180 px wide (the shortcuts stay in the tooltips and the help); in a narrow window the top bar wraps onto a second row
+instead of running under the home / help buttons. The shortcuts only work while
+building (in Play, `W` / `A` / `S` / `D` drive; while building they only rotate the part to place). The modes are **icons** with their key cap beside them: a mouse cursor (Inspect), a hammer
 (Build), a brush (Paint) and a trash can (Remove); hover one for its name and description. Undo and Redo are icon-only buttons
 (curved arrows) in the same style; their tooltip gives the shortcut (`Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`), so they carry no key cap.
+
+### Studs: how blocks and plates connect
+
+Blocks and plates have **4 round studs on top** (2 × 2, half a cell apart), like a toy brick, and they connect through them:
+
+- **Positions snap to the stud pitch (half a cell) in x and z.** Hover the top of a block and the ghost shows where the new
+  one would rest: put the pointer over the middle and it sits **exactly on top (4 studs)**, towards an edge and it is **shifted
+  by half a cell (2 studs engaged)**, towards a corner **shifted both ways (1 stud)**. The height is whatever the part below
+  gives (a plate is 0.2 thick, so a block on a plate sits 0.2 higher).
+- **A block or plate must be supported**: on the ground (anywhere), or resting on / hanging under another block or plate
+  with **at least one stud engaged**. Something floating in mid-air, or touching only with its side, is not valid (red ghost).
+  Beside another block or plate, it goes level with its bottom, so it needs the ground or some stud to hold it.
+- **Only studs weld.** Parts stacked with a stud engaged form one rigid body in Play. **Blocks side by side are not
+  welded**, even if they touch: tie them together with a **plate** across them, or a layer of blocks half a cell off on top
+  (like a real brick wall). Wheels are fixed to the block they are mounted on and move with its body. Removing a part leaves
+  the ones that rested on it in place (they just stop being supported); the creation is only checked when you place something.
+- Dragging with the Block tool keeps the half-cell offset it started with. Saves keep working: whole-cell blocks are the same,
+  but a creation made of blocks that only touch (no stud engaged) now falls into separate bodies in Play: put a layer of
+  plates or blocks on top of it.
+
+### The plate
+
+The **Plate** (catalog, category *Structure*; drag it onto a hotbar slot) is a thin square panel, **0.2 cells thick**
+(`PLATE.thickness`), with the same 4 studs on top. It lies flat; click the ground or the top (or underside) of a block or
+plate. It is the Lego plate: use it for floors and body panels and to **tie blocks together** (a plate resting on two blocks
+side by side welds them, since each engages some of its studs). Plates stack: a plate on a plate sits 0.2 higher. It can be painted,
+has the same **Weight** slider as a block (its mass is that of a block times its thickness, so it is light), is symmetric
+(`A` / `D` do nothing) and wheels cannot be mounted on it. Clicking beside a block puts the plate at the level of its bottom.
 
 ### The large wheel
 
@@ -141,37 +171,50 @@ the floor a little and the whole creation spawns slightly higher. It has the sam
 as the normal wheel, cannot be painted, and turns more slowly (it still covers more ground per turn). Removing any of its
 4 cells (or its block) removes it. Inspecting it shows *Occupies* instead of *Rotation*.
 
-### Rotating the part to place (`A` / `D`)
+### Rotating the part to place (`A` / `D`, `W` / `S`)
 
-In Build mode, **`D`** turns the part you are about to place a quarter turn **clockwise** and **`A`** counter-clockwise
-(seen from above); the **↺ ↻ buttons** in the top bar do the same. The placement preview **turns smoothly** (it takes the
-shortest way round, also when you press quickly several times) and every part you place or paint gets that rotation
-(0°, 90°, 180°, 270°). The inspector shows the **Rotation** of an inspected part and it is kept in saves and undo/redo.
+In Build mode you can turn the part you are about to place in **quarter turns around all three axes** (any of the faces up):
 
-- Blocks are cubes, so a rotated block looks the same once placed; the rotation is stored and shown in the inspector,
-  and it will matter for parts that are not symmetric.
-- **Wheels can be rotated too, and it chooses their axle.** A wheel is mounted on a **side face** of a block (that face
-  decides where it sits). By default its axle is perpendicular to that face, a normal wheel. Press `A` / `D` for a
-  quarter turn and the wheel lies **along** the face instead (like a caster or roller); two quarter turns flip the axle
-  direction. The preview turns smoothly between these, and the physics uses the chosen axle (a car whose wheels are all
-  turned a quarter turn drives along the other horizontal axis). The inspector shows the rotation, the host block
-  (*Mounted on*) and the *Axle*. The rotation chosen for one part does not carry over to another.
-- The buttons are dimmed (and `A` / `D` do nothing) outside Build mode and with an empty hotbar slot. While playing,
-  `A` / `D` steer the car as always.
+- **`D`** / **`A`**: a quarter turn **clockwise / counter-clockwise** around the vertical axis (seen from above);
+  the **↺ ↻ buttons** in the top bar do the same.
+- **`W`** / **`S`** (the **`↑`** / **`↓`** arrow keys work too): **tilt** the part up or down a quarter turn, around the horizontal axis that is the
+  screen's left-right (so it follows the camera: `W` turns the top of the part away from you, `S` towards you); the **↑ ↓ buttons** do the same.
+  `W` / `A` / `S` / `D` are only used to rotate the part while building (they drive while playing).
+- The placement preview **turns smoothly** to the chosen orientation (always the quarter turn you asked for, never an extra twist; it is a quaternion
+  interpolation towards the nearest equivalent orientation, see `BuildMode.update`). If the studs lie along the tilt axis (they point to the
+  right or left of the screen), `W` / `S` roll the part around the other horizontal axis instead, so the key always does something: `W` points
+  the studs up, `S` down. The orientation resets when you pick another part.
+
+What it does for each part:
+
+- **Blocks and plates**: the part is symmetric around its studs, so the whole orientation is **which way its 4 studs point**
+  (`Part.studs`, shown as *Studs* in the inspector: Up, Down, +X, −X, +Z, −Z). Tilting a **plate** stands it up as a **wall**;
+  a **block** with the studs to the side builds **sideways**. Studs connect only to studs pointing the same way (the studs of
+  one go into the underside of the other), so a side-by-side pair of blocks with their studs both pointing +X is welded,
+  and a plate upside down on a block's studs is not. The placement is checked exactly as before: no overlap, inside the build
+  area, and supported (on the ground, or at least one stud engaged); with the studs sideways a block may hang from the
+  side of another one. Nothing changes while the studs point up and you only press `A` / `D`.
+- **Wheels:** `A` / `D` choose the axle as before (perpendicular to the face, or along it, in either direction); `↑` / `↓`
+  point the axle **straight up or down** (a wheel that spins like a turntable; it is not driven, because it is not aligned with
+  the forward direction) and back. Shown as *Axle* in the inspector.
+- The **large wheel** keeps its fixed axle: `A` / `D` choose the side it extends toward and `W` / `S` do nothing.
+
+The buttons are dimmed (and the keys do nothing) outside Build mode and with an empty hotbar slot; `W` / `A` / `S` / `D` and the arrows only rotate while
+building (they drive while playing).
 
 ### Build mode
 
 | Input | Action |
 |---|---|
 | Left click | Place the selected part on press (the left button never moves the camera) |
-| Left drag (**Block** tool) | Keep the button down and move to **paint blocks**: every cell the pointer passes over gets a block. Painting is locked to the face where you started (ground, a block's top, or a side), so you draw a row, layer or wall without growing towards the camera. Fast moves leave no gaps. Other parts (the wheel) are placed once per press |
+| Left drag (**Block** tool) | Keep the button down and move to **paint blocks**: every cell the pointer passes over gets a block (each one must be valid: on the ground or with a stud engaged). Painting is locked to the face where you started (ground, a block's top, or a side), so you draw a row or layer without growing towards the camera, and it keeps the half-cell offset it started with. Fast moves leave no gaps. Other parts (the wheel) are placed once per press |
 | Right click | Remove the part under the cursor (removing a block also removes the wheels mounted on it) |
 | Right drag | Pan the camera (a right press that moves is not a click, so nothing is removed). The camera stops at the ground: you cannot pan or orbit under the terrain |
 | Middle drag | Rotate the camera |
 | Scroll | Zoom |
 | **Undo / Redo** buttons (top bar) or `Ctrl/Cmd+Z` / `Ctrl/Cmd+Y` (`Ctrl/Cmd+Shift+Z` also redoes) | Revert / reapply your edits. One step per action: a placed block or wheel, a removal (with its wheels), a whole paint stroke, or **Clear**. Up to 100 steps; the history is cleared when you open or create another game. Not available while playing |
 | `1` – `9` or click a slot | Select the part in that hotbar slot (an empty slot places nothing) |
-| `B` / `C` or the catalog button | Open / close the **parts catalog** |
+| `C` or the catalog button | Open / close the **parts catalog** |
 | **Clear** (top bar) | Remove every part. A confirmation popup asks first (no popup when there is nothing to clear); the result can be undone |
 | **Play** (top bar) | Switch to Play mode |
 

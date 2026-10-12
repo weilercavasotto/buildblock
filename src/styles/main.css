@@ -528,6 +528,12 @@ body.dragging * {
   border-radius: var(--radius-lg);
   background: var(--overlay-panel);
   user-select: none;
+  /* Never run under the home / help buttons on the left (nor the FPS counter on the right): when the window is too narrow
+     the buttons wrap onto a second row. */
+  width: max-content;
+  max-width: calc(100vw - 2 * (var(--space-lg) * 2 + var(--size-icon-button) * 2 + var(--space-sm)));
+  flex-wrap: wrap;
+  justify-content: center;
 }
 #top-bar div.build-only {
   display: flex;
@@ -565,7 +571,7 @@ body.dragging * {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
-/* Cursor modes (Q / W / E): left side of the top bar. */
+/* Cursor modes (I / B / E / R): left side of the top bar. */
 #mode-switch,
 #rotate-group,
 #history-group {
@@ -602,6 +608,12 @@ body.dragging * {
   font: inherit;
   font-size: var(--font-size-xs);
   line-height: var(--space-lg);
+}
+/* Not enough room for the key caps next to the icons: the shortcuts stay in the tooltips and the help. */
+@media (max-width: 1180px) {
+  #top-bar kbd {
+    display: none;
+  }
 }
 /* The pointer tells the mode on the 3D view. */
 body[data-cursor-mode='inspect'] > canvas {

@@ -145,7 +145,7 @@ export function openCatalog(hotbar: Hotbar): void {
     className: 'catalog',
     backdropClass: 'catalog-backdrop',
     labelledBy: 'catalog-title',
-    closeCodes: ['KeyB', 'KeyC'],
+    closeCodes: ['KeyC'],
     onClose: () => {
       open = false;
       closeAll();

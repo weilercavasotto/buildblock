@@ -10,6 +10,7 @@ export interface HudHandlers {
   onUndo(): void;
   onMode(mode: CursorMode): void;
   onRotate(direction: 1 | -1): void;
+  onTilt(direction: 1 | -1): void;
   onRedo(): void;
 }
 
@@ -38,7 +39,7 @@ export class Hud {
     document.getElementById('btn-menu')!.onclick = handlers.onMenu;
     this.helpButton.onclick = handlers.onHelp;
     this.createModeButtons(handlers.onMode);
-    this.setupRotateButtons(handlers.onRotate);
+    this.setupRotateButtons(handlers.onRotate, handlers.onTilt);
     this.undoButton.onclick = handlers.onUndo;
     this.redoButton.onclick = handlers.onRedo;
     this.setMode('build');
@@ -54,12 +55,20 @@ export class Hud {
     document.getElementById('btn-rotate-right') as HTMLButtonElement,
   ];
 
-  private setupRotateButtons(onRotate: (direction: 1 | -1) => void): void {
+  private tiltButtons = [
+    document.getElementById('btn-tilt-up') as HTMLButtonElement,
+    document.getElementById('btn-tilt-down') as HTMLButtonElement,
+  ];
+
+  private setupRotateButtons(onRotate: (direction: 1 | -1) => void, onTilt: (direction: 1 | -1) => void): void {
     document.getElementById('rotate-group')!.setAttribute('aria-label', TEXT.rotation.group);
     const [left, right] = this.rotateButtons;
     left.onclick = () => onRotate(-1);
     right.onclick = () => onRotate(1);
+    this.tiltButtons[0].onclick = () => onTilt(1);
+    this.tiltButtons[1].onclick = () => onTilt(-1);
     this.setRotateEnabled(true);
+    this.setTiltEnabled(true);
   }
 
   /** The rotate buttons only work in Build mode with a rotatable part selected; otherwise they are dimmed. */
@@ -71,6 +80,19 @@ export class Hud {
     ] as const) {
       button.disabled = !enabled;
       button.title = enabled ? TEXT.rotation.tooltip(label, key) : `${TEXT.rotation.tooltip(label, key)}: ${TEXT.rotation.unavailable}`;
+      button.setAttribute('aria-label', TEXT.rotation.tooltip(label, key));
+    }
+  }
+
+  /** The tilt buttons (up / down) work with the parts that can be tilted; otherwise they are dimmed. */
+  setTiltEnabled(enabled: boolean): void {
+    const [up, down] = this.tiltButtons;
+    for (const [button, label, key] of [
+      [up, TEXT.rotation.tiltUp, 'W / ↑'],
+      [down, TEXT.rotation.tiltDown, 'S / ↓'],
+    ] as const) {
+      button.disabled = !enabled;
+      button.title = enabled ? TEXT.rotation.tooltip(label, key) : `${TEXT.rotation.tooltip(label, key)}: ${TEXT.rotation.tiltUnavailable}`;
       button.setAttribute('aria-label', TEXT.rotation.tooltip(label, key));
     }
   }

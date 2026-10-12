@@ -5,7 +5,8 @@ every time Play starts (and on `R`).
 
 ## From grid to bodies
 
-1. **Chassis**: blocks are flood-filled over 6-neighbour adjacency. Each connected component becomes
+1. **Chassis**: blocks and plates are flood-filled over stud links (`Grid.linkedParts`: one rests on the other with at least one
+   stud engaged; neighbours that only touch by the side are NOT linked). Each connected component becomes
    **one dynamic rigid body** with one `cuboid(0.5, 0.5, 0.5)` collider per block, whose density is
    `CHASSIS.density × weightMass(weight)` (the block's `Part.weight`, 1-16, default 4 = ×1: the body's mass is the sum of
    weight / 4 over its blocks). A single body keeps
