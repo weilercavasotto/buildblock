@@ -139,6 +139,29 @@ export const weightOf = (part: { weight?: number }): number => clampWeight(part.
 /** Mass multiplier (relative to `CHASSIS.density`) of a block of this weight. */
 export const weightMass = (weight: number): number => clampWeight(weight) / WEIGHT.default;
 
+/**
+ * The engine (`Part.power`, a slider in the part inspector): a part mounted on a face of a block that drives the wheels. A
+ * body's wheels are powered only by the engines mounted on that body, through the way each engine faces (`Part.front`): a
+ * engine pushes the vehicle towards its front, so an engine turned around reverses the throttle. One engine of the `default`
+ * power can drive `wheelsPerEngine` wheels at full torque; with more wheels the torque is shared, with fewer each wheel gets
+ * up to `maxShare` times its normal torque. An engine weighs `mass` blocks of the default weight.
+ */
+export const ENGINE = {
+  min: 1,
+  max: 10,
+  step: 1,
+  default: 5,
+  wheelsPerEngine: 4,
+  maxShare: 2,
+  mass: 2,
+} as const;
+
+export const clampPower = (value: number): number =>
+  Math.min(ENGINE.max, Math.max(ENGINE.min, Math.round(Number.isFinite(value) ? value : ENGINE.default)));
+
+/** The power of an engine: its own, or the default; always an integer in `[min, max]`. */
+export const powerOf = (part: { power?: number }): number => clampPower(part.power ?? ENGINE.default);
+
 export const CHASSIS = {
   friction: 0.6,
   density: 1,

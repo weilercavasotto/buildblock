@@ -19,7 +19,7 @@ every time Play starts (and on `R`).
    - **Large wheel** (`bigWheel`): the same chain with the cylinder scaled by `WHEEL_SIZES.bigWheel.scale` (2, radius 1.3 /
      width 0.8) and the spring travel scaled too. The joint anchor and the body start at `partCentre` (the middle of its
      2 × 2 cells); the whole creation spawns raised by the largest `lift` needed so no wheel starts in the floor. Its
-     motor is weaker (`torque` 0.6, the wheel is ~32× the inertia) and eased off in a straight line (`cruise` 0.2: a
+     engine is weaker (`torque` 0.6, the wheel is ~32× the inertia) and eased off in a straight line (`cruise` 0.2: a
      wheelie otherwise), while steering gets the full strength, blended with the steering input. Top speed
      (`speed` 0.75 of angular speed) is still higher because the wheel is bigger.
    - **Suspension**: the spring is a `PrismaticImpulseJoint` along the world up axis, limited to
@@ -35,12 +35,12 @@ every time Play starts (and on `R`).
      `chassis.mass() / wheels on that body`. The spring's rest position holds the wheel `SUSPENSION.rideHeight` (0.15 cells, scaled for big wheels) below its mount, so
      the body rides higher (the wheel alone leaves only 0.15 cells under the blocks) and has room to sink before it reaches the
      floor. Measured ground clearance of the blocks at rest, strength 50: 0.27 (2 × 2 base, 4 blocks), 0.26 (2 × 3 base) and
-     0.16 with 2 extra layers on the 2 × 3 base. An acceleration-based motor was tried first and did
+     0.16 with 2 extra layers on the 2 × 3 base. An acceleration-based engine was tried first and did
      not work: it acts on the reduced mass of hub + wheel, far lighter than the chassis.
 3. **Scenery**: a large fixed floor plus a few fixed ramps/obstacles (far from the build area, only
    present during Play).
 
-All bodies have `canSleep = false` so motors keep working.
+All bodies have `canSleep = false` so engines keep working.
 
 ## Collision groups
 
@@ -63,13 +63,21 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
 
 `VehicleController` (`src/play/vehicle-controller.ts`):
 
+- **Engines** (`Part.power`, `Part.front`, `ENGINE`, `PhysicsWorld.wheels[].engines`): an engine is mounted on a block and adds a compact collider
+  (`ENGINE_BODY`, density so that it weighs `ENGINE.mass` blocks) and its visual to that block's rigid body. When the game needs engines
+  (`Grid.engineDrive`, true for saves made since the engine exists; old saves leave it false and every wheel is driven) a wheel is
+  powered only by the engines of its host body. Each engine pushes towards its front (`frontOf`); its signed push is
+  `power / ENGINE.default * (front · forward)`, summed over the body's engines. The sign multiplies the wheel's roll sign (a
+  engine turned around reverses W / S) and a zero push (no engine, or facing sideways / up, or two opposite engines) leaves the wheel
+  free-rolling. The strength of each wheel is scaled by `min(ENGINE.maxShare, |push| * ENGINE.wheelsPerEngine / wheels on the body)`,
+  so one default engine drives 4 wheels at full torque and the power is shared among more. `VehicleController.poweredWheels` lets the HUD warn when nothing is driven.
 - **Forward direction** is perpendicular to the axles of the majority of wheels (`-Z` for X-axle wheels,
   `+X` for Z-axle wheels). Wheels not parallel to that axle are left free-rolling.
 - **Roll sign** per wheel is `sign((axle × up) · forward)`, so `W` rolls every wheel forward regardless
   of which side it is on.
 - **Side** per wheel is its position relative to the average wheel position, projected on `forward × up`.
 - **Cruise**: the motor strength is scaled by the wheel's `cruise` factor (`WHEEL_SIZES`: 0.3 for the normal wheel, 0.2 for the large one) when driving straight and goes up to the full value with the steering input. Steering needs the full strength to skid the car round; the same strength in a straight line makes short, light cars do a wheelie (the 2 × 2 car, wheelbase 1 cell, still pitches ~19° at full throttle).
-- **Motor**: `target = rollSign * (throttle - steer * side * STEER_GAIN) * MAX_WHEEL_SPEED`, applied with
+- **Engine**: `target = rollSign * (throttle - steer * side * STEER_GAIN) * MAX_WHEEL_SPEED`, applied with
   `configureMotorVelocity(target, MOTOR_STRENGTH)`. Steering is differential: on `D` the right wheels
   slow down or reverse while the left wheels speed up.
 - `setAutopilot({ throttle, steer })` overrides the keyboard; the main menu uses it with
@@ -77,7 +85,7 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
 - **Tires**: each wheel's tire (`Part.tire`, 0-100, see `TIRE` in `physics.ts`) sets its collider friction and scales its
   motor: top speed (`speed` × `VEHICLE.maxWheelSpeed`) and strength (`torque` × `VEHICLE.motorStrength`), interpolated
   linearly between three points: 0 (speed) friction 1.4 / ×1.35 / ×1, 50 (standard, default) 2.5 / ×1 / ×1, 100 (traction)
-  4 / ×0.75 / ×3. A grippier tire needs a stronger motor, otherwise the car cannot skid-steer (hence torque ×3). Measured
+  4 / ×0.75 / ×3. A grippier tire needs a stronger engine, otherwise the car cannot skid-steer (hence torque ×3). Measured
   on a 2 × 3 car, straight-line speed after 1.5 s goes 11.2 → 9.8 → 8.5 → 7.9 → 6.8 m/s at tire 0 / 25 / 50 / 75 / 100 and
   it turns at every point (−3.8 to −2.2 rad).
 - With no keys pressed, wheels hold velocity 0 with a light damping (`VEHICLE.idleBrake`).
@@ -93,7 +101,7 @@ All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (s
 | `VEHICLE.idleBrake` | 12 | How quickly the car stops with no input |
 | `VEHICLE.steerGain` | 0.7 | Steering sharpness |
 | `WHEEL.radius` / `WHEEL.width` | 0.65 / 0.4 | Wheel size (visual and collider) |
-| `TIRE` | 0-100, 3 points | Friction (combine: max), top-speed and motor-strength multipliers along the tire slider (speed / standard / traction) |
+| `TIRE` | 0-100, 3 points | Friction (combine: max), top-speed and engine-strength multipliers along the tire slider (speed / standard / traction) |
 | `CHASSIS.friction` | 0.6 | Chassis friction |
 | `WHEEL_SIZES` | wheel / bigWheel | Scale, angular speed, motor torque and straight-line (`cruise`) torque of each wheel size |
 | `SUSPENSION.*` | see file | Suspension strength range / default, stiffness range, damping ratio, travel, hub mass |

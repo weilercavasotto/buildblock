@@ -41,5 +41,11 @@ export function generateRandomBuild(): Grid {
     grid.add({ type: 'wheel', cell: [-1, 0, z], face: [-1, 0, 0] });
     grid.add({ type: 'wheel', cell: [width, 0, z], face: [1, 0, 0] });
   }
+  // An engine on the side of a base block that carries no wheel, pushing the way the car drives (this build needs an engine to move).
+  const host = [...Array(length).keys()].find((z) => z > 0 && !axles.has(z));
+  if (host !== undefined) {
+    grid.add({ type: 'engine', cell: [-1, 0, host], face: [-1, 0, 0], front: [0, 0, -1] });
+    grid.engineDrive = true;
+  }
   return grid;
 }

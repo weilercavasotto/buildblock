@@ -1,6 +1,7 @@
 /** User-facing strings built in code (static HTML text lives in index.html). All English. */
 export const TEXT = {
   hud: {
+    noEngine: 'No engine drives the wheels: mount an engine on a block of the body and point its fan where the vehicle should go.',
     fps: (value: number) => `${value} FPS`,
     /** Zoom level as a percentage of the zoom slider: 0% = farthest, 100% = closest. */
     zoom: (position: number) => `${Math.round(position * 100)}%`,
@@ -59,6 +60,15 @@ export const TEXT = {
     tireTraction: 'Traction',
     tireApplyAll: (count: number) => `Apply to the ${count} wheels on this body`,
     tireHint: 'Speed tires are slick: fast but they slip. Traction tires have deep tread: huge grip but slower. The middle is the standard tire.',
+    power: 'Power',
+    powerLow: 'Weak',
+    powerHigh: 'Strong',
+    powerHint: 'A stronger engine drives more wheels at full torque. The power of all the engines on a body adds up and is shared among the wheels of that body.',
+    powerApplyAll: (count: number) => `Apply to the ${count} engines on this body`,
+    front: 'Front',
+    frontValue: (dir: readonly number[]) => (dir[1] !== 0 ? (dir[1] > 0 ? 'Up (no push)' : 'Down (no push)') : `${dir[0] + dir[2] > 0 ? '+' : '−'}${dir[0] !== 0 ? 'X' : 'Z'}`),
+    bodyPower: 'Engines on body',
+    engines: (count: number) => String(count),
     weight: 'Weight',
     weightLight: 'Light',
     weightHeavy: 'Heavy',

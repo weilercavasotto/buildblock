@@ -1,6 +1,6 @@
-import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, powerOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { Grid } from '../build/grid';
-import { Part, Vec3, isStructural, partCells, partRotation, studsOf, subVec, wheelAxle } from '../types';
+import { Part, Vec3, frontOf, isStructural, partCells, partRotation, studsOf, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
@@ -11,6 +11,8 @@ export interface InspectorHandlers {
   onTire(part: Part, tire: number, wholeBody: boolean): void;
   /** Sets the weight (an integer, see `WEIGHT`) of a block, or of all the blocks welded to it with `connected`. */
   onWeight(part: Part, weight: number, connected: boolean): void;
+  /** Sets the power (an integer, see `ENGINE`) of an engine, or of all the engines on its body with `connected`. */
+  onPower(part: Part, power: number, connected: boolean): void;
   onClose(): void;
 }
 
@@ -71,6 +73,7 @@ export class PartInspector {
       summary,
       remove,
       ...this.tireSection(part),
+      ...this.powerSection(part),
       ...this.weightSection(part),
       ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
@@ -115,6 +118,25 @@ export class PartInspector {
       high: TEXT.inspector.suspensionFirm,
       hint: TEXT.inspector.suspensionHint,
       onCommit: (value) => this.handlers.onSuspension(part, value),
+    });
+  }
+
+  /** Power slider (engines only), with a shortcut to give the same power to every engine on this body. */
+  private powerSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasPower) return [];
+    const engines = this.grid.enginesOnBody(part.cell).length;
+    return this.sliderSection({
+      heading: TEXT.inspector.power,
+      min: ENGINE.min,
+      max: ENGINE.max,
+      step: ENGINE.step,
+      value: powerOf(part),
+      defaultValue: ENGINE.default,
+      low: TEXT.inspector.powerLow,
+      high: TEXT.inspector.powerHigh,
+      hint: TEXT.inspector.powerHint,
+      onCommit: (value) => this.handlers.onPower(part, value, false),
+      applyAll: engines > 1 ? { label: TEXT.inspector.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
     });
   }
 
@@ -201,9 +223,15 @@ export class PartInspector {
       if (part.type === 'block') rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
-      rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
-      rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
-      rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
+      if (part.type === 'engine') {
+        rows.push([TEXT.inspector.front, TEXT.inspector.frontValue(frontOf(part))]);
+        rows.push([TEXT.inspector.power, String(powerOf(part))]);
+        rows.push([TEXT.inspector.bodyPower, TEXT.inspector.engines(this.grid.enginesOnBody(part.cell).length)]);
+      } else {
+        rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
+        rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
+        rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
+      }
     }
     return rows;
   }

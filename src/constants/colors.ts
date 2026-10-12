@@ -59,6 +59,10 @@ export const COLORS = {
     blockEdge: '#2b4a66',
     /** The dark sockets on the underside of blocks, where studs go in. */
     socket: '#0b121b',
+    /** The engine: a light aluminium engine with dark details (bores, oil pan, intake) and its front marked in the accent colour. */
+    engine: '#aab3bd',
+    engineRim: '#7b858f',
+    engineDark: '#2c323a',
     tire: '#23262d',
     rim: '#dfe3ea',
     rimRecess: '#8f98a8',

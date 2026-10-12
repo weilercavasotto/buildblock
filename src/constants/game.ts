@@ -76,6 +76,66 @@ export const PLATE = {
  * welded when one sits on the other and at least one pair of studs lines up; positions snap to the stud pitch in x and z,
  * so a part can rest on half of another (2 studs), or on a corner (1 stud).
  */
+/**
+ * The engine body: a cube mounted against a face of a block (`width` across the face, `depth` out of it), in cells. Its centre
+ * sits `(CELL_SIZE - depth) / 2` from the cell centre towards the block it is mounted on.
+ */
+export const ENGINE_BODY = {
+  width: 0.8,
+  depth: 0.8,
+} as const;
+
+/**
+ * The engine model (`parts/engine-model.ts`): a V engine drawn in its own frame, `ENGINE_BODY.width` on a side, with the
+ * front (where the fan is) towards +z and the cylinder heads up. Lengths in cells.
+ */
+export const ENGINE_VISUAL = {
+  /** Crankcase (the lower block of the engine) and the oil pan under it (narrower, darker). */
+  crankcaseHeight: 0.3,
+  panHeight: 0.1,
+  panWidth: 0.56,
+  panLength: 0.6,
+  /** Cylinder banks: size, how far from the centre / how high their centre sits, and the tilt of the V (rad). */
+  bankWidth: 0.36,
+  bankHeight: 0.32,
+  bankLength: 0.76,
+  bankOffset: 0.17,
+  bankLift: 0.14,
+  bankTilt: 0.35,
+  /** Cylinders per bank, the bore radius and the rim around it (on the top face of each bank). */
+  cylinders: 4,
+  boreRadius: 0.065,
+  rimRadius: 0.092,
+  /** Intake manifold in the trough of the V. */
+  intakeWidth: 0.16,
+  intakeHeight: 0.12,
+  intakeLength: 0.56,
+  intakeLift: 0.21,
+  /** Height of the crankshaft axis, where the fan is. */
+  crankHeight: -0.15,
+  segments: 24,
+} as const;
+
+/**
+ * The fan at the front of the engine (also what shows which way it pushes): a hub with blades inside a thin ring, standing
+ * `standoff` in front of the engine, plus a small accent-coloured nose cone on the hub. Lengths in cells, pitch in rad.
+ */
+export const ENGINE_FAN = {
+  blades: 6,
+  radius: 0.2,
+  hubRadius: 0.055,
+  hubLength: 0.07,
+  bladeWidth: 0.08,
+  bladeThickness: 0.012,
+  /** Twist of each blade around its length, which gives it its swept look. */
+  bladePitch: 0.5,
+  ringRadius: 0.215,
+  ringTube: 0.012,
+  standoff: 0.06,
+  noseRadius: 0.03,
+  noseLength: 0.05,
+} as const;
+
 export const STUD = {
   pitch: 0.5,
   /** Visual size of a peg, in cells. */

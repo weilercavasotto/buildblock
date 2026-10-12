@@ -8,6 +8,8 @@ export interface SaveGame {
   parts: Part[];
   /** Floor-grid squares per side (one of `GRID_SIZES`); missing in older saves = the default size. */
   gridCells?: number;
+  /** Wheels need an engine to be driven (games made since the engine exists); missing in older saves, whose wheels are all driven. */
+  engineDrive?: boolean;
 }
 
 /** The grid size of a save, whatever it holds. */
@@ -57,7 +59,7 @@ export function getSave(id: string): SaveGame | undefined {
 }
 
 export function createSave(name: string, gridCells: number): SaveGame {
-  const save: SaveGame = { id: newId(), name, updatedAt: Date.now(), parts: [], gridCells: validGridCells(gridCells) };
+  const save: SaveGame = { id: newId(), name, updatedAt: Date.now(), parts: [], gridCells: validGridCells(gridCells), engineDrive: true };
   writeAll([...readAll(), save]);
   return save;
 }

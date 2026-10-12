@@ -1,3 +1,4 @@
+import { CELL_SIZE, ENGINE_BODY } from './constants/game';
 export type Vec3 = [number, number, number];
 /** Parts that make up the body of a creation: blocks, plates and L brackets in several sizes (see `SHAPES`). */
 export const STRUCTURAL_TYPES = [
@@ -12,10 +13,16 @@ export const STRUCTURAL_TYPES = [
   'bracketSmall',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
-export type PartType = StructuralType | 'wheel' | 'bigWheel';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
+
+/** The engine: mounted on a face of a block like a wheel, it drives the wheels of the body. */
+export const isEngine = (type: PartType): boolean => type === 'engine';
+
+/** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine';
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
@@ -32,10 +39,15 @@ export interface Part {
    */
   cell: Vec3;
   /**
-   * Outward normal of the block face a wheel is mounted on: its host block is at `cell - face` (its axle is chosen by
-   * `rotation`). Not used by blocks and plates.
+   * Outward normal of the block face a wheel or engine is mounted on: its host block is at `cell - face` (a wheel's axle is
+   * chosen by `rotation`). Not used by blocks and plates.
    */
   face?: Vec3;
+  /**
+   * Engines only: the direction the engine pushes the vehicle towards (an axis vector, not into its host block). Missing =
+   * straight out of the face it is mounted on. Read it through `frontOf()`.
+   */
+  front?: Vec3;
   /**
    * Structural parts: the direction the main studs point (a unit vector along an axis), so the part can lie on any of
    * its 6 faces. Missing = up, `[0, 1, 0]`. Together with `spin` it is the whole orientation (24 turns). Read it through
@@ -70,6 +82,8 @@ export interface Part {
   suspension?: number;
   /** Wheels only (`PART_INFO[type].hasTire`): tire value, an integer 0-100 (0 speed tires, 100 traction tires, see `TIRE`). Missing = `TIRE.default`. Read it through `tireOf()`. */
   tire?: number;
+  /** Engines only (`PART_INFO[type].hasPower`): power, an integer (see `ENGINE`). Missing = `ENGINE.default`. Read it through `powerOf()`. */
+  power?: number;
   /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
   weight?: number;
 }
@@ -131,12 +145,20 @@ export function partCells(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation'
   return [part.cell, addVec(part.cell, up), beside, addVec(beside, up)];
 }
 
-/** The centre of a part in world coordinates: its cell, except a large wheel, whose centre is the middle of its 4 cells. */
+/** The centre of a part in world coordinates: its cell, except a large wheel (the middle of its 4 cells) and an engine (nearer its host block). */
 export function partCentre(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation'>): Vec3 {
+  if (part.type === 'engine' && part.face) {
+    // The engine body is smaller than a cell and rests against its host block.
+    const back = (CELL_SIZE - ENGINE_BODY.depth) / 2;
+    return [part.cell[0] - part.face[0] * back, part.cell[1] - part.face[1] * back, part.cell[2] - part.face[2] * back];
+  }
   if (part.type !== 'bigWheel') return part.cell;
   const side = bigWheelSide(part);
   return [part.cell[0] + side[0] / 2, part.cell[1] + 0.5, part.cell[2] + side[2] / 2];
 }
+
+/** The direction an engine pushes towards: its own `front`, or straight out of the face it is mounted on. */
+export const frontOf = (part: Pick<Part, 'front' | 'face'>): Vec3 => part.front ?? part.face ?? [0, 0, -1];
 
 /** The direction a block's or plate's studs point: its own, or up. */
 export const studsOf = (part: Pick<Part, 'studs'>): Vec3 => part.studs ?? [0, 1, 0];

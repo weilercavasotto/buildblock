@@ -1,5 +1,5 @@
-import { CELL_SIZE, SHAPES, STUD } from '../constants';
-import { Part, Vec3, addVec, isStructural, partCells, studsOf, spinOf } from '../types';
+import { CELL_SIZE, ENGINE_BODY, SHAPES, STUD } from '../constants';
+import { Part, Vec3, addVec, isStructural, partCells, partCentre, studsOf, spinOf } from '../types';
 import { Matrix, matrixOf, orientationOfPart } from './orientation';
 
 /** Axis-aligned box, in world units. */
@@ -67,11 +67,17 @@ export function boundingBox(boxes: ReadonlyArray<Box>): Box {
 }
 
 /**
- * The box a part occupies: for a structural part the one around all its boxes, a wheel fills its cell, a large wheel its
- * 2 x 2 cells.
+ * The box a part occupies: for a structural part the one around all its boxes, an engine its compact body, a wheel fills its
+ * cell, a large wheel its 2 x 2 cells.
  */
 export function partBox(part: Shape): Box {
   if (isStructural(part.type)) return boundingBox(partBoxes(part));
+  if (part.type === 'engine' && part.face) {
+    // A compact box against the host block: `ENGINE_BODY.depth` out of the face, `width` across it.
+    const centre = partCentre(part);
+    const half = part.face.map((v) => (v !== 0 ? ENGINE_BODY.depth : ENGINE_BODY.width) / 2);
+    return { min: centre.map((v, i) => v - half[i]) as Vec3, max: centre.map((v, i) => v + half[i]) as Vec3 };
+  }
   const half = CELL_SIZE / 2;
   return boundingBox(partCells(part).map((c) => ({ min: [c[0] - half, c[1] - half, c[2] - half] as Vec3, max: [c[0] + half, c[1] + half, c[2] + half] as Vec3 })));
 }

@@ -26,6 +26,7 @@ export class Hud {
   private redoButton = document.getElementById('btn-redo') as HTMLButtonElement;
   /** Parts of the top bar that only make sense while playing (reset). */
   private playOnly = document.querySelectorAll<HTMLElement>('.play-only');
+  private notice = document.getElementById('play-notice')!;
   private visible = true;
   private mode: 'build' | 'play' = 'build';
 
@@ -152,8 +153,15 @@ export class Hud {
     this.playOnly.forEach((el) => (el.hidden = building));
   }
 
+  /** Shows a short message under the top bar (while playing), or hides it with null. */
+  setNotice(message: string | null): void {
+    this.notice.hidden = message === null;
+    this.notice.textContent = message ?? '';
+  }
+
   setMode(mode: 'build' | 'play'): void {
     this.mode = mode;
+    if (mode === 'build') this.setNotice(null);
     this.updateVisibility();
     const playing = mode === 'play';
     this.playButton.textContent = playing ? TEXT.hud.stop : TEXT.hud.play;

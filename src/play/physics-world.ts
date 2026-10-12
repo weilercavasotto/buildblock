@@ -6,6 +6,7 @@ import {
   CHASSIS,
   COLLISION_GROUP,
   GROUND_COLLIDER,
+  ENGINE,
   ROUGHNESS,
   SCENERY,
   SPAWN_CLEARANCE,
@@ -15,6 +16,7 @@ import {
   WORLD,
   GROUND_Y,
   hexToNumber,
+  powerOf,
   suspensionOf,
   suspensionStiffness,
   tireOf,
@@ -23,8 +25,8 @@ import {
   wheelSizeOf,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
-import { relativeBoxes } from '../parts/part-geometry';
-import { Part, Vec3, cellKey, isStructural, isWheelType, partCentre, subVec, wheelAxle } from '../types';
+import { partBox, relativeBoxes } from '../parts/part-geometry';
+import { Part, Vec3, cellKey, frontOf, isStructural, isWheelType, partCentre, subVec, wheelAxle } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -40,6 +42,13 @@ export interface WheelDrive {
   torque: number;
   /** Fraction of `torque` used when driving straight (1 = the same as when steering). */
   cruise: number;
+  /**
+   * The engines welded to the body this wheel is mounted on (where each pushes towards and its power); null when the game
+   * does not need engines (an old save), in which case every wheel is driven at full torque.
+   */
+  engines: Array<{ front: Vec3; power: number }> | null;
+  /** How many wheels are mounted on the same body (the engines' power is shared among them). */
+  wheelCount: number;
 }
 
 interface SyncPair {
@@ -122,7 +131,8 @@ export class PhysicsWorld {
       ...wheelParts.map((w) => WHEEL.radius * wheelSizeOf(w.type).scale - (partCentre(w)[1] - GROUND_Y) + SPAWN_CLEARANCE),
     );
     const seen = new Set<string>();
-    const bodyOfBlock = new Map<string, { body: RAPIER.RigidBody; origin: Vec3 }>();
+    const bodyOfBlock = new Map<string, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>();
+    const enginesOfBody = new Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number }>>();
     let biggest = 0;
 
     // Blocks and plates linked by studs become ONE rigid body with a collider per part (keeps the structure stiff).
@@ -168,7 +178,7 @@ export class PhysicsWorld {
         const obj = createPartObject(p);
         obj.position.set(...local);
         visual.add(obj);
-        bodyOfBlock.set(cellKey(p.cell), { body, origin });
+        bodyOfBlock.set(cellKey(p.cell), { body, origin, visual });
       }
       this.group.add(visual);
       this.pairs.push({ body, object: visual });
@@ -176,6 +186,27 @@ export class PhysicsWorld {
         biggest = comp.length;
         this.focus = body;
       }
+    }
+
+    // Engines are mounted on a block: a compact collider on its body (an engine weighs `ENGINE.mass` blocks) and its drive.
+    for (const engine of parts.filter((p) => p.type === 'engine' && p.face)) {
+      const host = bodyOfBlock.get(cellKey(subVec(engine.cell, engine.face!)));
+      if (!host) continue;
+      const box = partBox(engine);
+      const half = box.max.map((v, i) => (v - box.min[i]) / 2);
+      const local = subVec(partCentre(engine), host.origin);
+      this.world.createCollider(
+        RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
+          .setTranslation(...local)
+          .setDensity((CHASSIS.density * ENGINE.mass) / (8 * half[0] * half[1] * half[2]))
+          .setFriction(CHASSIS.friction)
+          .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+        host.body,
+      );
+      const obj = createPartObject(engine);
+      obj.position.set(...local);
+      host.visual.add(obj);
+      enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }
 
     // Each wheel is its own body, spinning on a motorised hinge. The hinge is carried by a light "hub" body that hangs from
@@ -242,7 +273,10 @@ export class PhysicsWorld {
         body,
         true,
       ) as RAPIER.RevoluteImpulseJoint;
-      this.wheels.push({ joint, axis: axle, cell: centre, speed: tireOf(wheel).speed * sizeSpeed, torque: tireOf(wheel).torque * sizeTorque, cruise });
+      this.wheels.push({ joint, axis: axle, cell: centre, speed: tireOf(wheel).speed * sizeSpeed, torque: tireOf(wheel).torque * sizeTorque, cruise,
+        engines: grid.engineDrive ? (enginesOfBody.get(host.body) ?? []) : null,
+        wheelCount: wheelsOn.get(host.body) ?? 1,
+      });
 
       const obj = createPartObject(wheel);
       this.group.add(obj);

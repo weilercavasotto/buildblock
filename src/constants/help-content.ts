@@ -106,6 +106,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Plate'], text: 'A thin square panel (a fifth of a block) with 4 studs, to tie blocks together (one plate on two side-by-side blocks welds them) and for floors and panels. Same placement as a block. Add it to the hotbar from the parts catalog (C).' },
           { keys: ['Half plate', 'Large plate', 'Large half plate'], text: 'Plates of other sizes: half as wide (0.5 × 1, 2 studs), 2 × 2 (16 studs) and 1 × 2 (8 studs). Turn them with A / D to choose which way they run.' },
           { keys: ['L bracket', 'Small L bracket'], text: 'Two plates at a right angle: a flat plate with studs on top and a wall with studs on its outside (8 studs, or 4 for the small one). A / D turn the wall to the side you need; a part engages the wall studs when its own studs point the same way (tilt it with W / S).' },
+          { keys: ['Engine'], text: 'Drives the wheels of its body. A separate unit: click any face of a block to mount it there (it does not take the place of a block), and turn it (A / D, W / S) so the fan on its front points where the vehicle should go; it cannot point into its block. A body\'s engines add their power (slider in the inspector, 1-10); one engine of the default power drives 4 wheels at full torque, more wheels share it. It weighs two blocks.' },
           {
             keys: ['Wheel'],
             text: 'Click the side of a block to mount a wheel (not the top or bottom). By default its axle is perpendicular to that face; A / D turn it a quarter turn before placing.',
@@ -132,7 +133,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['A', '←'], text: 'Steer left.' },
           { keys: ['D', '→'], text: 'Steer right.' },
           { keys: ['R'], text: 'Restart the simulation from your build (also the Reset button next to Stop).' },
-          { text: 'Every wheel is driven. The front of the car is the direction the wheels roll, perpendicular to their axle.' },
+          { text: 'Wheels are driven only by the engines mounted on their body. An engine pushes the vehicle towards its front, the side with the fan: turned around it reverses W / S, and sideways it does nothing. Wheels on a body with no engine roll freely. (Games saved before the engine existed still drive every wheel.)' },
         ],
       },
     ],

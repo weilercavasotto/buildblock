@@ -6,7 +6,7 @@ import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, SHAPES, STUD, hexToNumber
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, orientationFields, orientationOfPart, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, normalizeRotation, partCentre, partRotation, rotationOfFace, roundCoord, yawOfTurns } from '../types';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, normalizeRotation, partCentre, partRotation, rotationOfFace, roundCoord, turnAbout, yawOfTurns } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -67,6 +67,10 @@ export class BuildMode {
   /** Orientation of the next structural part (studs up, no spin by default); a wheel's pitch is `pitch`. */
   private orientation: Orientation = { studs: [0, 1, 0], spin: 0 };
   private pitch: 1 | -1 | undefined;
+  /** Direction the next engine pushes towards; null = straight out of the face it is mounted on. */
+  private front: Vec3 | null = null;
+  /** The face normal the pointer is on (what an engine's front starts from). */
+  private pointedNormal: Vec3 | null = null;
   private lastPointer: { clientX: number; clientY: number } | null = null;
   private hover: { part: Part; outline: THREE.Group } | null = null;
   private selection: Part | null = null;
@@ -115,6 +119,7 @@ export class BuildMode {
       this.rotation = 0;
       this.orientation = { studs: [0, 1, 0], spin: 0 };
       this.pitch = undefined;
+      this.front = null;
     }
     this.tool = tool;
     this.setGhost(null);
@@ -138,6 +143,7 @@ export class BuildMode {
   rotate(direction: 1 | -1): void {
     if (!this.canRotate) return;
     if (this.tool !== null && isStructural(this.tool)) this.orientation = turnOrientation(this.tool, this.orientation, [0, 1, 0], -direction);
+    else if (this.tool === 'engine') this.front = turnAbout(this.front ?? this.pointedNormal ?? [1, 0, 0], [0, 1, 0], -direction);
     else this.rotation = normalizeRotation(this.rotation + direction);
     // Re-aim the ghost at its new orientation: it turns smoothly (see `update`).
     if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
@@ -162,6 +168,17 @@ export class BuildMode {
         next = direction > 0 ? (a.studs[1] >= b.studs[1] ? a : b) : (a.studs[1] <= b.studs[1] ? a : b);
       }
       this.orientation = next;
+    } else if (this.tool === 'engine') {
+      const current = this.front ?? this.pointedNormal ?? [1, 0, 0];
+      const axis = this.screenRight();
+      let next = turnAbout(current, axis, -direction);
+      if (next.every((v, i) => v === current[i])) {
+        // The front lies along the tilt axis: roll around the other horizontal axis instead (see the same case for studs).
+        const other: Vec3 = axis[0] !== 0 ? [0, 0, 1] : [1, 0, 0];
+        const [a, b] = [turnAbout(current, other, 1), turnAbout(current, other, -1)];
+        next = direction > 0 ? (a[1] >= b[1] ? a : b) : (a[1] <= b[1] ? a : b);
+      }
+      this.front = next;
     } else {
       // axle: horizontal -> down (-1) / up (+1) -> horizontal
       const next = (this.pitch ?? 0) + direction;
@@ -285,6 +302,12 @@ export class BuildMode {
   private target(p: Pick): Part | null {
     if (this.tool === null) return null;
     if (isStructural(this.tool)) return this.structuralTarget(this.tool, p);
+    if (this.tool === 'engine') {
+      // Mounted on any face of a block; it pushes straight out of the face until the user turns it.
+      if (!p.part || p.part.type !== 'block') return null;
+      this.pointedNormal = p.normal;
+      return { type: 'engine', cell: addVec(p.part.cell, p.normal), face: p.normal, ...(this.front ? { front: this.front } : {}) };
+    }
     if (!p.part || p.part.type !== 'block' || p.normal[1] !== 0) return null;
     if (this.tool === 'bigWheel') {
       // The axle is the face normal; the rotation (A / D) only picks the side the wheel extends toward (see `partCells`).
@@ -497,10 +520,11 @@ export class BuildMode {
     if (!this.ghost) this.ghostQuat.copy(this.ghostTargetQuat); // newly shown: no spin-in from an old orientation
 
     const big = part.type === 'bigWheel';
-    const key = big ? String(part.face) : '';
+    const engine = part.type === 'engine';
+    const key = big ? String(part.face) : engine ? `${part.face}|${part.front}` : '';
     if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid || this.ghost.key !== key) {
       if (this.ghost) this.scene.remove(this.ghost.object);
-      const object = createPartObject(big ? { type: part.type, face: part.face } : { type: part.type }, valid ? 'ok' : 'bad');
+      const object = createPartObject(big || engine ? { type: part.type, face: part.face, front: part.front } : { type: part.type }, valid ? 'ok' : 'bad');
       this.scene.add(object);
       this.ghost = { object, type: part.type, valid, key };
     }

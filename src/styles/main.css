@@ -565,6 +565,22 @@ body.dragging * {
   border-radius: var(--radius-lg);
   background: var(--overlay-panel);
 }
+#play-notice {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--size-palette-gap);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel);
+  color: var(--color-accent-highlight);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+#play-notice[hidden] {
+  display: none;
+}
 #paint-palette[hidden] {
   display: none;
 }

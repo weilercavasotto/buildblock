@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { ALPHA, PAINT_EDGE_FACTOR, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, Vec3, isHexColor, isStructural, partCentre, wheelAxle } from '../types';
+import { Part, Vec3, frontOf, isHexColor, isStructural, partCentre, wheelAxle } from '../types';
 import { Orientation, matrixOf, orientationOfPart } from './orientation';
-import { boundingBox, partBoxes } from './part-geometry';
+import { createEngineModel, engineMetal } from './engine-model';
+import { partBox } from './part-geometry';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { wheelGeometry } from './wheel-model';
 
@@ -66,8 +67,8 @@ const blockMat = new THREE.MeshStandardMaterial({
 });
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
-function blockMaterials(paint?: string) {
-  if (!isHexColor(paint)) return { face: blockMat, edge: edgeMat };
+function blockMaterials(paint?: string, type?: string) {
+  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const key = paint.toLowerCase();
   let pair = paintCache.get(key);
   if (!pair) {
@@ -122,10 +123,10 @@ function makeGhost(root: THREE.Object3D, bad: boolean): void {
 }
 
 /** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
-export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs' | 'spin' | 'pitch'>): THREE.Box3 {
+export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'front' | 'rotation' | 'studs' | 'spin' | 'pitch'>): THREE.Box3 {
   const margin = new THREE.Vector3().setScalar(HIGHLIGHT.margin);
-  if (isStructural(part.type)) {
-    const box = boundingBox(partBoxes(part));
+  if (isStructural(part.type) || part.type === 'engine') {
+    const box = partBox(part);
     return new THREE.Box3(new THREE.Vector3(...box.min).sub(margin), new THREE.Vector3(...box.max).add(margin));
   }
   const { scale } = wheelSizeOf(part.type);
@@ -182,13 +183,13 @@ function socketsMesh(size: Vec3, studs: Vec3): THREE.Mesh {
 }
 
 /** Builds the visual for a part, centred on its own origin (cell centre). */
-export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' | 'color' | 'studs' | 'spin' | 'pitch'>, ghost?: 'ok' | 'bad'): THREE.Group {
+export function createPartObject(part: Pick<Part, 'type' | 'face' | 'front' | 'rotation' | 'color' | 'studs' | 'spin' | 'pitch'>, ghost?: 'ok' | 'bad'): THREE.Group {
   const root = new THREE.Group();
   const noRaycast = { raycast: () => {} };
 
   if (isStructural(part.type)) {
     // Each box of the shape, with its studs, in the part's own frame (studs up); the root turns it to the part's orientation.
-    const mats = blockMaterials(part.color);
+    const mats = blockMaterials(part.color, part.type);
     for (const box of SHAPES[part.type].boxes) {
       const group = new THREE.Group();
       group.position.set(...box.offset);
@@ -205,6 +206,15 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' |
       root.add(group);
     }
     root.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
+  } else if (part.type === 'engine') {
+    // The engine, turned so that its front points where the engine pushes and its bottom rests on the block it is mounted on.
+    const face = part.face ?? [1, 0, 0];
+    const front = frontOf({ face, front: part.front });
+    const alongFace = front.every((v, i) => v === face[i]); // pointing straight out of the face: any perpendicular will do as "up"
+    const up = new THREE.Vector3(...(alongFace ? (face[1] === 0 ? [0, 1, 0] : [1, 0, 0]) : face));
+    const forward = new THREE.Vector3(...front);
+    root.add(createEngineModel(blockMaterials(part.color, 'engine').face));
+    root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(up.clone().cross(forward), up, forward));
   } else {
     const pivot = new THREE.Group();
     pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));

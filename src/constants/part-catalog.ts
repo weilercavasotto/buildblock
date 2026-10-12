@@ -1,5 +1,5 @@
-import { PLATE } from './game';
-import { CHASSIS, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, PLATE } from './game';
+import { CHASSIS, ENGINE, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -25,6 +25,8 @@ export interface PartInfo {
   hasTire: boolean;
   /** Does it have an adjustable weight (set in the part inspector)? */
   hasWeight: boolean;
+  /** Does it have an adjustable power (an engine; set in the part inspector)? */
+  hasPower: boolean;
   /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
   previewAngle: number;
   /** One line shown under the name. */
@@ -58,6 +60,7 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     hasSuspension: false,
     hasTire: false,
     hasWeight: true,
+    hasPower: false,
     previewAngle: 0.6,
     tagline: t.tagline,
     description: t.description,
@@ -156,6 +159,34 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     studs: '2 on the flat plate (top) + 2 on the outside of the wall',
     tips: [STRUCTURE_TIP, 'A / D turn the wall to the side you need.'],
   }),
+  engine: {
+    type: 'engine',
+    name: 'Engine',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: true,
+    previewAngle: 0.6,
+    tagline: 'Drives the wheels of its body.',
+    description:
+      'The engine of a vehicle, a separate unit you mount on a face of a block (like a wheel). Wheels only get acceleration when an engine is mounted on their body. The engine pushes the vehicle towards its front, the side with the fan: turn it around and W / S are reversed. A body\'s engines add their power, and it is shared among the wheels of that body: one engine of the default power drives up to 4 wheels at full torque. Wheels on a body with no engine roll freely.',
+    properties: [
+      { label: 'Size', value: `${ENGINE_BODY.width} × ${ENGINE_BODY.width} × ${ENGINE_BODY.depth} cells, against the block` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Front', value: 'The side with the fan: W drives the vehicle towards it. A / D turn it around, W / S tilt it up or down; it cannot point into its block' },
+      { label: 'Power', value: 'Adjustable in the inspector (1-10, default 5)' },
+      { label: 'Mass', value: `${ENGINE.mass} blocks of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E)' },
+    ],
+    tips: [
+      'Mount it on the same body as the wheels (the block it is on must be welded to the blocks the wheels are on).',
+      'Point the fan where the vehicle should go. An engine facing sideways does nothing, and one facing backwards reverses the throttle.',
+      'More wheels than the engine can drive get less torque each: add a second engine to a heavy or many-wheeled vehicle.',
+    ],
+  },
   wheel: {
     type: 'wheel',
     name: 'Wheel',
@@ -166,6 +197,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: true,
     hasTire: true,
     hasWeight: false,
+    hasPower: false,
     previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
     description:
@@ -196,6 +228,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: true,
     hasTire: true,
     hasWeight: false,
+    hasPower: false,
     previewAngle: -0.45,
     tagline: 'A wheel twice the size, for big machines.',
     description:
@@ -229,6 +262,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'plateLarge',
   'bracketSmall',
   'bracket',
+  'engine',
   'wheel',
   'bigWheel',
 ];

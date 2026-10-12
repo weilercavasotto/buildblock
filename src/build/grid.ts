@@ -1,7 +1,7 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampWeight, legacyTireValue, tireValueOf, partVolume, weightOf } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampPower, clampWeight, legacyTireValue, tireValueOf, partVolume, powerOf, weightOf, ENGINE } from '../constants';
 import { isSpin } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, subVec, StructuralType } from '../types';
+import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -30,6 +30,12 @@ export class Grid {
     return [...this.parts.values()];
   }
 
+  /**
+   * Do the wheels need an engine to be driven? True for games made since the engine exists; saves from before it keep
+   * driving every wheel. Set by the game when it loads or starts a save; not part of the parts.
+   */
+  engineDrive = false;
+
   /** Buildable cells (x / z and height), from the floor-grid size of the current game. */
   private range = buildRange(DEFAULT_GRID_CELLS);
 
@@ -50,8 +56,15 @@ export class Grid {
     if (box.min[0] < min - 0.5 - EPS || box.max[0] > max + 0.5 + EPS || box.min[2] < min - 0.5 - EPS || box.max[2] > max + 0.5 + EPS) return false;
     if (box.min[1] < GROUND_Y - EPS || box.max[1] > maxY + 0.5 + EPS) return false;
     if (this.get(part.cell) || this.overlapping(part).length > 0) return false;
-    if (isWheelType(part.type)) {
-      if (!part.face || part.face[1] !== 0) return false;
+    if (isMountedType(part.type)) {
+      // Wheels go on the side faces of a block, an engine on any face (and may not point into the block it is on).
+      if (!part.face) return false;
+      if (part.type === 'engine') {
+        const front = frontOf(part);
+        if (!isAxisDirection(front) || front.every((v, i) => v === -part.face![i])) return false;
+      } else if (part.face[1] !== 0) {
+        return false;
+      }
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
     // Blocks and plates: on the ground, or at least one stud engaged with a part above or below.
@@ -118,6 +131,34 @@ export class Grid {
   }
 
   /**
+   * Sets the power (an integer from `ENGINE.min` to `ENGINE.max`) of the engine at `cell`, or of every engine welded to its body
+   * with `connected`; the default power is stored as "not set". Returns false, changing nothing, when there is no such
+   * engine or no engine changes.
+   */
+  setPower(cell: Vec3, power: number, connected = false): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasPower || !Number.isFinite(power)) return false;
+    const value = clampPower(power);
+    let changed = false;
+    for (const target of connected ? this.enginesOnBody(part.cell) : [part]) {
+      if (powerOf(target) === value) continue;
+      const { power: _old, ...rest } = target;
+      this.parts.set(cellKey(target.cell), value === ENGINE.default ? rest : { ...rest, power: value });
+      changed = true;
+    }
+    if (changed) this.emit();
+    return changed;
+  }
+
+  /** The engines mounted on the same rigid body as the block or engine at `cell` (the engine itself included); [] when there is none. */
+  enginesOnBody(cell: Vec3): Part[] {
+    const part = this.get(cell);
+    if (!part) return [];
+    const host = part.type === 'engine' && part.face ? subVec(part.cell, part.face) : part.cell;
+    return this.connectedBlockParts(host).flatMap((block) => this.mountedOn(block.cell).filter((p) => PART_INFO[p.type].hasPower));
+  }
+
+  /**
    * Sets the weight (an integer from `WEIGHT.min` to `WEIGHT.max`) of the block at `cell`, or of every block welded to it
    * with `connected`; the default weight is stored as "not set". Returns false, changing nothing, when there is no such
    * block, it has no weight or no block changes.
@@ -166,7 +207,7 @@ export class Grid {
     if (!part) return;
     this.parts.delete(cellKey(part.cell));
     if (part.type === 'block') {
-      for (const wheel of this.wheelsOn(part.cell)) this.parts.delete(cellKey(wheel.cell));
+      for (const mounted of this.mountedOn(part.cell)) this.parts.delete(cellKey(mounted.cell));
     }
     this.emit();
   }
@@ -212,7 +253,10 @@ export class Grid {
    * each part times its volume (a plate is thin, so it weighs a fraction of a block), to one decimal; 0 if none.
    */
   connectedWeight(cell: Vec3): number {
-    const sum = this.connectedBlockParts(cell).reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0);
+    const blocks = this.connectedBlockParts(cell);
+    if (blocks.length === 0) return 0;
+    const engines = blocks.reduce((total, p) => total + this.mountedOn(p.cell).filter((m) => m.type === 'engine').length, 0);
+    const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + engines * ENGINE.mass * WEIGHT.default;
     return Math.round(sum * 10) / 10;
   }
 
@@ -229,7 +273,12 @@ export class Grid {
 
   /** Wheels (of any size) mounted on the block at `cell`. */
   wheelsOn(cell: Vec3): Part[] {
-    return this.all().filter((p) => isWheelType(p.type) && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
+    return this.mountedOn(cell).filter((p) => isWheelType(p.type));
+  }
+
+  /** The parts mounted on a face of the block at `cell`: its wheels and engines. */
+  mountedOn(cell: Vec3): Part[] {
+    return this.all().filter((p) => isMountedType(p.type) && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
   }
 
 }
@@ -239,7 +288,7 @@ export class Grid {
  * converts older shapes. Returns null for a part that cannot be kept.
  */
 function sanitize(part: Part): Part | null {
-  const { color, suspension, tire: savedTire, weight, studs, spin, pitch, ...rest } = part as Part & { layers?: number };
+  const { color, suspension, tire: savedTire, weight, power, studs, spin, pitch, front, ...rest } = part as Part & { layers?: number };
   const info = PART_INFO[part.type];
   if (!info) return null; // a type this version does not know
   let out: Part = { ...rest };
@@ -256,9 +305,14 @@ function sanitize(part: Part): Part | null {
   if (color !== undefined && isHexColor(color) && info.paintable) out.color = color;
   if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
   if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
+  if (power !== undefined && typeof power === 'number' && info.hasPower) out.power = clampPower(power);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   if (isStructural(part.type) && isAxisDirection(studs) && !(studs[0] === 0 && studs[1] === 1 && studs[2] === 0)) out.studs = studs;
   if (isStructural(part.type) && isSpin(spin) && spin % SHAPES[part.type].spins !== 0) out.spin = spin % SHAPES[part.type].spins;
   if (part.type === 'wheel' && (pitch === 1 || pitch === -1)) out.pitch = pitch;
+  if (part.type === 'engine') {
+    if (!part.face) return null; // an engine is always mounted on a block
+    if (isAxisDirection(front) && !front.every((v, i) => v === -part.face![i]) && !front.every((v, i) => v === part.face![i])) out.front = front;
+  }
   return out;
 }

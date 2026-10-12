@@ -157,6 +157,7 @@ async function main(): Promise<void> {
     stopPlay();
     physics = new PhysicsWorld(grid);
     vehicle = new VehicleController(physics.wheels);
+    hud.setNotice(grid.engineDrive && physics.wheels.length > 0 && vehicle.poweredWheels === 0 ? TEXT.hud.noEngine : null);
     scene.add(physics.group);
     mode = 'play';
     build.setEnabled(false);
@@ -216,6 +217,7 @@ async function main(): Promise<void> {
           run: () => {
             activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
             setGridSize(gridCellsOf(save));
+            grid.engineDrive = save.engineDrive === true;
             grid.load(save.parts);
             activeSave = id;
             history.clear();
@@ -231,6 +233,7 @@ async function main(): Promise<void> {
           run: () => {
             activeSave = null;
             setGridSize(gridCells);
+            grid.engineDrive = true;
             grid.clear();
             activeSave = createSave(name, gridCells).id;
             history.clear();
@@ -298,6 +301,7 @@ async function main(): Promise<void> {
     onRemove: (part) => history.run(() => grid.remove(part.cell)),
     onWeight: (part, weight, connected) => history.run(() => grid.setWeight(part.cell, weight, connected)),
     onTire: (part, tire, wholeBody) => history.run(() => grid.setTire(part.cell, tire, wholeBody)),
+    onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
     onSuspension: (part, strength) => history.run(() => grid.setSuspension(part.cell, strength)),
     onClose: () => build.select(null),
   });
