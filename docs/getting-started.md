@@ -23,6 +23,8 @@ empty it. The layout and the selected slot are remembered in the browser (not pe
 The button at the right of the hotbar (or `C`) opens the **parts catalog**, a modal with tabs (**All** plus one per
 category) and a card with a 3D preview for each part:
 
+- **Search**: the field above the cards filters them (in the tab you are on) by name, category, tagline or description; every
+  word you type must match. `/` jumps to the field; `C` is typed as text while it has focus (`Esc` still closes the catalog).
 - **Hover** a card and its preview spins. All the previews in the catalog (cards and inspector) share one scale, so a part's
   size relative to the others is visible (the large wheel is twice the wheel); the hotbar and the part inspector make each part fill its frame.
 - **Click** a card to open the **inspector** on the right: big spinning preview, category, description, properties
@@ -160,6 +162,8 @@ has the same **Weight** slider as a block (its mass is that of a block times its
 (`A` / `D` do nothing) and wheels cannot be mounted on it. Clicking beside a block puts the plate at the level of its bottom.
 
 The **underside** of every block, plate and bracket shows dark round sockets, one per stud position: that is the face that receives the studs of another part.
+
+A plate standing as a wall snaps its thin side to the nearest lattice line **on the side of the pointer**, so it stays in the half cell you point at instead of jumping into the next one.
 
 ### More blocks, plates and L brackets
 

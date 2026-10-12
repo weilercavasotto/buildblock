@@ -14,7 +14,7 @@ export const isCatalogOpen = (): boolean => open;
  * Parts catalog: a modal with one tab per category (plus "All"). Every card shows a 3D preview that spins while the
  * pointer is over it. Clicking a card opens the inspector on the right (big slowly-spinning preview, description,
  * properties and tips); dragging a card onto a hotbar slot (the hotbar is raised above the modal's backdrop) puts the
- * part there. `Esc`, `B` or `C` close it, Tab cycles inside it, Left/Right/Home/End change tab.
+ * part there. A search field filters the cards by name, category and description (`/` focuses it). `Esc` or `C` close it, Tab cycles inside it, Left/Right/Home/End change tab.
  */
 export function openCatalog(hotbar: Hotbar): void {
   if (open) return;
@@ -23,6 +23,8 @@ export function openCatalog(hotbar: Hotbar): void {
   let tabs: HTMLButtonElement[] = [];
   let grid: HTMLElement;
   let inspector: HTMLElement;
+  let search: HTMLInputElement;
+  let query = '';
   let selected: PartType | null = null;
   let stopInspectorSpin: (() => void) | null = null;
   const stopCardSpins = new Set<() => void>();
@@ -40,11 +42,22 @@ export function openCatalog(hotbar: Hotbar): void {
     });
     grid.setAttribute('aria-labelledby', tabs[index].id);
     const category = tabDefs[index].id;
-    const parts = PART_ORDER.filter((type) => category === 'all' || PART_INFO[type].category === category);
+    const inCategory = PART_ORDER.filter((type) => category === 'all' || PART_INFO[type].category === category);
+    const parts = inCategory.filter(matchesQuery);
     stopCardSpins.forEach((stop) => stop());
     stopCardSpins.clear();
-    grid.replaceChildren(...(parts.length ? parts.map(renderCard) : [text('p', 'catalog-empty', TEXT.catalog.empty)]));
+    const empty = inCategory.length === 0 ? TEXT.catalog.empty : TEXT.catalog.noResults(query.trim());
+    grid.replaceChildren(...(parts.length ? parts.map(renderCard) : [text('p', 'catalog-empty', empty)]));
     if (focus) tabs[index].focus();
+  };
+
+  /** Every word of the search must appear in the part's name, category, tagline or description (case-insensitive). */
+  const matchesQuery = (type: PartType): boolean => {
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return true;
+    const info = PART_INFO[type];
+    const haystack = [info.name, categoryTitle(info.category), info.tagline, info.description].join(' ').toLowerCase();
+    return words.every((word) => haystack.includes(word));
   };
 
   const renderCard = (type: PartType): HTMLElement => {
@@ -153,6 +166,10 @@ export function openCatalog(hotbar: Hotbar): void {
       hotbar.setRaised(false);
     },
     onKeyDown: (e) => {
+      if (e.key === '/' && document.activeElement !== search) {
+        search.focus(); // jump to the search field
+        return true;
+      }
       const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
       if (current < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return false;
       const last = tabs.length - 1;
@@ -191,9 +208,19 @@ export function openCatalog(hotbar: Hotbar): void {
       inspector = el('aside', 'catalog-inspector');
       inspector.setAttribute('aria-labelledby', 'inspector-name');
       inspector.hidden = true;
+      search = el('input', 'catalog-search') as HTMLInputElement;
+      search.type = 'search';
+      search.placeholder = TEXT.catalog.searchPlaceholder;
+      search.setAttribute('aria-label', TEXT.catalog.search);
+      search.autocomplete = 'off';
+      search.spellcheck = false;
+      search.oninput = () => {
+        query = search.value;
+        selectTab(lastTab);
+      };
       const body = el('div', 'catalog-body');
       const main = el('div', 'catalog-main');
-      main.append(text('p', 'catalog-hint', TEXT.catalog.dragHint), grid);
+      main.append(search, text('p', 'catalog-hint', TEXT.catalog.dragHint), grid);
       body.append(main, inspector);
 
       dialog.append(header, tabList, body);

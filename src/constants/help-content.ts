@@ -95,7 +95,7 @@ export const HELP_TABS: HelpTab[] = [
         rows: [
           { keys: ['1 – 9'], text: 'Select the part in that hotbar slot. An empty slot places nothing.' },
           { keys: ['Drag a slot'], text: 'Drop it on another slot to swap them, or drag it out of the bar to empty it. A right click also empties a slot.' },
-          { keys: ['Catalog'], text: 'Parts are grouped in tabs by category. Hover a part to spin its 3D preview, click it to inspect it on the right, and drag it onto a hotbar slot.' },
+          { keys: ['Catalog'], text: 'Parts are grouped in tabs by category, and the search field (press / to jump to it) filters them by name or description. Hover a part to spin its 3D preview, click it to inspect it on the right, and drag it onto a hotbar slot.' },
         ],
       },
       {

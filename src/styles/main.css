@@ -312,6 +312,19 @@ body.dragging * {
   display: flex;
   flex-direction: column;
 }
+.catalog-search {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: var(--border-regular) solid var(--color-surface-control-hover);
+  background: var(--color-surface-input);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+}
+.catalog-search:focus {
+  outline: none;
+  border-color: var(--color-accent-highlight);
+}
 .catalog-hint {
   margin: 0 0 var(--space-md);
   font-size: var(--font-size-sm);

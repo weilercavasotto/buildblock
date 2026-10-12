@@ -5,7 +5,7 @@ import { disposeOutline, createOutline, outlineFill } from './outline';
 import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, SHAPES, STUD, hexToNumber } from '../constants';
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, orientationFields, orientationOfPart, turnOrientation } from '../parts/orientation';
-import { StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
+import { EPS, StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
 import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, normalizeRotation, partCentre, partRotation, rotationOfFace, roundCoord, yawOfTurns } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
@@ -312,8 +312,15 @@ export class BuildMode {
     const size = (i: number) => anchor.max[i] - anchor.min[i];
     const low = Math.min(...rel.map((b) => b.min[1]));
     const snap = (v: number) => roundCoord(Math.round(v / STUD.pitch) * STUD.pitch);
-    // `cell` coordinate that puts the anchor's lower edge on the stud lattice nearest to where the pointer is, along axis `i`.
-    const along = (i: number, point: number) => snap(point - size(i) / 2) - anchor.min[i];
+    // `cell` coordinate along axis `i` for the pointer at `point`: the anchor's lower edge on the stud lattice. When the anchor is
+    // not a whole number of pitches long there (the thin side of a plate standing as a wall) it rests on the lattice line
+    // nearest to the pointer, on the side the pointer is on, so it stays in the half cell that is pointed at.
+    const thin = (i: number) => Math.abs(size(i) / STUD.pitch - Math.round(size(i) / STUD.pitch)) > EPS;
+    const along = (i: number, point: number) => {
+      if (!thin(i)) return snap(point - size(i) / 2) - anchor.min[i];
+      const line = snap(point);
+      return roundCoord((point < line ? line - size(i) / 2 : line + size(i) / 2) - (anchor.min[i] + anchor.max[i]) / 2);
+    };
     if (!p.part) return shape([along(0, p.point.x), GROUND_Y - low, along(2, p.point.z)]);
 
     const base = p.part;
@@ -327,9 +334,10 @@ export class BuildMode {
       if (i === axis) {
         cell[i] = sign > 0 ? target.max[i] - Math.min(...rel.map((b) => b.min[i])) : target.min[i] - Math.max(...rel.map((b) => b.max[i]));
       } else {
-        // The anchor must overlap the box by at least one stud pitch.
-        const edge = snap(p.point.getComponent(i) - size(i) / 2);
-        const clamped = Math.min(target.max[i] - STUD.pitch, Math.max(target.min[i] - size(i) + STUD.pitch, edge));
+        // The anchor must overlap the box by at least one stud pitch (or by all of the thinner of the two when that is less).
+        const overlap = Math.min(STUD.pitch, size(i), target.max[i] - target.min[i]);
+        const edge = along(i, p.point.getComponent(i)) + anchor.min[i];
+        const clamped = Math.min(target.max[i] - overlap, Math.max(target.min[i] - size(i) + overlap, edge));
         cell[i] = roundCoord(clamped - anchor.min[i]);
       }
     }

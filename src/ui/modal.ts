@@ -56,7 +56,8 @@ export function openModal(options: ModalOptions): void {
 
   const onKeyDown = (e: KeyboardEvent) => {
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-    if (e.key === 'Escape' || (plain && options.closeCodes?.includes(e.code))) {
+    const typing = e.target instanceof HTMLInputElement && e.target.type === 'search'; // a key typed into a search field is text
+    if (e.key === 'Escape' || (plain && !typing && options.closeCodes?.includes(e.code))) {
       e.preventDefault();
       finish();
     } else if (e.key === 'Tab') {
