@@ -1,6 +1,7 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampWeight, legacyTireValue, tireValueOf, partVolume, weightOf } from '../constants';
-import { EPS, boxesOverlap, partBox, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, subVec } from '../types';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampWeight, legacyTireValue, tireValueOf, partVolume, weightOf } from '../constants';
+import { isSpin } from '../parts/orientation';
+import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
+import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -22,8 +23,7 @@ export class Grid {
 
   /** The parts whose box overlaps `part`'s box (the ones in the way if it were placed), `part` itself excluded. */
   private overlapping(part: Part): Part[] {
-    const box = partBox(part);
-    return this.all().filter((other) => cellKey(other.cell) !== cellKey(part.cell) && boxesOverlap(box, partBox(other)));
+    return this.all().filter((other) => cellKey(other.cell) !== cellKey(part.cell) && partsOverlap(part, other));
   }
 
   all(): Part[] {
@@ -212,7 +212,7 @@ export class Grid {
    * each part times its volume (a plate is thin, so it weighs a fraction of a block), to one decimal; 0 if none.
    */
   connectedWeight(cell: Vec3): number {
-    const sum = this.connectedBlockParts(cell).reduce((total, p) => total + weightOf(p) * partVolume(p), 0);
+    const sum = this.connectedBlockParts(cell).reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0);
     return Math.round(sum * 10) / 10;
   }
 
@@ -239,8 +239,9 @@ export class Grid {
  * converts older shapes. Returns null for a part that cannot be kept.
  */
 function sanitize(part: Part): Part | null {
-  const { color, suspension, tire: savedTire, weight, studs, pitch, ...rest } = part as Part & { layers?: number };
+  const { color, suspension, tire: savedTire, weight, studs, spin, pitch, ...rest } = part as Part & { layers?: number };
   const info = PART_INFO[part.type];
+  if (!info) return null; // a type this version does not know
   let out: Part = { ...rest };
   delete (out as { layers?: number }).layers;
   if (part.type === 'plate') {
@@ -257,6 +258,7 @@ function sanitize(part: Part): Part | null {
   if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   if (isStructural(part.type) && isAxisDirection(studs) && !(studs[0] === 0 && studs[1] === 1 && studs[2] === 0)) out.studs = studs;
+  if (isStructural(part.type) && isSpin(spin) && spin % SHAPES[part.type].spins !== 0) out.spin = spin % SHAPES[part.type].spins;
   if (part.type === 'wheel' && (pitch === 1 || pitch === -1)) out.pitch = pitch;
   return out;
 }

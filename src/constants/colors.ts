@@ -57,6 +57,8 @@ export const COLORS = {
     /** Default block colour: a soft blue. */
     block: '#5fa0d6',
     blockEdge: '#2b4a66',
+    /** The dark sockets on the underside of blocks, where studs go in. */
+    socket: '#0b121b',
     tire: '#23262d',
     rim: '#dfe3ea',
     rimRecess: '#8f98a8',

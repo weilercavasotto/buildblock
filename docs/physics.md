@@ -7,7 +7,7 @@ every time Play starts (and on `R`).
 
 1. **Chassis**: blocks and plates are flood-filled over stud links (`Grid.linkedParts`: one rests on the other with at least one
    stud engaged; neighbours that only touch by the side are NOT linked). Each connected component becomes
-   **one dynamic rigid body** with one `cuboid(0.5, 0.5, 0.5)` collider per block, whose density is
+   **one dynamic rigid body** with one cuboid collider per box of each part (a block is one cube, a plate a slab, an L bracket two slabs), whose density is
    `CHASSIS.density × weightMass(weight)` (the block's `Part.weight`, 1-16, default 4 = ×1: the body's mass is the sum of
    weight / 4 over its blocks). A single body keeps
    structures stiff; joints between individual cubes would make them wobble.

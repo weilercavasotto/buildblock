@@ -23,7 +23,7 @@ import {
   wheelSizeOf,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
-import { partBox } from '../parts/part-geometry';
+import { relativeBoxes } from '../parts/part-geometry';
 import { Part, Vec3, cellKey, isStructural, isWheelType, partCentre, subVec, wheelAxle } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
@@ -153,17 +153,18 @@ export class PhysicsWorld {
       const visual = new THREE.Group();
       for (const p of comp) {
         const local = subVec(p.cell, origin);
-        // A block fills a unit cube, a plate is a thin slab: the collider is the part's box, centred on its `cell`.
-        const box = partBox(p);
-        const half = box.max.map((v, i) => (v - box.min[i]) / 2);
-        this.world.createCollider(
-          RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
-            .setTranslation(...local)
-            .setDensity(CHASSIS.density * weightMass(weightOf(p)))
-            .setFriction(CHASSIS.friction)
-            .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
-          body,
-        );
+        // One collider per box of the part (a block is one cube, a plate a slab, an L bracket two slabs), around its centre.
+        for (const box of relativeBoxes(p)) {
+          const half = box.max.map((v, i) => (v - box.min[i]) / 2);
+          this.world.createCollider(
+            RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
+              .setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2)
+              .setDensity(CHASSIS.density * weightMass(weightOf(p)))
+              .setFriction(CHASSIS.friction)
+              .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+            body,
+          );
+        }
         const obj = createPartObject(p);
         obj.position.set(...local);
         visual.add(obj);

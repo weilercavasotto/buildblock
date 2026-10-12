@@ -82,6 +82,9 @@ export const STUD = {
   radius: 0.15,
   height: 0.08,
   segments: 16,
+  /** Sockets on the underside (the holes the studs of another part go into): radius, a little larger than a stud, and how far they float off the face to avoid z-fighting. */
+  socketRadius: 0.17,
+  socketLift: 0.004,
 } as const;
 
 export const LIGHTS = {

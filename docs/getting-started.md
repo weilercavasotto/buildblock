@@ -159,6 +159,12 @@ side by side welds them, since each engages some of its studs). Plates stack: a 
 has the same **Weight** slider as a block (its mass is that of a block times its thickness, so it is light), is symmetric
 (`A` / `D` do nothing) and wheels cannot be mounted on it. Clicking beside a block puts the plate at the level of its bottom.
 
+The **underside** of every block, plate and bracket shows dark round sockets, one per stud position: that is the face that receives the studs of another part.
+
+### More blocks, plates and L brackets
+
+Besides the **Block** and the **Plate** the catalog (*Structure*) has: **Half block** (0.5 × 1 × 1, 2 studs), **Large block** (2 × 1 × 2, 16 studs, four blocks in one), **Half plate** (0.5 × 1, 2 studs), **Large plate** (2 × 2, 16 studs), **Large half plate** (1 × 2, 8 studs), and two **L brackets**: a flat plate with a wall plate on its back edge, studs on top of the flat plate and on the outside of the wall (**L bracket**: 8 studs, **Small L bracket**: 4). They place, weld, paint, weigh and tilt like blocks and plates. Shapes that are not square also depend on `A` / `D` (which way they run, which side the wall is on); wheels are mounted only on the normal block. A part engages the studs of a wall when its own studs point the same way (tilt it with `W` / `S`).
+
 ### The large wheel
 
 The **Large wheel** (catalog, category *Mobility*; drag it onto a hotbar slot) is a wheel of **twice the size** (radius 1.3,
@@ -187,8 +193,8 @@ In Build mode you can turn the part you are about to place in **quarter turns ar
 
 What it does for each part:
 
-- **Blocks and plates**: the part is symmetric around its studs, so the whole orientation is **which way its 4 studs point**
-  (`Part.studs`, shown as *Studs* in the inspector: Up, Down, +X, −X, +Z, −Z). Tilting a **plate** stands it up as a **wall**;
+- **Blocks, plates and brackets**: the orientation is **which way the main studs point** plus, for shapes that are not square, a **spin** around them
+  (`Part.studs` and `Part.spin`, shown as *Studs* in the inspector: Up, Down, +X, −X, +Z, −Z). Tilting a **plate** stands it up as a **wall**;
   a **block** with the studs to the side builds **sideways**. Studs connect only to studs pointing the same way (the studs of
   one go into the underside of the other), so a side-by-side pair of blocks with their studs both pointing +X is welded,
   and a plate upside down on a block's studs is not. The placement is checked exactly as before: no overlap, inside the build

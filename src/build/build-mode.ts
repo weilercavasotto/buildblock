@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { Grid } from './grid';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BUILD, CELL_SIZE, COLORS, GROUND_Y, PART_INFO, PLATE, ROTATION, STUD, hexToNumber } from '../constants';
-import { createPartObject, faceQuaternion, partBounds } from '../parts/part-defs';
-import { partBox } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, Vec3, addVec, cellKey, isStructural, normalizeRotation, partCentre, partRotation, rotationOfFace, roundCoord, studsOf, turnAbout, yawOfTurns } from '../types';
+import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, SHAPES, STUD, hexToNumber } from '../constants';
+import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
+import { Orientation, orientationFields, orientationOfPart, turnOrientation } from '../parts/orientation';
+import { StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, normalizeRotation, partCentre, partRotation, rotationOfFace, roundCoord, yawOfTurns } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -63,8 +64,8 @@ export class BuildMode {
   private ghostTargetQuat = new THREE.Quaternion();
   /** Rotation (clockwise quarter turns, 0-3) given to the next rotatable part placed; for a wheel it is relative to its face. */
   private rotation = 0;
-  /** Direction the studs of the next block / plate point (up by default); a wheel's pitch is `pitch`. */
-  private studs: Vec3 = [0, 1, 0];
+  /** Orientation of the next structural part (studs up, no spin by default); a wheel's pitch is `pitch`. */
+  private orientation: Orientation = { studs: [0, 1, 0], spin: 0 };
   private pitch: 1 | -1 | undefined;
   private lastPointer: { clientX: number; clientY: number } | null = null;
   private hover: { part: Part; outline: THREE.Group } | null = null;
@@ -112,7 +113,7 @@ export class BuildMode {
     if (tool !== this.tool) {
       // the orientation chosen for one part does not carry over to another
       this.rotation = 0;
-      this.studs = [0, 1, 0];
+      this.orientation = { studs: [0, 1, 0], spin: 0 };
       this.pitch = undefined;
     }
     this.tool = tool;
@@ -131,12 +132,12 @@ export class BuildMode {
 
   /**
    * Rotates the part to place by a quarter turn around the vertical axis: `1` clockwise, `-1` counter-clockwise (seen from
-   * above). For a block or plate it turns the direction of the studs (nothing changes while they point up); for a wheel it
+   * above). For a structural part it turns the part (nothing changes for a square part while its studs point up); for a wheel it
    * turns the axle.
    */
   rotate(direction: 1 | -1): void {
     if (!this.canRotate) return;
-    if (this.tool === 'block' || this.tool === 'plate') this.studs = turnAbout(this.studs, [0, 1, 0], -direction);
+    if (this.tool !== null && isStructural(this.tool)) this.orientation = turnOrientation(this.tool, this.orientation, [0, 1, 0], -direction);
     else this.rotation = normalizeRotation(this.rotation + direction);
     // Re-aim the ghost at its new orientation: it turns smoothly (see `update`).
     if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
@@ -149,17 +150,18 @@ export class BuildMode {
    */
   tilt(direction: 1 | -1): void {
     if (!this.canTilt) return;
-    if (this.tool === 'block' || this.tool === 'plate') {
+    if (this.tool !== null && isStructural(this.tool)) {
       const axis = this.screenRight();
-      let next = turnAbout(this.studs, axis, -direction);
-      if (next.every((v, i) => v === this.studs[i])) {
-        // The studs lie along the tilt axis, so turning around it changes nothing: roll around the other horizontal axis so
-        // the key still does something, `↑` pointing the studs up and `↓` down.
+      const same = (a: Orientation, b: Orientation) => a.spin === b.spin && a.studs.every((v, i) => v === b.studs[i]);
+      let next = turnOrientation(this.tool, this.orientation, axis, -direction);
+      if (same(next, this.orientation)) {
+        // The studs lie along the tilt axis and the part looks the same after turning around it: roll around the other
+        // horizontal axis so the key still does something, `↑` pointing the studs up and `↓` down.
         const other: Vec3 = axis[0] !== 0 ? [0, 0, 1] : [1, 0, 0];
-        const [a, b] = [turnAbout(this.studs, other, 1), turnAbout(this.studs, other, -1)];
-        next = direction > 0 ? (a[1] >= b[1] ? a : b) : (a[1] <= b[1] ? a : b);
+        const [a, b] = [turnOrientation(this.tool, this.orientation, other, 1), turnOrientation(this.tool, this.orientation, other, -1)];
+        next = direction > 0 ? (a.studs[1] >= b.studs[1] ? a : b) : (a.studs[1] <= b.studs[1] ? a : b);
       }
-      this.studs = next;
+      this.orientation = next;
     } else {
       // axle: horizontal -> down (-1) / up (+1) -> horizontal
       const next = (this.pitch ?? 0) + direction;
@@ -282,7 +284,7 @@ export class BuildMode {
   /** The part that a click would place for the current pick, or null when nothing sensible. */
   private target(p: Pick): Part | null {
     if (this.tool === null) return null;
-    if (this.tool === 'block' || this.tool === 'plate') return this.structuralTarget(this.tool, p);
+    if (isStructural(this.tool)) return this.structuralTarget(this.tool, p);
     if (!p.part || p.part.type !== 'block' || p.normal[1] !== 0) return null;
     if (this.tool === 'bigWheel') {
       // The axle is the face normal; the rotation (A / D) only picks the side the wheel extends toward (see `partCells`).
@@ -295,32 +297,44 @@ export class BuildMode {
   }
 
   /**
-   * Where a block or plate goes for the current pick, turned as the user chose (`this.studs`). Positions snap to the stud
-   * pitch. On the ground the part sits on the floor under the pointer. On a face of another block or plate it touches that
-   * face (on top, underneath or beside) with its footprint shifted by the pointer, so it can engage 4 studs, 2, or 1.
-   * Beside a block with the studs up it goes level with the bottom, so building on the ground stays easy.
-   * `Grid.canPlace` then checks that it is supported (ground or at least one stud engaged) and nothing is in the way.
+   * Where a structural part goes for the current pick, turned as the user chose (`this.orientation`). The edges of its
+   * anchor box (the first box of the shape) snap to the stud pitch in x and z. On the ground the part sits on the floor under
+   * the pointer. On a face of another part it touches that face (on top, underneath or beside) with its footprint shifted by
+   * the pointer, so it can engage many studs, or only one. Beside a part with the studs up it goes level with the bottom, so
+   * building on the ground stays easy. `Grid.canPlace` then checks that it is supported (ground or at least one stud
+   * engaged) and nothing is in the way.
    */
-  private structuralTarget(type: 'block' | 'plate', p: Pick): Part | null {
-    const studs = this.studs;
-    const shape = (cell: Vec3): Part => ({ type, cell: [roundCoord(cell[0]), roundCoord(cell[1]), roundCoord(cell[2])], ...(studs[1] === 1 ? {} : { studs }) });
-    const half = partBox({ type, cell: [0, 0, 0], studs }).max; // half sizes of the new part
+  private structuralTarget(type: StructuralType, p: Pick): Part | null {
+    const turn = this.orientation;
+    const shape = (cell: Vec3): Part => ({ type, cell: [roundCoord(cell[0]), roundCoord(cell[1]), roundCoord(cell[2])], ...orientationFields(turn) });
+    const rel = relativeBoxes({ type, ...orientationFields(turn) }); // relative to the cell; the first box is the anchor
+    const anchor = rel[0];
+    const size = (i: number) => anchor.max[i] - anchor.min[i];
+    const low = Math.min(...rel.map((b) => b.min[1]));
     const snap = (v: number) => roundCoord(Math.round(v / STUD.pitch) * STUD.pitch);
-    if (!p.part) return shape([snap(p.point.x), GROUND_Y + half[1], snap(p.point.z)]);
+    // `cell` coordinate that puts the anchor's lower edge on the stud lattice nearest to where the pointer is, along axis `i`.
+    const along = (i: number, point: number) => snap(point - size(i) / 2) - anchor.min[i];
+    if (!p.part) return shape([along(0, p.point.x), GROUND_Y - low, along(2, p.point.z)]);
 
     const base = p.part;
     if (!isStructural(base.type)) return null; // nothing is built on a wheel
-    const box = partBox(base);
-    const halfBase = box.max.map((v, i) => (v - box.min[i]) / 2);
+    // The box of the part that was pointed at: where the point lies on its face.
     const axis = p.normal.findIndex((v) => v !== 0);
     const sign = p.normal[axis];
+    const target = pointedBox(partBoxes(base), p.point, axis, sign);
     const cell: Vec3 = [0, 0, 0];
     for (let i = 0; i < 3; i++) {
-      if (i === axis) cell[i] = base.cell[i] + sign * (halfBase[i] + half[i]);
-      else cell[i] = Math.min(base.cell[i] + halfBase[i], Math.max(base.cell[i] - halfBase[i], snap(p.point.getComponent(i))));
+      if (i === axis) {
+        cell[i] = sign > 0 ? target.max[i] - Math.min(...rel.map((b) => b.min[i])) : target.min[i] - Math.max(...rel.map((b) => b.max[i]));
+      } else {
+        // The anchor must overlap the box by at least one stud pitch.
+        const edge = snap(p.point.getComponent(i) - size(i) / 2);
+        const clamped = Math.min(target.max[i] - STUD.pitch, Math.max(target.min[i] - size(i) + STUD.pitch, edge));
+        cell[i] = roundCoord(clamped - anchor.min[i]);
+      }
     }
-    // Beside a block with its studs up: level with the bottom of the part it is next to.
-    if (axis !== 1 && studs[1] === 1) cell[1] = box.min[1] + half[1];
+    // Beside a part with its studs up: level with the bottom of the part it is next to.
+    if (axis !== 1 && turn.studs[1] === 1) cell[1] = target.min[1] - low;
     return shape(cell);
   }
 
@@ -409,7 +423,7 @@ export class BuildMode {
     const cells: Part[] = [];
     for (let step = 1; step <= steps; step++) {
       const cell = s.last.map((v, i) => roundCoord(s.start[i] + Math.round(v + ((goal[i] - v) * step) / steps - s.start[i]))) as Vec3;
-      cells.push({ type: 'block', cell, ...(this.studs[1] === 1 ? {} : { studs: this.studs }) });
+      cells.push({ type: 'block', cell, ...orientationFields(this.orientation) });
     }
     this.grid.addMany(cells);
     s.last = goal;
@@ -488,12 +502,13 @@ export class BuildMode {
 
   /** The turn that takes a part built unturned to the orientation of `part`. */
   private orientationOf(part: Part): THREE.Quaternion {
-    if (part.type === 'block' || part.type === 'plate') {
-      // A block or plate looks the same after a quarter turn around its studs, so of those 4 equivalent orientations take the
-      // one nearest to where the ghost is now: the turn looks like the quarter turn it is, without an extra twist.
-      const facing = faceQuaternion(studsOf(part));
-      const spins = [0, 1, 2, 3].map((k) => facing.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (k * Math.PI) / 2)));
-      return spins.reduce((best, q) => (q.angleTo(this.ghostQuat) < best.angleTo(this.ghostQuat) ? q : best));
+    if (isStructural(part.type)) {
+      // Turns that look the same (a quarter turn around the studs of a square part): take the one nearest to where the ghost is
+      // now, so the turn looks like the quarter turn it is, without an extra twist.
+      const { studs, spin } = orientationOfPart(part);
+      const turns = SHAPES[part.type].spins;
+      const options = [0, 1, 2, 3].filter((k) => (k - spin) % turns === 0).map((k) => orientationQuaternion({ studs, spin: k }));
+      return options.reduce((best, q) => (q.angleTo(this.ghostQuat) < best.angleTo(this.ghostQuat) ? q : best));
     }
     if (part.type !== 'wheel') return new THREE.Quaternion();
     // A wheel is built with its axle along X: pitch turns it up / down, then the yaw of its rotation turns it around.
@@ -523,4 +538,20 @@ export class BuildMode {
     this.clearHints();
     this.onMove(e);
   }
+}
+
+/**
+ * Of the boxes of a part, the one whose face on the side `sign` of `axis` is the one the pointer is on (the nearest to the
+ * point, counting how far the point is outside the box along the other axes).
+ */
+function pointedBox(boxes: StudBox[], point: THREE.Vector3, axis: number, sign: number): StudBox {
+  const cost = (box: StudBox) => {
+    let outside = 0;
+    for (let i = 0; i < 3; i++) {
+      if (i === axis) continue;
+      outside += Math.max(0, box.min[i] - point.getComponent(i), point.getComponent(i) - box.max[i]);
+    }
+    return Math.abs(point.getComponent(axis) - (sign > 0 ? box.max[axis] : box.min[axis])) + outside;
+  };
+  return boxes.reduce((best, box) => (cost(box) < cost(best) ? box : best));
 }

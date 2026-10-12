@@ -70,7 +70,7 @@ export const HELP_TABS: HelpTab[] = [
             keys: ['Left drag'],
             text: 'Paint blocks: keep the button down and move to keep placing blocks on the face where you started (a row, a layer or a wall).',
           },
-          { keys: ['W', 'S'], text: 'Tilt the part to place a quarter turn up or down (W / S, also the ↑ ↓ arrow keys) (around the screen\'s left-right axis): a plate stands as a wall, a block lies with its studs to the side, a wheel\'s axle points up or down. Also the ↑ ↓ buttons in the top bar. Studs only connect to studs pointing the same way.' },
+          { keys: ['W', 'S'], text: 'Tilt the part to place a quarter turn up or down (W / S, also the ↑ ↓ arrow keys) (around the screen\'s left-right axis): a plate stands as a wall, a block lies with its studs to the side, a bracket lies on its back, a wheel\'s axle points up or down. Also the ↑ ↓ buttons in the top bar. Studs only connect to studs pointing the same way.' },
           { keys: ['A', 'D'], text: 'Rotate the part to place a quarter turn (A counter-clockwise, D clockwise). The preview follows. Also available as the ↺ ↻ buttons in the top bar. A wheel is mounted on a side face and its axle is perpendicular to it; rotate it a quarter turn to make it lie along the face instead.' },
           { keys: ['Right click'], text: 'Remove the part under the cursor (Build and Remove modes). Removing a block also removes its wheels.' },
         ],
@@ -102,7 +102,10 @@ export const HELP_TABS: HelpTab[] = [
         heading: 'Parts',
         rows: [
           { keys: ['Block'], text: 'A cube with 4 studs on top. Place it on the ground, or on top of (or under) another block or plate with at least one stud engaged: the pointer position chooses whether it rests on 4, 2 or 1 stud (half-cell steps). Stacked parts are welded.' },
+          { keys: ['Half block', 'Large block'], text: 'A block cut in half (0.5 × 1, 2 studs) and four blocks in one (2 × 1 × 2, 16 studs). Same placement and welding as a block; wheels mount only on the normal block.' },
           { keys: ['Plate'], text: 'A thin square panel (a fifth of a block) with 4 studs, to tie blocks together (one plate on two side-by-side blocks welds them) and for floors and panels. Same placement as a block. Add it to the hotbar from the parts catalog (C).' },
+          { keys: ['Half plate', 'Large plate', 'Large half plate'], text: 'Plates of other sizes: half as wide (0.5 × 1, 2 studs), 2 × 2 (16 studs) and 1 × 2 (8 studs). Turn them with A / D to choose which way they run.' },
+          { keys: ['L bracket', 'Small L bracket'], text: 'Two plates at a right angle: a flat plate with studs on top and a wall with studs on its outside (8 studs, or 4 for the small one). A / D turn the wall to the side you need; a part engages the wall studs when its own studs point the same way (tilt it with W / S).' },
           {
             keys: ['Wheel'],
             text: 'Click the side of a block to mount a wheel (not the top or bottom). By default its axle is perpendicular to that face; A / D turn it a quarter turn before placing.',

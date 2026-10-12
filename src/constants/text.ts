@@ -31,7 +31,7 @@ export const TEXT = {
     right: 'Rotate right',
     tiltUp: 'Tilt up',
     tiltDown: 'Tilt down',
-    tiltUnavailable: 'Select a block, plate or wheel in Build mode to tilt it.',
+    tiltUnavailable: 'Pick a part in Build mode to tilt it.',
     tooltip: (label: string, key: string) => `${label} (${key})`,
     unavailable: 'Select a rotatable part in Build mode to rotate it.',
   },

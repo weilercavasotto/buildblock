@@ -1,5 +1,6 @@
-import { CELL_SIZE, PLATE, STUD } from '../constants';
-import { Part, Vec3, isStructural, partCells, studsOf } from '../types';
+import { CELL_SIZE, SHAPES, STUD } from '../constants';
+import { Part, Vec3, addVec, isStructural, partCells, studsOf, spinOf } from '../types';
+import { Matrix, matrixOf, orientationOfPart } from './orientation';
 
 /** Axis-aligned box, in world units. */
 export interface Box {
@@ -7,35 +8,72 @@ export interface Box {
   max: Vec3;
 }
 
+/** A box of a structural part and the direction its studs point (a world axis vector). */
+export interface StudBox extends Box {
+  studs: Vec3;
+}
+
 /** Tolerance for comparing heights and edges made of halves and fifths. */
 export const EPS = 1e-3;
 
-/** The parts' fields that decide their box and studs. */
-type Shape = Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs'>;
+/** The parts' fields that decide their boxes and studs. */
+type Shape = Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs' | 'spin'>;
+
+const applyMatrix = (m: Matrix, v: Vec3): Vec3 =>
+  [0, 1, 2].map((i) => m[0][i] * v[0] + m[1][i] * v[1] + m[2][i] * v[2]) as Vec3;
+
+const relativeCache = new Map<string, StudBox[]>();
 
 /**
- * The box a part occupies: a block fills a cell, a plate is a slab `PLATE.thickness` thick along the direction of its studs
- * (flat when they point up, a wall when they point sideways), a wheel fills its cell, a large wheel its 2 x 2 cells.
+ * The boxes of a structural part as they sit in the world, relative to its `cell`: the shape's boxes turned by the part's
+ * orientation. The first one is the anchor (centred on `cell`).
+ */
+export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): StudBox[] {
+  if (!isStructural(part.type)) return [];
+  const key = `${part.type}|${studsOf(part)}|${spinOf(part)}`;
+  let boxes = relativeCache.get(key);
+  if (!boxes) {
+    const m = matrixOf(orientationOfPart(part));
+    boxes = SHAPES[part.type].boxes.map((box) => {
+      const centre = applyMatrix(m, box.offset);
+      const half = applyMatrix(m, box.size).map((v) => Math.abs(v) / 2);
+      return {
+        min: centre.map((v, i) => v - half[i]) as Vec3,
+        max: centre.map((v, i) => v + half[i]) as Vec3,
+        studs: applyMatrix(m, box.studs).map((n) => (n === 0 ? 0 : n)) as Vec3,
+      };
+    });
+    relativeCache.set(key, boxes);
+  }
+  return boxes;
+}
+
+/** The boxes (with the direction of their studs) a structural part occupies in the world. */
+export function partBoxes(part: Shape): StudBox[] {
+  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs }));
+}
+
+/** The smallest box that holds all of `boxes`. */
+export function boundingBox(boxes: ReadonlyArray<Box>): Box {
+  const min: Vec3 = [Infinity, Infinity, Infinity];
+  const max: Vec3 = [-Infinity, -Infinity, -Infinity];
+  for (const box of boxes) {
+    for (let i = 0; i < 3; i++) {
+      min[i] = Math.min(min[i], box.min[i]);
+      max[i] = Math.max(max[i], box.max[i]);
+    }
+  }
+  return { min, max };
+}
+
+/**
+ * The box a part occupies: for a structural part the one around all its boxes, a wheel fills its cell, a large wheel its
+ * 2 x 2 cells.
  */
 export function partBox(part: Shape): Box {
-  if (part.type === 'bigWheel') {
-    const cells = partCells(part);
-    const min: Vec3 = [Infinity, Infinity, Infinity];
-    const max: Vec3 = [-Infinity, -Infinity, -Infinity];
-    for (const c of cells) {
-      for (let i = 0; i < 3; i++) {
-        min[i] = Math.min(min[i], c[i] - CELL_SIZE / 2);
-        max[i] = Math.max(max[i], c[i] + CELL_SIZE / 2);
-      }
-    }
-    return { min, max };
-  }
-  const half: Vec3 = [CELL_SIZE / 2, CELL_SIZE / 2, CELL_SIZE / 2];
-  if (part.type === 'plate') half[studsOf(part).findIndex((v) => v !== 0)] = PLATE.thickness / 2;
-  return {
-    min: [part.cell[0] - half[0], part.cell[1] - half[1], part.cell[2] - half[2]],
-    max: [part.cell[0] + half[0], part.cell[1] + half[1], part.cell[2] + half[2]],
-  };
+  if (isStructural(part.type)) return boundingBox(partBoxes(part));
+  const half = CELL_SIZE / 2;
+  return boundingBox(partCells(part).map((c) => ({ min: [c[0] - half, c[1] - half, c[2] - half] as Vec3, max: [c[0] + half, c[1] + half, c[2] + half] as Vec3 })));
 }
 
 /** Do the interiors of the two boxes intersect (touching faces do not count)? */
@@ -46,24 +84,41 @@ export function boxesOverlap(a: Box, b: Box): boolean {
   return true;
 }
 
+/** Do two parts intersect? Structural parts are compared box by box (an L bracket does not fill its bounding box). */
+export function partsOverlap(a: Shape, b: Shape): boolean {
+  if (!boxesOverlap(partBox(a), partBox(b))) return false;
+  const [boxesA, boxesB] = [isStructural(a.type) ? partBoxes(a) : [partBox(a)], isStructural(b.type) ? partBoxes(b) : [partBox(b)]];
+  return boxesA.some((x) => boxesB.some((y) => boxesOverlap(x, y)));
+}
+
 /**
- * How many studs engage when two blocks or plates are stacked: they must point the same way (the studs of one go into the
- * underside of the other, which is why a part turned upside down does not connect to one that is not), the parts must touch
- * on the faces across that direction (either one on top of the other) and their footprints overlap; each `STUD.pitch` x
- * `STUD.pitch` square of the overlap is one stud. 0 when they do not connect (or are not blocks / plates).
+ * How many studs engage when two structural parts are put together. A box's studs point along its `studs` direction `d`
+ * and fit into the underside (the face looking along `-d`) of a box whose own studs also point along `d`, which is why a
+ * part turned upside down does not connect to one that is not. The boxes must touch on those faces and their faces overlap;
+ * each `STUD.pitch` x `STUD.pitch` square of the overlap is one stud. Summed over every pair of boxes; 0 when the parts do
+ * not connect (or are not structural).
  */
 export function studsEngaged(a: Shape, b: Shape): number {
   if (!isStructural(a.type) || !isStructural(b.type)) return 0;
-  const dir = studsOf(a);
-  const other = studsOf(b);
-  if (dir[0] !== other[0] || dir[1] !== other[1] || dir[2] !== other[2]) return 0;
-  const axis = dir.findIndex((v) => v !== 0);
-  const [u, w] = [0, 1, 2].filter((i) => i !== axis);
-  const boxA = partBox(a);
-  const boxB = partBox(b);
-  if (Math.abs(boxA.max[axis] - boxB.min[axis]) > EPS && Math.abs(boxB.max[axis] - boxA.min[axis]) > EPS) return 0;
-  const overlapU = Math.min(boxA.max[u], boxB.max[u]) - Math.max(boxA.min[u], boxB.min[u]);
-  const overlapW = Math.min(boxA.max[w], boxB.max[w]) - Math.max(boxA.min[w], boxB.min[w]);
-  if (overlapU <= EPS || overlapW <= EPS) return 0;
-  return Math.round((overlapU * overlapW) / (STUD.pitch * STUD.pitch));
+  if (!boxesOverlapOrTouch(partBox(a), partBox(b))) return 0;
+  let count = 0;
+  for (const boxA of partBoxes(a)) {
+    for (const boxB of partBoxes(b)) {
+      if (boxA.studs.some((v, i) => v !== boxB.studs[i])) continue;
+      const axis = boxA.studs.findIndex((v) => v !== 0);
+      const [u, w] = [0, 1, 2].filter((i) => i !== axis);
+      if (Math.abs(boxA.max[axis] - boxB.min[axis]) > EPS && Math.abs(boxB.max[axis] - boxA.min[axis]) > EPS) continue;
+      const overlapU = Math.min(boxA.max[u], boxB.max[u]) - Math.max(boxA.min[u], boxB.min[u]);
+      const overlapW = Math.min(boxA.max[w], boxB.max[w]) - Math.max(boxA.min[w], boxB.min[w]);
+      if (overlapU <= EPS || overlapW <= EPS) continue;
+      count += Math.round((overlapU * overlapW) / (STUD.pitch * STUD.pitch));
+    }
+  }
+  return count;
 }
+
+/** True when the boxes overlap or touch (a quick test before comparing the boxes of two parts). */
+function boxesOverlapOrTouch(a: Box, b: Box): boolean {
+  return [0, 1, 2].every((i) => a.max[i] - b.min[i] >= -EPS && b.max[i] - a.min[i] >= -EPS);
+}
+

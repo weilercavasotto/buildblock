@@ -1,8 +1,21 @@
 export type Vec3 = [number, number, number];
-export type PartType = 'block' | 'wheel' | 'bigWheel' | 'plate';
+/** Parts that make up the body of a creation: blocks, plates and L brackets in several sizes (see `SHAPES`). */
+export const STRUCTURAL_TYPES = [
+  'block',
+  'blockHalf',
+  'blockLarge',
+  'plate',
+  'plateHalf',
+  'plateLarge',
+  'plateLargeHalf',
+  'bracket',
+  'bracketSmall',
+] as const;
+export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
+export type PartType = StructuralType | 'wheel' | 'bigWheel';
 
-/** Parts that make up the body of a creation: blocks and plates (touching ones are welded into one rigid body). */
-export const isStructural = (type: PartType): boolean => type === 'block' || type === 'plate';
+/** Structural parts (touching ones are welded through their studs into one rigid body). */
+export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
@@ -24,11 +37,16 @@ export interface Part {
    */
   face?: Vec3;
   /**
-   * Blocks and plates: the direction the studs point (a unit vector along an axis), so the part can lie on any of its 6
-   * faces. Missing = up, `[0, 1, 0]`. A block and a plate are symmetric around their studs, so this is the whole
-   * orientation (24 turns of the part come down to 6 directions). Read it through `studsOf()`.
+   * Structural parts: the direction the main studs point (a unit vector along an axis), so the part can lie on any of
+   * its 6 faces. Missing = up, `[0, 1, 0]`. Together with `spin` it is the whole orientation (24 turns). Read it through
+   * `studsOf()`.
    */
   studs?: Vec3;
+  /**
+   * Structural parts: quarter turns (1-3) of the part around its studs, for the shapes that look different after one (a
+   * half plate, an L bracket; see `SHAPES[type].spins`). Missing = 0. Read it through `spinOf()`.
+   */
+  spin?: number;
   /**
    * Small wheels: `1` or `-1` points the axle straight up or down instead of horizontally (see `wheelAxle`); missing =
    * horizontal, chosen by `rotation`.
@@ -122,6 +140,9 @@ export function partCentre(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation
 
 /** The direction a block's or plate's studs point: its own, or up. */
 export const studsOf = (part: Pick<Part, 'studs'>): Vec3 => part.studs ?? [0, 1, 0];
+
+/** The spin of a structural part around its studs (0-3). */
+export const spinOf = (part: Pick<Part, 'spin'>): number => normalizeRotation(part.spin ?? 0);
 
 /** Is `v` one of the six axis directions (a unit vector along x, y or z)? */
 export const isAxisDirection = (v: unknown): v is Vec3 =>

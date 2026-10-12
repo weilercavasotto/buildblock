@@ -4,6 +4,7 @@ export * from './effects';
 export * from './game';
 export * from './help-content';
 export * from './part-catalog';
+export * from './part-shapes';
 export * from './physics';
 export * from './spacing';
 export * from './text';

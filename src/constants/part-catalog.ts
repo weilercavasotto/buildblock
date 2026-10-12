@@ -1,6 +1,6 @@
 import { PLATE } from './game';
 import { CHASSIS, WHEEL, WHEEL_SIZES } from './physics';
-import { PartType } from '../types';
+import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
 
@@ -35,56 +35,127 @@ export interface PartInfo {
   tips: ReadonlyArray<string>;
 }
 
+/** What the catalog says about each structural part; the rest of its entry is the same for all of them. */
+interface StructuralText {
+  name: string;
+  tagline: string;
+  description: string;
+  /** "Size" row (cells). */
+  size: string;
+  /** "Studs" row. */
+  studs: string;
+  tips: ReadonlyArray<string>;
+  extraProperties?: ReadonlyArray<{ label: string; value: string }>;
+}
+
+function structural(type: StructuralType, t: StructuralText): PartInfo {
+  return {
+    type,
+    name: t.name,
+    category: 'structure',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: true,
+    previewAngle: 0.6,
+    tagline: t.tagline,
+    description: t.description,
+    properties: [
+      { label: 'Size', value: t.size },
+      { label: 'Studs', value: t.studs },
+      ...(t.extraProperties ?? []),
+      { label: 'Placement', value: 'On the ground, or on / under another block, plate or bracket with at least 1 stud engaged; half-cell steps in x and z' },
+      { label: 'Physics', value: 'Parts joined by studs merge into one rigid body; parts side by side are not welded' },
+      { label: 'Rotation', value: 'Any face up: A / D turn, W / S tilt (90° steps); the studs go with it' },
+      { label: 'Paint', value: 'Yes, in paint mode (E)' },
+      { label: 'Weight', value: 'Adjustable in the inspector (1-16, default 4); a thin part weighs less at the same setting' },
+    ],
+    tips: t.tips,
+  };
+}
+
+const STRUCTURE_TIP = 'Move the pointer over the part below to choose how much of it rests there (all the studs, half, or just one).';
+
 export const PART_INFO: Record<PartType, PartInfo> = {
   block: {
-    type: 'block',
-    name: 'Block',
-    category: 'structure',
-    rotatable: true,
-    paintable: true,
-    hasSuspension: false,
-    hasTire: false,
-    hasWeight: true,
-    previewAngle: 0.6,
-    tagline: 'The basic building cube.',
-    description:
-      'A solid 1×1×1 cube with 4 studs on top, like a toy brick. A block is welded to the blocks and plates it is stacked with (at least one stud engaged), so they make the frame of a vehicle or any structure. It can rest on half of another block (2 studs) or on a corner (1 stud).',
-    properties: [
-      { label: 'Size', value: '1 × 1 × 1 cell' },
-      { label: 'Studs', value: '4 on top (2 × 2, half a cell apart)' },
-      { label: 'Placement', value: 'On the ground, or on / under another block or plate with at least 1 stud engaged; half-cell steps in x and z' },
-      { label: 'Physics', value: 'Stacked blocks and plates (studs engaged) merge into one rigid body; blocks side by side are not welded' },
-      { label: 'Rotation', value: 'Any face up: A / D turn, ↑ / ↓ tilt (90° steps); the studs go with it' },
-      { label: 'Paint', value: 'Yes, in paint mode (E)' },
-      { label: 'Friction', value: String(CHASSIS.friction) },
-      { label: 'Weight', value: 'Adjustable in the inspector (1-16, default 4)' },
-    ],
-    tips: ['Move the pointer over the block below to choose how much rests on it (4, 2 or 1 stud).', 'Blocks side by side are not welded: tie them together with a plate or a layer of blocks on top.', 'Hold the left button and drag to place a row or a layer of blocks.'],
+    ...structural('block', {
+      name: 'Block',
+      tagline: 'The basic building cube.',
+      description:
+        'A solid 1×1×1 cube with 4 studs on top, like a toy brick. A block is welded to the blocks, plates and brackets it is stacked with (at least one stud engaged), so they make the frame of a vehicle or any structure. It can rest on half of another block (2 studs) or on a corner (1 stud). Wheels are mounted on its sides.',
+      size: '1 × 1 × 1 cell',
+      studs: '4 on top (2 × 2, half a cell apart)',
+      tips: [STRUCTURE_TIP, 'Blocks side by side are not welded: tie them together with a plate or a layer of blocks on top.', 'Hold the left button and drag to place a row or a layer of blocks.'],
+      extraProperties: [{ label: 'Friction', value: String(CHASSIS.friction) }],
+    }),
   },
-  plate: {
-    type: 'plate',
+  blockHalf: structural('blockHalf', {
+    name: 'Half block',
+    tagline: 'A block cut in half.',
+    description: 'Half a block: a 0.5 × 1 footprint and a full block tall, with 2 studs on top. Use it to fill narrow gaps and to build in half-cell steps. Wheels cannot be mounted on it.',
+    size: '0.5 × 1 × 1 cell',
+    studs: '2 on top (in a row)',
+    tips: [STRUCTURE_TIP, 'A / D turn it so the narrow side faces the other way.'],
+  }),
+  blockLarge: structural('blockLarge', {
+    name: 'Large block',
+    tagline: 'Four blocks in one.',
+    description: 'A solid 2×1×2 block with 16 studs on top: the same as four blocks side by side, but welded in one piece. Good for the base of a heavy vehicle. Wheels cannot be mounted on it.',
+    size: '2 × 1 × 2 cells',
+    studs: '16 on top (4 × 4)',
+    tips: [STRUCTURE_TIP, 'It is one part: a single click places the whole thing.'],
+  }),
+  plate: structural('plate', {
     name: 'Plate',
-    category: 'structure',
-    // Can be turned to stand on any of its faces (the studs go with it).
-    rotatable: true,
-    paintable: true,
-    hasSuspension: false,
-    hasTire: false,
-    hasWeight: true,
-    previewAngle: 0.6,
     tagline: 'A thin square panel with studs.',
     description:
-      'A flat square plate, a fifth of a block thick, with 4 studs on top like a block. Use it for floors, roofs and body panels, and to tie blocks together: a plate resting on two blocks side by side welds them into one body. Place it on the ground or on top of (or under) a block or plate; it must engage at least one stud.',
-    properties: [
-      { label: 'Size', value: `1 x 1 x ${PLATE.thickness} cell` },
-      { label: 'Studs', value: '4 on its top face; welds to what it rests on or hangs from' },
-      { label: 'Rotation', value: 'Any face up: A / D turn, ↑ / ↓ tilt (90° steps); stood on its edge it is a wall' },
-      { label: 'Placement', value: 'On the ground, or on / under a block or plate (at least 1 stud engaged), in half-cell steps' },
-      { label: 'Paint', value: 'Yes, in paint mode (E)' },
-      { label: 'Weight', value: 'Adjustable in the inspector (1-16, default 4)' },
-    ],
-    tips: ['Move the pointer over the part below to choose how much of the plate rests on it (4, 2 or 1 stud).', 'Two plates, offset by half a cell, make a strong deck for blocks side by side.'],
-  },
+      'A flat square plate, a fifth of a block thick, with 4 studs on top like a block. Use it for floors, roofs and body panels, and to tie blocks together: a plate resting on two blocks side by side welds them into one body. Place it on the ground or on top of (or under) another part; it must engage at least one stud.',
+    size: `1 x 1 x ${PLATE.thickness} cell`,
+    studs: '4 on its top face (2 × 2)',
+    tips: [STRUCTURE_TIP, 'Two plates, offset by half a cell, make a strong deck for blocks side by side.', 'Stood on its edge (W / S) it is a wall.'],
+  }),
+  plateHalf: structural('plateHalf', {
+    name: 'Half plate',
+    tagline: 'A narrow plate, half as wide.',
+    description: 'A plate half as wide as the normal one: 0.5 × 1 with 2 studs. Use it for trim, rails and to tie parts together in a small space.',
+    size: `0.5 x 1 x ${PLATE.thickness} cell`,
+    studs: '2 on its top face',
+    tips: [STRUCTURE_TIP, 'A / D turn it a quarter turn.'],
+  }),
+  plateLarge: structural('plateLarge', {
+    name: 'Large plate',
+    tagline: 'Four plates in one.',
+    description: 'A flat plate 2 × 2 cells with 16 studs: the same as four plates side by side, in one piece. Use it for wide decks that tie a whole layer of blocks together.',
+    size: `2 x 2 x ${PLATE.thickness} cells`,
+    studs: '16 on its top face (4 × 4)',
+    tips: [STRUCTURE_TIP, 'A single large plate across a row of blocks welds the whole row.'],
+  }),
+  plateLargeHalf: structural('plateLargeHalf', {
+    name: 'Large half plate',
+    tagline: 'A long, narrow plate.',
+    description: 'A large plate half as wide: 1 × 2 cells with 8 studs. A long strip for chassis rails and side panels.',
+    size: `1 x 2 x ${PLATE.thickness} cells`,
+    studs: '8 on its top face (2 × 4)',
+    tips: [STRUCTURE_TIP, 'A / D turn it a quarter turn.'],
+  }),
+  bracket: structural('bracket', {
+    name: 'L bracket',
+    tagline: 'Two plates at a right angle.',
+    description:
+      'A flat plate with a wall plate standing on its back edge, like a Lego angle: 4 studs on top of the flat plate and 4 on the outside of the wall, 8 in all. It joins a floor to a wall in one piece. The wall is as tall as a block.',
+    size: `1 x 1 x ${PLATE.thickness} flat plate + 1 x 1 x ${PLATE.thickness} wall`,
+    studs: '4 on the flat plate (top) + 4 on the outside of the wall',
+    tips: [STRUCTURE_TIP, 'Parts engage the studs of the wall by lying with their own studs pointing the same way (tilt them with W / S).', 'A / D turn the wall to the side you need.'],
+  }),
+  bracketSmall: structural('bracketSmall', {
+    name: 'Small L bracket',
+    tagline: 'A narrow L bracket.',
+    description: 'The L bracket half as wide: a 0.5 wide flat plate (2 studs) with a wall (2 studs), 4 in all. For corners and braces where the full bracket does not fit.',
+    size: `0.5 x 1 x ${PLATE.thickness} flat plate + 0.5 x 1 x ${PLATE.thickness} wall`,
+    studs: '2 on the flat plate (top) + 2 on the outside of the wall',
+    tips: [STRUCTURE_TIP, 'A / D turn the wall to the side you need.'],
+  }),
   wheel: {
     type: 'wheel',
     name: 'Wheel',
@@ -148,4 +219,16 @@ export const PART_INFO: Record<PartType, PartInfo> = {
 };
 
 /** Parts in catalog order. */
-export const PART_ORDER: ReadonlyArray<PartType> = ['block', 'plate', 'wheel', 'bigWheel'];
+export const PART_ORDER: ReadonlyArray<PartType> = [
+  'blockHalf',
+  'block',
+  'blockLarge',
+  'plateHalf',
+  'plate',
+  'plateLargeHalf',
+  'plateLarge',
+  'bracketSmall',
+  'bracket',
+  'wheel',
+  'bigWheel',
+];

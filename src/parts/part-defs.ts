@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { ALPHA, PAINT_EDGE_FACTOR, PLATE, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, Vec3, isHexColor, partCentre, studsOf, wheelAxle } from '../types';
+import { ALPHA, PAINT_EDGE_FACTOR, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber, wheelSizeOf } from '../constants';
+import { Part, Vec3, isHexColor, isStructural, partCentre, wheelAxle } from '../types';
+import { Orientation, matrixOf, orientationOfPart } from './orientation';
+import { boundingBox, partBoxes } from './part-geometry';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { wheelGeometry } from './wheel-model';
 
@@ -10,17 +12,51 @@ const ghostMaterial = (hex: string) =>
 
 const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
 const edgeGeo = new THREE.EdgesGeometry(blockGeo);
-// The connectors: 2 x 2 round studs on the top face, `STUD.pitch` apart, merged into one mesh (one draw call per part). They
-// are built for the top of a unit block; `studsMesh` moves them to the top of a plate.
-const studsGeo = mergeGeometries(
-  [-1, 1].flatMap((sx) =>
-    [-1, 1].map((sz) =>
-      new THREE.CylinderGeometry(STUD.radius, STUD.radius, STUD.height, STUD.segments)
-        .translate((sx * STUD.pitch) / 2, STUD.height / 2, (sz * STUD.pitch) / 2)
-        .toNonIndexed(),
-    ),
-  ),
-)!;
+// The connectors: round studs on a face, `STUD.pitch` apart, merged into one mesh per box (one draw call). They are built for
+// the top of a box (a grid of `across` x `along` studs around its centre, pointing up) and cached by that size.
+const studsCache = new Map<string, THREE.BufferGeometry>();
+function studsGeometry(across: number, along: number): THREE.BufferGeometry {
+  const key = `${across}x${along}`;
+  let geometry = studsCache.get(key);
+  if (!geometry) {
+    const pieces: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < across; i++) {
+      for (let j = 0; j < along; j++) {
+        pieces.push(
+          new THREE.CylinderGeometry(STUD.radius, STUD.radius, STUD.height, STUD.segments)
+            .translate((i - (across - 1) / 2) * STUD.pitch, STUD.height / 2, (j - (along - 1) / 2) * STUD.pitch)
+            .toNonIndexed(),
+        );
+      }
+    }
+    geometry = mergeGeometries(pieces)!;
+    studsCache.set(key, geometry);
+  }
+  return geometry;
+}
+// The sockets: one dark disc per stud position, facing up (`socketsMesh` turns them to the underside), cached by grid size.
+const socketsCache = new Map<string, THREE.BufferGeometry>();
+function socketsGeometry(across: number, along: number): THREE.BufferGeometry {
+  const key = `${across}x${along}`;
+  let geometry = socketsCache.get(key);
+  if (!geometry) {
+    const pieces: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < across; i++) {
+      for (let j = 0; j < along; j++) {
+        pieces.push(
+          new THREE.CircleGeometry(STUD.socketRadius, STUD.segments)
+            .rotateX(-Math.PI / 2)
+            .translate((i - (across - 1) / 2) * STUD.pitch, 0, (j - (along - 1) / 2) * STUD.pitch)
+            .toNonIndexed(),
+        );
+      }
+    }
+    geometry = mergeGeometries(pieces)!;
+    socketsCache.set(key, geometry);
+  }
+  return geometry;
+}
+const socketMat = new THREE.MeshBasicMaterial({ color: hexToNumber(COLORS.part.socket) });
 // The faces are pushed back a little in depth (and the outline is drawn slightly larger than the cube, see
 // BLOCK_EDGE_SCALE) so the dark outline of each block is not eaten by the faces.
 const blockMat = new THREE.MeshStandardMaterial({
@@ -62,20 +98,17 @@ const ghostOk = ghostMaterial(COLORS.part.ghostValid);
 const ghostBad = ghostMaterial(COLORS.part.ghostInvalid);
 
 /** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
-export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs' | 'pitch'>): THREE.Box3 {
-  const half = new THREE.Vector3();
-  if (part.type === 'block') {
-    half.setScalar(BLOCK_VISUAL_SIZE / 2);
-  } else if (part.type === 'plate') {
-    half.setScalar(BLOCK_VISUAL_SIZE / 2);
-    half.setComponent(studsOf(part).findIndex((v) => v !== 0), PLATE.thickness / 2);
-  } else {
-    const { scale } = wheelSizeOf(part.type);
-    half.setScalar(WHEEL.radius * scale);
-    const axle = wheelAxle(part).findIndex((v) => v !== 0);
-    half.setComponent(axle, (WHEEL.width * scale) / 2);
+export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs' | 'spin' | 'pitch'>): THREE.Box3 {
+  const margin = new THREE.Vector3().setScalar(HIGHLIGHT.margin);
+  if (isStructural(part.type)) {
+    const box = boundingBox(partBoxes(part));
+    return new THREE.Box3(new THREE.Vector3(...box.min).sub(margin), new THREE.Vector3(...box.max).add(margin));
   }
-  half.addScalar(HIGHLIGHT.margin);
+  const { scale } = wheelSizeOf(part.type);
+  const half = new THREE.Vector3().setScalar(WHEEL.radius * scale);
+  const axle = wheelAxle(part).findIndex((v) => v !== 0);
+  half.setComponent(axle, (WHEEL.width * scale) / 2);
+  half.add(margin);
   const centre = new THREE.Vector3(...partCentre(part));
   return new THREE.Box3(centre.clone().sub(half), centre.clone().add(half));
 }
@@ -85,52 +118,73 @@ export function faceQuaternion(face: Vec3): THREE.Quaternion {
   return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...face));
 }
 
-/** The studs of a block or plate whose top face is `top` above its centre: one mesh, no picking (they sit on the top face). */
-function studsMesh(material: THREE.Material, top: number): THREE.Mesh {
-  const mesh = new THREE.Mesh(studsGeo, material);
-  mesh.position.y = top;
+/** The turn of a structural part: its local frame (studs up) to the world. Any integer spin works. */
+export function orientationQuaternion(o: Orientation): THREE.Quaternion {
+  const [x, y, z] = matrixOf(o);
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(...x), new THREE.Vector3(...y), new THREE.Vector3(...z)));
+}
+
+/** How many studs fit along each in-plane axis of the `studs` face of a box of the given size, and the turn that points a stud grid along it. */
+function studLayout(size: Vec3, studs: Vec3) {
+  const facing = faceQuaternion(studs);
+  const axis = studs.findIndex((v) => v !== 0);
+  // `faceQuaternion` takes the geometry's x and z axes onto the face's in-plane axes; count the studs along each.
+  const count = (v: THREE.Vector3) => Math.round(Math.abs(v.x * size[0] + v.y * size[1] + v.z * size[2]) / STUD.pitch);
+  const across = count(new THREE.Vector3(1, 0, 0).applyQuaternion(facing));
+  const along = count(new THREE.Vector3(0, 0, 1).applyQuaternion(facing));
+  return { facing, across, along, reach: (size[axis] * BLOCK_VISUAL_SIZE) / 2 };
+}
+
+/** The studs on the `studs` face of a box of the given size: one mesh, no picking. `studs` is a local axis vector. */
+function studsMesh(material: THREE.Material, size: Vec3, studs: Vec3): THREE.Mesh {
+  const { facing, across, along, reach } = studLayout(size, studs);
+  const mesh = new THREE.Mesh(studsGeometry(across, along), material);
+  mesh.quaternion.copy(facing);
+  mesh.position.set(...studs).multiplyScalar(reach);
   mesh.castShadow = true;
   mesh.raycast = () => {};
   return mesh;
 }
 
+/** The dark sockets on the underside of a box (the face opposite its studs), where the studs of another part go in. */
+function socketsMesh(size: Vec3, studs: Vec3): THREE.Mesh {
+  const under = studs.map((v) => (v === 0 ? 0 : -v)) as Vec3;
+  const { facing, across, along, reach } = studLayout(size, under);
+  const mesh = new THREE.Mesh(socketsGeometry(across, along), socketMat);
+  mesh.quaternion.copy(facing);
+  mesh.position.set(...under).multiplyScalar(reach + STUD.socketLift);
+  mesh.raycast = () => {};
+  return mesh;
+}
+
 /** Builds the visual for a part, centred on its own origin (cell centre). */
-export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' | 'color' | 'studs' | 'pitch'>, ghost?: 'ok' | 'bad'): THREE.Group {
+export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' | 'color' | 'studs' | 'spin' | 'pitch'>, ghost?: 'ok' | 'bad'): THREE.Group {
   const root = new THREE.Group();
   const ghostMat = ghost === 'ok' ? ghostOk : ghost === 'bad' ? ghostBad : undefined;
   const noRaycast = { raycast: () => {} };
 
-  if (part.type === 'block') {
+  if (isStructural(part.type)) {
+    // Each box of the shape, with its studs, in the part's own frame (studs up); the root turns it to the part's orientation.
     const mats = blockMaterials(part.color);
-    const mesh = new THREE.Mesh(blockGeo, ghostMat ?? mats.face);
-    mesh.castShadow = mesh.receiveShadow = !ghost;
-    if (ghost) mesh.scale.setScalar(GHOST_BLOCK_SCALE);
-    root.add(mesh);
-    if (!ghost) {
-      const edges = new THREE.LineSegments(edgeGeo, mats.edge);
-      Object.assign(edges, noRaycast);
-      edges.scale.setScalar(BLOCK_EDGE_SCALE);
-      root.add(edges);
-      root.add(studsMesh(mats.face, BLOCK_VISUAL_SIZE / 2));
+    for (const box of SHAPES[part.type].boxes) {
+      const group = new THREE.Group();
+      group.position.set(...box.offset);
+      const mesh = new THREE.Mesh(blockGeo, ghostMat ?? mats.face);
+      mesh.castShadow = mesh.receiveShadow = !ghost;
+      mesh.scale.set(...box.size);
+      if (ghost) mesh.scale.multiplyScalar(GHOST_BLOCK_SCALE);
+      group.add(mesh);
+      if (!ghost) {
+        const edges = new THREE.LineSegments(edgeGeo, mats.edge);
+        Object.assign(edges, noRaycast);
+        edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
+        group.add(edges);
+        group.add(studsMesh(mats.face, box.size, box.studs));
+        group.add(socketsMesh(box.size, box.studs));
+      }
+      root.add(group);
     }
-    // The studs point where `studs` says (up by default); a block is symmetric around them, so this is its whole orientation.
-    root.quaternion.copy(faceQuaternion(studsOf(part)));
-  } else if (part.type === 'plate') {
-    // A thin square slab, centred on the part (its studs are on top, like a block's).
-    const mats = blockMaterials(part.color);
-    const mesh = new THREE.Mesh(blockGeo, ghostMat ?? mats.face);
-    mesh.castShadow = mesh.receiveShadow = !ghost;
-    mesh.scale.set(1, PLATE.thickness, 1);
-    if (ghost) mesh.scale.multiplyScalar(GHOST_BLOCK_SCALE);
-    root.add(mesh);
-    if (!ghost) {
-      const edges = new THREE.LineSegments(edgeGeo, mats.edge);
-      Object.assign(edges, noRaycast);
-      edges.scale.set(1, PLATE.thickness, 1).multiplyScalar(BLOCK_EDGE_SCALE);
-      root.add(edges);
-      root.add(studsMesh(mats.face, PLATE.thickness / 2));
-    }
-    root.quaternion.copy(faceQuaternion(studsOf(part))); // flat when the studs point up, a wall when they point sideways
+    root.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
   } else {
     const pivot = new THREE.Group();
     pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));

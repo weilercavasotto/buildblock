@@ -26,7 +26,7 @@ Example: a new part type `'thruster'`.
 
 ## Parts that connect with studs
 
-Blocks and plates (`isStructural`) weld through studs: give a new one a `partBox` size in `parts/part-geometry.ts`, the visual (studs included via `studsMesh`), and decide how `BuildMode.structuralTarget` places it. A part that hangs off a host (wheels) uses `face` instead.
+Structural parts (`isStructural`: `STRUCTURAL_TYPES` in `types.ts`: blocks, plates and L brackets in several sizes) weld through studs and are described by one entry of `SHAPES` (`constants/part-shapes.ts`): a list of boxes (size, offset from the first, "anchor" box, and the direction of each box's studs) and `spins` (how many quarter turns around the studs look different: 1 square, 2 rectangle, 4 L). A new size needs only a `StructuralType`, its `SHAPES` and `PART_INFO` entries (the `structural()` helper in `part-catalog.ts`) and a place in `PART_ORDER`; geometry (`partBoxes`), visuals (`createPartObject`), physics colliders and placement (`BuildMode.structuralTarget`) follow from the shape. Keep box sizes multiples of `STUD.pitch` (thin plates aside) so edges stay on the stud lattice. A part that hangs off a host (wheels) uses `face` instead.
 
 ## Parts that occupy several cells
 
