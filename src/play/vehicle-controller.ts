@@ -84,7 +84,9 @@ export class VehicleController {
       }
       // Right turn (steer > 0): right wheels slow down / reverse, left wheels speed up.
       const speed = throttle - steer * side * VEHICLE.steerGain;
-      wheel.joint.configureMotorVelocity(roll * speed * VEHICLE.maxWheelSpeed * wheel.speed, VEHICLE.motorStrength * wheel.torque);
+      // Full strength to steer, `cruise` of it in a straight line (see `WHEEL_SIZES`), blended with the steering input.
+      const strength = wheel.cruise + (1 - wheel.cruise) * Math.min(1, Math.abs(steer));
+      wheel.joint.configureMotorVelocity(roll * speed * VEHICLE.maxWheelSpeed * wheel.speed, VEHICLE.motorStrength * wheel.torque * strength);
     }
   }
 }

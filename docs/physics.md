@@ -13,6 +13,12 @@ every time Play starts (and on `R`).
    `SUSPENSION.hubMass` and a large `hubInertia`: the wheel motor is acceleration based, so it acts on the reduced inertia of hub and wheel and would be too weak to steer with a tiny hub) that hangs from the chassis by a vertical **spring**:
    `chassis -prismatic spring- hub -revolute- wheel`. The wheel and hub bodies start un-rotated so the joint axes
    are identical in both local frames.
+   - **Large wheel** (`bigWheel`): the same chain with the cylinder scaled by `WHEEL_SIZES.bigWheel.scale` (2, radius 1.3 /
+     width 0.8) and the spring travel scaled too. The joint anchor and the body start at `partCentre` (the middle of its
+     2 × 2 cells); the whole creation spawns raised by the largest `lift` needed so no wheel starts in the floor. Its
+     motor is weaker (`torque` 0.6, the wheel is ~32× the inertia) and eased off in a straight line (`cruise` 0.2: a
+     wheelie otherwise), while steering gets the full strength, blended with the steering input. Top speed
+     (`speed` 0.75 of angular speed) is still higher because the wheel is bigger.
    - **Suspension**: the spring is a `PrismaticImpulseJoint` along the world up axis, limited to
      `SUSPENSION.travelDown` / `travelUp`, with a position motor aiming at the rest position
      (`configureMotorPosition`, `MotorModel.ForceBased`). The player sets the **strength** (0-100, `Part.suspension`,
@@ -77,6 +83,7 @@ All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (s
 | `WHEEL.radius` / `WHEEL.width` | 0.65 / 0.4 | Wheel size (visual and collider) |
 | `TIRES` | 3 types | Friction (combine: max), top-speed and motor-strength multipliers of each tire type |
 | `CHASSIS.friction` | 0.6 | Chassis friction |
+| `WHEEL_SIZES` | wheel / bigWheel | Scale, angular speed, motor torque and straight-line (`cruise`) torque of each wheel size |
 | `SUSPENSION.*` | see file | Suspension strength range / default, stiffness range, damping ratio, travel, hub mass |
 | `WORLD.gravity` | -15 | World gravity |
 | `WORLD.step` / `WORLD.maxFrameTime` | 1/60 s / 0.1 s | Fixed step and frame-time clamp |

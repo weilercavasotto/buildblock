@@ -4,7 +4,7 @@ import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
 import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, hexToNumber } from '../constants';
 import { createPartObject, partBounds } from '../parts/part-defs';
-import { CursorMode, Part, PartType, Vec3, addVec, cellKey, normalizeRotation, partRotation, rotationOfFace, yawOfTurns } from '../types';
+import { CursorMode, Part, PartType, Vec3, addVec, cellKey, normalizeRotation, partCells, partCentre, partRotation, rotationOfFace, yawOfTurns } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -56,7 +56,7 @@ export class BuildMode {
   readonly group = new THREE.Group();
   private mode: CursorMode = 'build';
   /** The placement preview. It outlives pointer moves so that its rotation can be animated. */
-  private ghost: { object: THREE.Group; type: PartType; valid: boolean } | null = null;
+  private ghost: { object: THREE.Group; type: PartType; valid: boolean; key: string } | null = null;
   private ghostYaw = 0;
   private ghostTargetYaw = 0;
   /** Rotation (clockwise quarter turns, 0-3) given to the next rotatable part placed; for a wheel it is relative to its face. */
@@ -132,7 +132,8 @@ export class BuildMode {
       const wrapped = this.ghostTargetYaw % (2 * Math.PI);
       this.ghostYaw = this.ghostTargetYaw = wrapped;
     }
-    if (this.ghost) this.ghost.object.rotation.y = this.ghostYaw;
+    // A large wheel's ghost is built facing the right way and does not turn.
+    if (this.ghost && this.ghost.type !== 'bigWheel') this.ghost.object.rotation.y = this.ghostYaw;
   }
 
   setPaintColor(color: string | null): void {
@@ -183,7 +184,7 @@ export class BuildMode {
     this.group.clear();
     for (const part of this.grid.all()) {
       const obj = createPartObject(part);
-      obj.position.set(...part.cell);
+      obj.position.set(...partCentre(part));
       obj.userData.part = part;
       this.group.add(obj);
       // Raycasts use the world matrix, which is otherwise only refreshed on the next rendered frame.
@@ -231,14 +232,26 @@ export class BuildMode {
   private target(p: Pick): Part | null {
     if (this.tool === null) return null;
     if (this.tool === 'block') {
-      const cell: Vec3 = p.part ? addVec(p.part.cell, p.normal) : [Math.round(p.point.x), 0, Math.round(p.point.z)];
+      const cell: Vec3 = p.part ? addVec(this.hitCell(p.part, p.point), p.normal) : [Math.round(p.point.x), 0, Math.round(p.point.z)];
       return { type: 'block', cell, rotation: this.rotation };
     }
     if (!p.part || p.part.type !== 'block' || p.normal[1] !== 0) return null;
+    if (this.tool === 'bigWheel') {
+      // The axle is the face normal; the rotation (A / D) only picks the side the wheel extends toward (see `partCells`).
+      return { type: 'bigWheel', cell: addVec(p.part.cell, p.normal), face: p.normal, rotation: this.rotation };
+    }
     // `face` says where the wheel is mounted. Its axle is the face normal (a normal wheel) turned by the user's rotation:
     // 0 turns = perpendicular to the face, an odd number = lying along it (like a caster).
     const rotation = normalizeRotation(rotationOfFace(p.normal) + this.rotation);
     return { type: 'wheel', cell: addVec(p.part.cell, p.normal), face: p.normal, rotation };
+  }
+
+  /** The cell of `part` that contains (or is nearest to) the picked `point`: a large wheel occupies 4 cells. */
+  private hitCell(part: Part, point: THREE.Vector3): Vec3 {
+    const cells = partCells(part);
+    if (cells.length === 1) return part.cell;
+    const dist = (c: Vec3) => point.distanceToSquared(new THREE.Vector3(...c));
+    return cells.reduce((best, c) => (dist(c) < dist(best) ? c : best));
   }
 
   private onDown(e: PointerEvent): void {
@@ -391,16 +404,19 @@ export class BuildMode {
     const target = desired + 2 * Math.PI * Math.round((this.ghostYaw - desired) / (2 * Math.PI));
 
     if (!this.ghost) this.ghostYaw = target; // newly shown: no spin-in from an old orientation
-    if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid) {
+    const big = part.type === 'bigWheel';
+    const key = big ? String(part.face) : '';
+    if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid || this.ghost.key !== key) {
       if (this.ghost) this.scene.remove(this.ghost.object);
-      // Built unrotated (a wheel with its axle along X): the animated yaw does all the turning.
-      const object = createPartObject({ type: part.type }, valid ? 'ok' : 'bad');
+      // Built unrotated (a wheel with its axle along X): the animated yaw does all the turning. A large wheel's axle is
+      // its face normal and its rotation only picks a side, so it is built facing the right way and not turned.
+      const object = createPartObject(big ? { type: part.type, face: part.face } : { type: part.type }, valid ? 'ok' : 'bad');
       this.scene.add(object);
-      this.ghost = { object, type: part.type, valid };
+      this.ghost = { object, type: part.type, valid, key };
     }
     this.ghostTargetYaw = target;
-    this.ghost.object.position.set(...part.cell);
-    this.ghost.object.rotation.y = this.ghostYaw;
+    this.ghost.object.position.set(...partCentre(part));
+    this.ghost.object.rotation.y = big ? 0 : this.ghostYaw;
   }
 
   private onUp(e: PointerEvent): void {

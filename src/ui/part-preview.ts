@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, PART_INFO, PREVIEW, hexToNumber } from '../constants';
+import { COLORS, PART_INFO, PART_ORDER, PREVIEW, hexToNumber } from '../constants';
 import { createPartObject } from '../parts/part-defs';
 import { PartType, Vec3 } from '../types';
 
@@ -9,10 +9,37 @@ interface PreviewScene {
   camera: THREE.PerspectiveCamera;
   pivot: THREE.Group;
   /** Per part: the centred object and the camera distance that frames it. */
-  parts: Map<string, { object: THREE.Object3D; distance: number }>;
+  parts: Map<string, { object: THREE.Object3D; distance: number; commonDistance: number }>;
 }
 
 let shared: PreviewScene | null = null;
+
+/** How a preview is drawn. */
+export interface PreviewOptions {
+  /** Paint of the part (`Part.color`). */
+  color?: string;
+  /**
+   * Frame every part with the same camera distance (the one that fits the biggest part) so the previews show their sizes
+   * relative to each other (the catalog does, a large wheel then looks twice the wheel). Default: each part fills its frame.
+   */
+  common?: boolean;
+}
+
+/**
+ * How far `object` reaches from its centre while it spins around the vertical axis: its half height or the radius of its
+ * horizontal footprint. Tighter than the bounding sphere (a wide flat wheel would otherwise leave the previews tiny).
+ */
+function spinRadius(object: THREE.Object3D): number {
+  const half = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3()).multiplyScalar(0.5);
+  return Math.max(half.y, Math.hypot(half.x, half.z));
+}
+
+let commonRadius = 0;
+/** The spin radius of the biggest part of the catalog. */
+function biggestRadius(): number {
+  if (!commonRadius) commonRadius = Math.max(...PART_ORDER.map((type) => spinRadius(createPartObject({ type }))));
+  return commonRadius;
+}
 
 /** One off-screen WebGL renderer shared by every preview (hotbar, catalog cards, inspector): browsers cap contexts. */
 function setup(): PreviewScene {
@@ -40,8 +67,8 @@ function partEntry(type: PartType, color?: string) {
     const box = new THREE.Box3().setFromObject(object);
     object.position.sub(box.getCenter(new THREE.Vector3()));
     const radius = box.getBoundingSphere(new THREE.Sphere()).radius;
-    const distance = (radius * PREVIEW.margin) / Math.sin(THREE.MathUtils.degToRad(PREVIEW.fov / 2));
-    entry = { object, distance };
+    const distanceFor = (r: number) => (r * PREVIEW.margin) / Math.sin(THREE.MathUtils.degToRad(PREVIEW.fov / 2));
+    entry = { object, distance: distanceFor(radius), commonDistance: distanceFor(biggestRadius()) };
     s.parts.set(key, entry);
   }
   return entry;
@@ -61,7 +88,7 @@ export function renderPartPreview(
   type: PartType,
   canvas: HTMLCanvasElement,
   angle: number = PART_INFO[type].previewAngle,
-  color?: string,
+  { color, common }: PreviewOptions = {},
 ): void {
   const s = setup();
   const entry = partEntry(type, color);
@@ -72,7 +99,7 @@ export function renderPartPreview(
   s.pivot.add(entry.object);
   s.pivot.rotation.y = angle;
   const direction = new THREE.Vector3(...PREVIEW.cameraDirection).normalize();
-  s.camera.position.copy(direction.multiplyScalar(entry.distance));
+  s.camera.position.copy(direction.multiplyScalar(common ? entry.commonDistance : entry.distance));
   s.camera.lookAt(0, 0, 0);
   s.renderer.render(s.scene, s.camera);
 
@@ -85,16 +112,16 @@ export function renderPartPreview(
  * Keeps rotating the preview in `canvas` until the returned function is called, which also puts it back at the resting
  * angle (or leaves it as is with `reset = false`).
  */
-export function startSpin(type: PartType, canvas: HTMLCanvasElement, speed: number, reset = true, color?: string): () => void {
+export function startSpin(type: PartType, canvas: HTMLCanvasElement, speed: number, reset = true, options: PreviewOptions = {}): () => void {
   let frame = 0;
   const start = performance.now();
   const tick = (now: number) => {
-    renderPartPreview(type, canvas, PART_INFO[type].previewAngle + ((now - start) / 1000) * speed, color);
+    renderPartPreview(type, canvas, PART_INFO[type].previewAngle + ((now - start) / 1000) * speed, options);
     frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);
   return () => {
     cancelAnimationFrame(frame);
-    if (reset) renderPartPreview(type, canvas, undefined, color);
+    if (reset) renderPartPreview(type, canvas, undefined, options);
   };
 }

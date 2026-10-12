@@ -22,6 +22,7 @@ export class Hotbar {
   private userSelectListeners: Array<() => void> = [];
 
   private root = document.getElementById('hotbar-slots')!;
+  private label = document.getElementById('hotbar-label')!;
 
   constructor(openCatalog: () => void) {
     this.slots = this.load();
@@ -132,6 +133,10 @@ export class Hotbar {
 
   private renderAll(): void {
     this.slotEls.forEach((el, i) => this.renderSlot(el, i));
+    // The name of the selected part shows above the bar (nothing for an empty slot).
+    const current = this.current;
+    this.label.hidden = current === null;
+    this.label.textContent = current ? PART_INFO[current].name : '';
     this.layoutListeners.forEach((fn) => fn());
   }
 

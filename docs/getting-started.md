@@ -15,7 +15,7 @@ npm run preview  # serve the production build locally
 
 ## Hotbar and parts catalog
 
-The bottom bar is a **hotbar** of 9 slots. The selected slot (yellow border) decides what the left button places;
+The bottom bar is a **hotbar** of 9 slots; the **name of the selected part** (e.g. *Large wheel*) is shown in a label above it (nothing for an empty slot). The selected slot (yellow border) decides what the left button places;
 select it with `1`–`9` or a click. A fresh install has the **Block** in slot 1 and the **Wheel** in slot 2; the rest are
 empty. Rearrange it by dragging a slot onto another one (they swap), drag a slot out of the bar or right-click it to
 empty it. The layout and the selected slot are remembered in the browser (not per saved game).
@@ -23,7 +23,8 @@ empty it. The layout and the selected slot are remembered in the browser (not pe
 The button at the right of the hotbar (or `B` / `C`) opens the **parts catalog**, a modal with tabs (**All** plus one per
 category) and a card with a 3D preview for each part:
 
-- **Hover** a card and its preview spins.
+- **Hover** a card and its preview spins. All the previews in the catalog (cards and inspector) share one scale, so a part's
+  size relative to the others is visible (the large wheel is twice the wheel); the hotbar and the part inspector make each part fill its frame.
 - **Click** a card to open the **inspector** on the right: big spinning preview, category, description, properties
   and tips, and a button that adds the part to the hotbar (or selects its slot if it is already there).
 - **Drag** a card onto a hotbar slot (the hotbar stays above the dimmed background while the catalog is open).
@@ -112,6 +113,18 @@ Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Bu
 building (in Play, `W` drives). The modes are **icons** with their key cap beside them: a mouse cursor (Inspect), a hammer
 (Build), a brush (Paint) and a trash can (Remove); hover one for its name and description. Undo and Redo are icon-only buttons
 (curved arrows) in the same style; their tooltip gives the shortcut (`Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`), so they carry no key cap.
+
+### The large wheel
+
+The **Large wheel** (catalog, category *Mobility*; drag it onto a hotbar slot) is a wheel of **twice the size** (radius 1.3,
+width 0.8): it **occupies 2 × 2 cells** in the plane of the block face it is mounted on. Click a **side face** of a block
+as with the normal wheel: the wheel is anchored at the cell you point at (beside that block) and fills that cell, the one
+above it and the two beside them, so the four must be **free** and inside the grid (the ghost is red otherwise). **`A` / `D`
+choose the side it extends toward** (even rotation: along +Z for an X face and +X for a Z face; odd: the opposite way);
+its axle is always perpendicular to the face. Its centre is the middle of the four cells, so at ground level it overhangs
+the floor a little and the whole creation spawns slightly higher. It has the same **Tire** and **Suspension** controls
+as the normal wheel, cannot be painted, and turns more slowly (it still covers more ground per turn). Removing any of its
+4 cells (or its block) removes it. Inspecting it shows *Occupies* instead of *Rotation*.
 
 ### Rotating the part to place (`A` / `D`)
 

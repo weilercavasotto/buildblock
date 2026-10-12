@@ -24,6 +24,12 @@ Example: a new part type `'thruster'`.
    never `window.confirm`.
 11. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).
 
+## Parts that occupy several cells
+
+The large wheel is the example (2 × 2 cells). `partCells(part)` (in `src/types.ts`) lists the cells a part occupies and
+`partCentre(part)` where it is centred; the `Grid` indexes every occupied cell, so `get`, `canPlace` and `remove` work with any of
+them, and every visual / physics position uses `partCentre`, not `cell`. A new multi-cell part needs a branch in both helpers.
+
 ## Painting
 
 Set `paintable` in `PART_INFO`. Only paintable parts can be painted, and only in paint mode (never in the catalog); `createPartObject` must honour `part.color` for them.

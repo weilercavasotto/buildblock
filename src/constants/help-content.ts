@@ -105,6 +105,10 @@ export const HELP_TABS: HelpTab[] = [
             keys: ['Wheel'],
             text: 'Click the side of a block to mount a wheel (not the top or bottom). By default its axle is perpendicular to that face; A / D turn it a quarter turn before placing.',
           },
+          {
+            keys: ['Large wheel'],
+            text: 'A wheel twice the size. Click the side of a block, as with the wheel: it fills 2 x 2 cells beside the block (the cell you point at, the one above it and the two beside them), so those must be free. A / D choose which side it extends toward. It is added to the hotbar from the parts catalog (B / C).',
+          },
         ],
       },
       {

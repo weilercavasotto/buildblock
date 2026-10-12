@@ -1,8 +1,11 @@
 import { DEFAULT_GRID_CELLS, DEFAULT_TIRE, PART_INFO, SUSPENSION, buildRange, clampSuspension, isTireId } from '../constants';
-import { Part, Vec3, addVec, cellKey, isHexColor, subVec } from '../types';
+import { Part, Vec3, addVec, cellKey, isHexColor, isWheelType, partCells, subVec } from '../types';
 
 export class Grid {
+  /** Every part, keyed by its own `cell`. */
   private parts = new Map<string, Part>();
+  /** Which part occupies each cell (key of the occupied cell -> key of the part's `cell`); a large wheel occupies 4 cells. */
+  private occupant = new Map<string, string>();
   private listeners: Array<() => void> = [];
 
   subscribe(fn: () => void): void {
@@ -13,8 +16,22 @@ export class Grid {
     this.listeners.forEach((fn) => fn());
   }
 
+  /** The part occupying `cell` (for a large wheel, any of its 4 cells), if any. */
   get(cell: Vec3): Part | undefined {
-    return this.parts.get(cellKey(cell));
+    const owner = this.occupant.get(cellKey(cell));
+    return owner === undefined ? undefined : this.parts.get(owner);
+  }
+
+  /** Stores `part` and marks the cells it occupies. */
+  private put(part: Part): void {
+    this.parts.set(cellKey(part.cell), part);
+    for (const cell of partCells(part)) this.occupant.set(cellKey(cell), cellKey(part.cell));
+  }
+
+  /** Forgets `part` and frees its cells. */
+  private drop(part: Part): void {
+    this.parts.delete(cellKey(part.cell));
+    for (const cell of partCells(part)) this.occupant.delete(cellKey(cell));
   }
 
   all(): Part[] {
@@ -32,9 +49,11 @@ export class Grid {
   canPlace(part: Part): boolean {
     // Only cells over the floor grid that is drawn on the ground (see `setSize`).
     const { min, max, maxY } = this.range;
-    if (part.cell[1] < 0 || part.cell[1] > maxY || part.cell[0] < min || part.cell[0] > max || part.cell[2] < min || part.cell[2] > max) return false;
-    if (this.get(part.cell)) return false;
-    if (part.type === 'wheel') {
+    for (const cell of partCells(part)) {
+      if (cell[1] < 0 || cell[1] > maxY || cell[0] < min || cell[0] > max || cell[2] < min || cell[2] > max) return false;
+      if (this.get(cell)) return false;
+    }
+    if (isWheelType(part.type)) {
       if (!part.face || part.face[1] !== 0) return false;
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
@@ -43,7 +62,7 @@ export class Grid {
 
   add(part: Part): boolean {
     if (!this.canPlace(part)) return false;
-    this.parts.set(cellKey(part.cell), part);
+    this.put(part);
     this.emit();
     return true;
   }
@@ -53,7 +72,7 @@ export class Grid {
     let added = 0;
     for (const part of parts) {
       if (!this.canPlace(part)) continue;
-      this.parts.set(cellKey(part.cell), part);
+      this.put(part);
       added++;
     }
     if (added > 0) this.emit();
@@ -70,7 +89,7 @@ export class Grid {
     if (!part || !PART_INFO[part.type].paintable || (color !== null && !isHexColor(color))) return false;
     if ((part.color ?? null) === (color && color.toLowerCase())) return false;
     const { color: _old, ...rest } = part;
-    this.parts.set(cellKey(cell), color === null ? rest : { ...rest, color: color.toLowerCase() });
+    this.parts.set(cellKey(part.cell), color === null ? rest : { ...rest, color: color.toLowerCase() });
     this.emit();
     return true;
   }
@@ -85,7 +104,7 @@ export class Grid {
     const value = clampSuspension(strength);
     if (clampSuspension(part.suspension ?? SUSPENSION.defaultStrength) === value) return false;
     const { suspension: _old, ...rest } = part;
-    this.parts.set(cellKey(cell), value === SUSPENSION.defaultStrength ? rest : { ...rest, suspension: value });
+    this.parts.set(cellKey(part.cell), value === SUSPENSION.defaultStrength ? rest : { ...rest, suspension: value });
     this.emit();
     return true;
   }
@@ -99,34 +118,35 @@ export class Grid {
     if (!part || !PART_INFO[part.type].hasTire || !isTireId(tire)) return false;
     if ((part.tire ?? DEFAULT_TIRE) === tire) return false;
     const { tire: _old, ...rest } = part;
-    this.parts.set(cellKey(cell), tire === DEFAULT_TIRE ? rest : { ...rest, tire });
+    this.parts.set(cellKey(part.cell), tire === DEFAULT_TIRE ? rest : { ...rest, tire });
     this.emit();
     return true;
   }
 
-  /** Removes the part at `cell`; removing a block also removes the wheels mounted on it. */
+  /**
+   * Removes the part occupying `cell` (any of the cells of a large wheel); removing a block also removes the wheels
+   * mounted on it.
+   */
   remove(cell: Vec3): void {
     const part = this.get(cell);
     if (!part) return;
-    this.parts.delete(cellKey(cell));
+    this.drop(part);
     if (part.type === 'block') {
-      for (const other of this.all()) {
-        if (other.type === 'wheel' && other.face && cellKey(subVec(other.cell, other.face)) === cellKey(cell)) {
-          this.parts.delete(cellKey(other.cell));
-        }
-      }
+      for (const wheel of this.wheelsOn(part.cell)) this.drop(wheel);
     }
     this.emit();
   }
 
   clear(): void {
     this.parts.clear();
+    this.occupant.clear();
     this.emit();
   }
 
   load(parts: Part[]): void {
     this.parts.clear();
-    for (const p of parts) this.parts.set(cellKey(p.cell), sanitize(p));
+    this.occupant.clear();
+    for (const p of parts) this.put(sanitize(p));
     this.emit();
   }
 
@@ -146,9 +166,9 @@ export class Grid {
     return seen.size;
   }
 
-  /** Wheels mounted on the block at `cell`. */
+  /** Wheels (of any size) mounted on the block at `cell`. */
   wheelsOn(cell: Vec3): Part[] {
-    return this.all().filter((p) => p.type === 'wheel' && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
+    return this.all().filter((p) => isWheelType(p.type) && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
   }
 
   neighbors(cell: Vec3): Part[] {

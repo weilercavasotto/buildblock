@@ -8,17 +8,20 @@ import {
   GROUND_COLLIDER,
   ROUGHNESS,
   SCENERY,
+  SPAWN_CLEARANCE,
   SPAWN_LIFT,
   SUSPENSION,
   WHEEL,
   WORLD,
+  GROUND_Y,
   hexToNumber,
   suspensionOf,
   suspensionStiffness,
   tireOf,
+  wheelSizeOf,
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
-import { Part, Vec3, cellKey, subVec, wheelAxle } from '../types';
+import { Part, Vec3, cellKey, isWheelType, partCentre, subVec, wheelAxle } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -32,6 +35,8 @@ export interface WheelDrive {
   speed: number;
   /** Multiplies the motor strength (the wheel's tire type). */
   torque: number;
+  /** Fraction of `torque` used when driving straight (1 = the same as when steering). */
+  cruise: number;
 }
 
 interface SyncPair {
@@ -107,6 +112,12 @@ export class PhysicsWorld {
   private buildCreation(grid: Grid): void {
     const parts = grid.all();
     const blocks = parts.filter((p) => p.type === 'block');
+    const wheelParts = parts.filter((p) => isWheelType(p.type) && p.face);
+    // Everything spawns raised so that the largest wheel starts just above the floor (the wheel centre is `partCentre`).
+    const lift = Math.max(
+      SPAWN_LIFT,
+      ...wheelParts.map((w) => WHEEL.radius * wheelSizeOf(w.type).scale - (partCentre(w)[1] - GROUND_Y) + SPAWN_CLEARANCE),
+    );
     const seen = new Set<string>();
     const bodyOfBlock = new Map<string, { body: RAPIER.RigidBody; origin: Vec3 }>();
     let biggest = 0;
@@ -133,7 +144,7 @@ export class PhysicsWorld {
         .map((v) => v / comp.length) as Vec3;
       const body = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.dynamic()
-          .setTranslation(origin[0], origin[1] + SPAWN_LIFT, origin[2])
+          .setTranslation(origin[0], origin[1] + lift, origin[2])
           .setCanSleep(false),
       );
       const visual = new THREE.Group();
@@ -165,24 +176,26 @@ export class PhysicsWorld {
     const up = { x: 0, y: 1, z: 0 };
     // The spring must carry the chassis: its force is scaled by the mass each wheel of that body supports.
     const wheelsOn = new Map<RAPIER.RigidBody, number>();
-    for (const wheel of parts.filter((p) => p.type === 'wheel' && p.face)) {
+    for (const wheel of wheelParts) {
       const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
       if (host) wheelsOn.set(host.body, (wheelsOn.get(host.body) ?? 0) + 1);
     }
-    for (const wheel of parts.filter((p) => p.type === 'wheel' && p.face)) {
-      // `face` is where the wheel is mounted (its host block); the axle comes from its rotation.
+    for (const wheel of wheelParts) {
+      // `face` is where the wheel is mounted (its host block); the axle comes from its rotation (or is the face normal).
       const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
       const axle = wheelAxle(wheel);
       if (!host) continue;
 
+      const centre = partCentre(wheel);
+      const { scale, speed: sizeSpeed, torque: sizeTorque, cruise } = wheelSizeOf(wheel.type);
       const q = faceQuaternion(axle);
       const body = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.dynamic()
-          .setTranslation(wheel.cell[0], wheel.cell[1] + SPAWN_LIFT, wheel.cell[2])
+          .setTranslation(centre[0], centre[1] + lift, centre[2])
           .setCanSleep(false),
       );
       this.world.createCollider(
-        RAPIER.ColliderDesc.cylinder(WHEEL.width / 2, WHEEL.radius)
+        RAPIER.ColliderDesc.cylinder((WHEEL.width * scale) / 2, WHEEL.radius * scale)
           .setRotation({ x: q.x, y: q.y, z: q.z, w: q.w })
           .setDensity(WHEEL.density)
           .setFriction(tireOf(wheel).friction)
@@ -191,11 +204,11 @@ export class PhysicsWorld {
         body,
       );
       const axis = { x: axle[0], y: axle[1], z: axle[2] };
-      const anchor = subVec(wheel.cell, host.origin);
+      const anchor = subVec(centre, host.origin);
 
       const hub = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.dynamic()
-          .setTranslation(wheel.cell[0], wheel.cell[1] + SPAWN_LIFT, wheel.cell[2])
+          .setTranslation(centre[0], centre[1] + lift, centre[2])
           // A large rotational inertia keeps the wheel motor strong: it acts on the reduced inertia of hub and wheel.
           .setAdditionalMassProperties(
             SUSPENSION.hubMass,
@@ -207,7 +220,7 @@ export class PhysicsWorld {
       );
       const springData = RAPIER.JointData.prismatic({ x: anchor[0], y: anchor[1], z: anchor[2] }, { x: 0, y: 0, z: 0 }, up);
       springData.limitsEnabled = true;
-      springData.limits = [-SUSPENSION.travelDown, SUSPENSION.travelUp];
+      springData.limits = [-SUSPENSION.travelDown * scale, SUSPENSION.travelUp * scale];
       const spring = this.world.createImpulseJoint(springData, host.body, hub, true) as RAPIER.PrismaticImpulseJoint;
       // Spring constant (N/m) = stiffness (1/s², from the strength) x the mass this wheel supports; damping from the damping ratio.
       const load = host.body.mass() / (wheelsOn.get(host.body) ?? 1);
@@ -221,7 +234,7 @@ export class PhysicsWorld {
         body,
         true,
       ) as RAPIER.RevoluteImpulseJoint;
-      this.wheels.push({ joint, axis: axle, cell: wheel.cell, speed: tireOf(wheel).speed, torque: tireOf(wheel).torque });
+      this.wheels.push({ joint, axis: axle, cell: centre, speed: tireOf(wheel).speed * sizeSpeed, torque: tireOf(wheel).torque * sizeTorque, cruise });
 
       const obj = createPartObject(wheel);
       this.group.add(obj);

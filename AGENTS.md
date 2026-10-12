@@ -66,6 +66,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 ## Physics gotchas
 
 - Connected blocks must stay **one rigid body** with one collider per block; do not joint individual cubes.
+- Multi-cell parts (the large wheel `bigWheel`, 2 x 2 cells): `partCells` / `partCentre` in `types.ts`; the `Grid` keeps an occupancy index, so use `grid.get(cell)` / `remove(cell)` with any occupied cell, and position visuals / bodies at `partCentre`, never at `cell`. `isWheelType` covers both wheels.
 - Wheel chain: `chassis -prismatic spring- hub -revolute- wheel` (`SUSPENSION`, `Part.suspension`, set only in `PartInspector`); the spring must stay `ForceBased` and scaled by the supported mass, an acceleration-based one cannot hold the chassis. The vehicle controller drives the hub-wheel revolute joint; the hub needs a large rotational inertia (`SUSPENSION.hubInertia`) or the motor is too weak and A / D stop steering.
 - Tires (`TIRES`, `Part.tire`, picked only in `PartInspector`) set wheel friction, top speed and motor torque; keep `torque` scaled with `friction`, or high-grip tires cannot skid-steer.
 - A wheel body must start **un-rotated**: Rapier's revolute joint uses the same axis numbers in both bodies'

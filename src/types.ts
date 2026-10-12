@@ -1,5 +1,8 @@
 export type Vec3 = [number, number, number];
-export type PartType = 'block' | 'wheel';
+export type PartType = 'block' | 'wheel' | 'bigWheel';
+
+/** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
+export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
 
 /** What the left button does: place parts, inspect a part, or remove parts. */
 export type CursorMode = 'build' | 'inspect' | 'paint' | 'remove';
@@ -11,7 +14,8 @@ export interface Part {
   face?: Vec3;
   /**
    * Orientation around the vertical axis in clockwise quarter turns seen from above (0-3, i.e. 0°/90°/180°/270°). For a
-   * wheel it chooses the axle (`wheelAxle`). Missing in saves made before rotation existed. Use `partRotation()` to read it.
+   * wheel it chooses the axle (`wheelAxle`); for a large wheel (axle always along `face`) only its parity matters: it
+   * chooses the side the wheel extends toward (`partCells`). Missing in saves made before rotation existed. Use `partRotation()` to read it.
    */
   rotation?: number;
   /**
@@ -51,9 +55,42 @@ export function rotationOfFace(face: Vec3): number {
 export const partRotation = (part: Pick<Part, 'face' | 'rotation'>): number =>
   part.rotation !== undefined ? normalizeRotation(part.rotation) : part.face ? rotationOfFace(part.face) : 0;
 
-/** The direction of a wheel's axle, chosen by its rotation: 0 = +X, 1 = +Z, 2 = -X, 3 = -Z (so X for even, Z for odd). */
-export function wheelAxle(part: Pick<Part, 'face' | 'rotation'>): Vec3 {
+/**
+ * The direction of a wheel's axle. A small wheel's rotation chooses it: 0 = +X, 1 = +Z, 2 = -X, 3 = -Z (so X for even, Z
+ * for odd). A large wheel's axle is always the mounting `face` normal.
+ */
+export function wheelAxle(part: Pick<Part, 'type' | 'face' | 'rotation'>): Vec3 {
+  if (part.type === 'bigWheel') return part.face ? [part.face[0], 0, part.face[2]] : [1, 0, 0];
   return [[1, 0, 0], [0, 0, 1], [-1, 0, 0], [0, 0, -1]][partRotation(part)] as Vec3;
+}
+
+/**
+ * Unit vector, horizontal and along the mounted face, that a large wheel extends toward (even rotation: +Z for an X face
+ * and +X for a Z face; odd rotation: the opposite way).
+ */
+function bigWheelSide(part: Pick<Part, 'face' | 'rotation'>): Vec3 {
+  const along: Vec3 = part.face && part.face[2] !== 0 ? [1, 0, 0] : [0, 0, 1];
+  const sign = normalizeRotation(part.rotation ?? 0) % 2 === 0 ? 1 : -1;
+  return [along[0] * sign, 0, along[2] * sign];
+}
+
+/**
+ * The grid cells a part occupies: just its `cell`, except a large wheel, which covers 2 x 2 cells of the plane of the face
+ * it is mounted on: `cell`, the one above it and the two beside them (toward `bigWheelSide`).
+ */
+export function partCells(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation'>): Vec3[] {
+  if (part.type !== 'bigWheel') return [part.cell];
+  const side = bigWheelSide(part);
+  const up: Vec3 = [0, 1, 0];
+  const beside = addVec(part.cell, side);
+  return [part.cell, addVec(part.cell, up), beside, addVec(beside, up)];
+}
+
+/** The centre of a part in world coordinates: its cell, except a large wheel, whose centre is the middle of its 4 cells. */
+export function partCentre(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation'>): Vec3 {
+  if (part.type !== 'bigWheel') return part.cell;
+  const side = bigWheelSide(part);
+  return [part.cell[0] + side[0] / 2, part.cell[1] + 0.5, part.cell[2] + side[2] / 2];
 }
 
 /** Three.js yaw (counter-clockwise seen from above, radians) of a number of clockwise quarter turns. */

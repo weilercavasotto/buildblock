@@ -41,6 +41,21 @@ canvas {
 #hotbar.over-dialog {
   z-index: var(--z-index-hotbar-over-dialog);
 }
+/* Name of the selected part, centred above the bar. */
+#hotbar-label {
+  position: absolute;
+  bottom: calc(100% + var(--space-sm));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--overlay-panel);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
 #hotbar-slots {
   display: flex;
   gap: var(--space-xs);

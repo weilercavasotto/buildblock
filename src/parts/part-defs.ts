@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { ALPHA, PAINT_EDGE_FACTOR, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber } from '../constants';
-import { Part, Vec3, isHexColor, partRotation, wheelAxle, yawOfTurns } from '../types';
+import { ALPHA, PAINT_EDGE_FACTOR, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber, wheelSizeOf } from '../constants';
+import { Part, Vec3, isHexColor, partCentre, partRotation, wheelAxle, yawOfTurns } from '../types';
 import { wheelGeometry } from './wheel-model';
 
 const color = (hex: string): number => hexToNumber(hex);
@@ -50,17 +50,18 @@ const ghostOk = ghostMaterial(COLORS.part.ghostValid);
 const ghostBad = ghostMaterial(COLORS.part.ghostInvalid);
 
 /** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
-export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face'>): THREE.Box3 {
+export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'rotation'>): THREE.Box3 {
   const half = new THREE.Vector3();
   if (part.type === 'block') {
     half.setScalar(BLOCK_VISUAL_SIZE / 2);
   } else {
-    half.setScalar(WHEEL.radius);
+    const { scale } = wheelSizeOf(part.type);
+    half.setScalar(WHEEL.radius * scale);
     const axle = wheelAxle(part).findIndex((v) => v !== 0);
-    half.setComponent(axle, WHEEL.width / 2);
+    half.setComponent(axle, (WHEEL.width * scale) / 2);
   }
   half.addScalar(HIGHLIGHT.margin);
-  const centre = new THREE.Vector3(...part.cell);
+  const centre = new THREE.Vector3(...partCentre(part));
   return new THREE.Box3(centre.clone().sub(half), centre.clone().add(half));
 }
 
@@ -92,6 +93,7 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' |
   } else {
     const pivot = new THREE.Group();
     pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));
+    pivot.scale.setScalar(wheelSizeOf(part.type).scale); // a large wheel is the same model, scaled
     if (ghostMat) {
       pivot.add(new THREE.Mesh(wheelGeometry.silhouette, ghostMat));
     } else {

@@ -1,6 +1,6 @@
 import { COLORS } from './colors';
 import { CELL_SIZE, GROUND_Y } from './game';
-import { Vec3 } from '../types';
+import { PartType, Vec3 } from '../types';
 
 export const WORLD = {
   gravity: -15,
@@ -105,13 +105,30 @@ export const suspensionStiffness = (strength: number): number => {
   return SUSPENSION.minStiffness * (SUSPENSION.maxStiffness / SUSPENSION.minStiffness) ** t;
 };
 
+/**
+ * Size of each wheel type: `scale` multiplies `WHEEL.radius` / `WHEEL.width`; `speed` multiplies the angular top speed (a
+ * bigger wheel covers more ground per turn, so the large wheel turns slower to stay controllable); `torque` multiplies
+ * the motor strength (the large wheel is far heavier, so the same motor setting would be far too strong); `cruise` is the
+ * fraction of that strength used when driving straight: steering needs the full strength to skid the car round, but the
+ * same torque in a straight line would tip a light body backwards (a wheelie), so it is eased off (see `VehicleController`).
+ */
+export const WHEEL_SIZES = {
+  wheel: { scale: 1, speed: 1, torque: 1, cruise: 1 },
+  bigWheel: { scale: 2, speed: 0.75, torque: 0.6, cruise: 0.2 },
+} as const;
+export const wheelSizeOf = (type: PartType): { scale: number; speed: number; torque: number; cruise: number } =>
+  type === 'bigWheel' ? WHEEL_SIZES.bigWheel : WHEEL_SIZES.wheel;
+
 export const CHASSIS = {
   friction: 0.6,
   density: 1,
 } as const;
 
+/** Gap (cells) between a wheel and the floor when a creation spawns. */
+export const SPAWN_CLEARANCE = 0.05;
+
 /** Spawn height added so the wheels do not start inside the floor. */
-export const SPAWN_LIFT = WHEEL.radius - CELL_SIZE / 2 + 0.05;
+export const SPAWN_LIFT = WHEEL.radius - CELL_SIZE / 2 + SPAWN_CLEARANCE;
 
 /** Collision groups; see docs/physics.md for the interaction matrix. */
 export const COLLISION_GROUP = {

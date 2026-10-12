@@ -47,6 +47,8 @@ export const TEXT = {
     axis: (axis: string) => `${axis} axis`,
     color: 'Color',
     defaultColor: 'Default',
+    occupies: 'Occupies',
+    cells: (count: number) => `${count} cells`,
     tire: 'Tire',
     tireGrip: 'Grip',
     tireSpeed: 'Top speed',
