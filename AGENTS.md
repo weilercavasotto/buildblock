@@ -27,6 +27,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/styles/main.css`: all CSS, tokens only
 - `src/frame-limiter.ts`: 60 FPS cap (`FRAME_LIMIT`); the main loop returns early when `shouldRender` is false
 - `src/build/history.ts`: undo/redo (`begin`/`commit`/`run`); wrap every user edit of the grid in one step (Ctrl/Cmd+Z / Y)
+- `src/ui/loading-screen.ts`: loading overlay (mark + name + progress bar + label) for scene changes; wrap such transitions in `loading.run([{ label, run }, …])` (`main.ts` does it for menu ⇄ build and at boot); timings in `LOADING`, strings in `TEXT.loading`
 - `src/ui/confirm-dialog.ts`: reusable modal confirmation (`confirmDialog`); use it instead of `window.confirm`
 - `src/ui/zoom-control.ts`: zoom buttons/slider synced with the wheel; limits in `CAMERA.minDistance/maxDistance`
 - `src/ui/fps-counter.ts`: FPS readout (F3 toggles)

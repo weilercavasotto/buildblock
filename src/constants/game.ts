@@ -154,6 +154,14 @@ export const BUILD = {
   maxPaintDistance: 50,
 } as const;
 
+/** Loading screen (shown when the scene is swapped). */
+export const LOADING = {
+  /** Shortest time the screen stays up, so it does not flash when the work is quick. */
+  minDurationMs: 600,
+  /** Longest wait for the browser to paint a step's label before the step runs anyway. */
+  paintTimeoutMs: 100,
+} as const;
+
 export const FRAME_LIMIT = {
   /** Rendering is capped at this many frames per second, whatever the display refresh rate. */
   targetFps: 60,

@@ -12,6 +12,14 @@ export const TEXT = {
     group: 'Cursor mode',
     tooltip: (label: string, key: string, description: string) => `${label} mode (${key}): ${description}`,
   },
+  loading: {
+    default: 'Loading…',
+    boot: { physics: 'Loading the physics engine…', world: 'Building the world…' },
+    loadGame: 'Loading your creation…',
+    newGame: 'Creating a new game…',
+    buildArea: 'Preparing the build area…',
+    toMenu: 'Returning to the main menu…',
+  },
   paint: {
     group: 'Paint colour',
   },

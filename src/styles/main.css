@@ -786,6 +786,66 @@ body[data-cursor-mode='remove'] > canvas {
   }
 }
 
+/* ---- Loading screen (scene changes) ---- */
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-loading);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  background: var(--color-surface-vignette);
+  color: var(--color-text-primary);
+  transition: opacity var(--motion-loading-fade) ease;
+}
+#loading[hidden] {
+  display: none;
+}
+#loading.closing {
+  opacity: 0;
+  pointer-events: none;
+}
+#loading-logo {
+  width: var(--size-loading-logo);
+  height: var(--size-loading-logo);
+  filter: var(--shadow-logo);
+}
+#loading-title {
+  margin: 0;
+  font-size: var(--font-size-title);
+  letter-spacing: var(--letter-spacing-xl);
+  font-weight: var(--font-weight-extrabold);
+}
+#loading-bar {
+  width: var(--size-loading-bar-width);
+  height: var(--size-loading-bar-height);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-control);
+  overflow: hidden;
+}
+#loading-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-primary);
+  transition: width var(--motion-fast) ease-out;
+}
+#loading-label {
+  margin: 0;
+  min-height: 1.5em;
+  font-size: var(--font-size-sm);
+  letter-spacing: var(--letter-spacing-sm);
+  opacity: var(--opacity-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  #loading,
+  #loading-fill {
+    transition: none;
+  }
+}
+
 /* ---- Main menu ---- */
 #menu {
   position: fixed;

@@ -36,10 +36,15 @@ import { PartInspector } from './ui/part-inspector';
 import { isHelpOpen, toggleHelpDialog } from './ui/help-dialog';
 import { ZoomControl } from './ui/zoom-control';
 import { Menu } from './ui/menu';
+import { LoadingScreen } from './ui/loading-screen';
 
 async function main(): Promise<void> {
   applyTheme();
+  const loading = new LoadingScreen();
+  loading.show(TEXT.loading.boot.physics);
+  loading.setProgress(0.1);
   await RAPIER.init();
+  loading.setProgress(0.5, TEXT.loading.boot.world);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -184,22 +189,37 @@ async function main(): Promise<void> {
     menu.show();
   };
 
+  // Scene changes go through the loading screen: one labelled step per phase (see `LoadingScreen.run`).
   const menu = new Menu({
     onLoad: (id) => {
       const save = getSave(id);
       if (!save) return;
-      activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
-      grid.load(save.parts);
-      activeSave = id;
-      history.clear();
-      enterBuild();
+      void loading.run([
+        {
+          label: TEXT.loading.loadGame,
+          run: () => {
+            activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
+            grid.load(save.parts);
+            activeSave = id;
+            history.clear();
+          },
+        },
+        { label: TEXT.loading.buildArea, run: enterBuild },
+      ]);
     },
     onNew: (name) => {
-      activeSave = null;
-      grid.clear();
-      activeSave = createSave(name).id;
-      history.clear();
-      enterBuild();
+      void loading.run([
+        {
+          label: TEXT.loading.newGame,
+          run: () => {
+            activeSave = null;
+            grid.clear();
+            activeSave = createSave(name).id;
+            history.clear();
+          },
+        },
+        { label: TEXT.loading.buildArea, run: enterBuild },
+      ]);
     },
   });
 
@@ -222,7 +242,7 @@ async function main(): Promise<void> {
       });
       if (confirmed) history.run(() => grid.clear());
     },
-    onMenu: enterMenu,
+    onMenu: () => void loading.run([{ label: TEXT.loading.toMenu, run: enterMenu }]),
     onMode: (mode) => setCursorMode(mode),
     onRotate: (direction) => build.rotate(direction),
     onHelp: toggleHelpDialog,
@@ -257,6 +277,7 @@ async function main(): Promise<void> {
   build.onSelectionChange((part) => inspector.show(part));
   hud.setHistoryState(history.canUndo, history.canRedo);
   enterMenu();
+  void loading.hide();
 
   addEventListener('keydown', (e) => {
     if (e.code === 'F3') {

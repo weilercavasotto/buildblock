@@ -9,6 +9,7 @@ export const FONT_SIZE = {
   xl: 16,
   xxl: 18,
   display: 56,
+  title: 32,
 } as const;
 
 export const FONT_WEIGHT = {
