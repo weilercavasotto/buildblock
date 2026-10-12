@@ -23,7 +23,7 @@ export const COLORS = {
     control: '#2d3446',
     controlHover: '#3a4359',
     divider: '#4a5368',
-    /** Tint of the menu vignette. */
+    /** Tint of the menu vignette; also the loading screen background and the page colour in the inline style of `index.html` (keep in sync). */
     vignette: '#0a0e18',
   },
 

@@ -40,6 +40,7 @@ import { LoadingScreen } from './ui/loading-screen';
 
 async function main(): Promise<void> {
   applyTheme();
+  document.documentElement.classList.add('ready'); // reveals the page (see the inline style in index.html)
   const loading = new LoadingScreen();
   loading.show(TEXT.loading.boot.physics);
   loading.setProgress(0.1);

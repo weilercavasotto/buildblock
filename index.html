@@ -8,6 +8,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#1a1f2b" />
+    <!-- Until main.ts has applied the theme (design tokens as CSS variables) nothing is shown, only the dark page
+         colour (= COLORS.surface.vignette, the loading screen background), so no unstyled markup flashes on first load. -->
+    <style>
+      html {
+        background: #0a0e18;
+      }
+      html:not(.ready) body > * {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="top-left" hidden>

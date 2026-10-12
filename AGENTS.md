@@ -56,6 +56,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 - UI font is Orbitron (self-hosted, imported in `main.ts`, token in `typography.ts`); it is wide, so keep sizes modest and buttons `nowrap`.
 - Mouse: left = place on press / drag to paint blocks on the starting face's plane (never moves the camera), right click = remove / right drag = pan, middle drag = rotate,
   scroll = zoom (`controls.mouseButtons` in `main.ts`; click-vs-drag logic in `build-mode.ts`).
+- `index.html` hides the whole body until `main()` adds `html.ready` (after `applyTheme()`), and paints the page `#0a0e18` (= `COLORS.surface.vignette`) meanwhile, so no unstyled flash on first load; keep that colour in sync.
 - The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).
 - User-provided text (save names) is rendered with `textContent`, never `innerHTML`.
 - Cell `[x, y, z]` centre is world `(x, y, z)`; ground top is `y = -0.5`; valid cells have `y >= 0` and `|x|, |z| <= BUILD_LIMIT` (inside the floor grid, whose squares are exactly one cell: lines at n ± 0.5).
