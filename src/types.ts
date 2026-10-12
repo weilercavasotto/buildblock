@@ -2,7 +2,7 @@ export type Vec3 = [number, number, number];
 export type PartType = 'block' | 'wheel';
 
 /** What the left button does: place parts, inspect a part, or remove parts. */
-export type CursorMode = 'build' | 'inspect' | 'remove';
+export type CursorMode = 'build' | 'inspect' | 'paint' | 'remove';
 
 export interface Part {
   type: PartType;
@@ -14,6 +14,11 @@ export interface Part {
    * wheel it chooses the axle (`wheelAxle`). Missing in saves made before rotation existed. Use `partRotation()` to read it.
    */
   rotation?: number;
+  /**
+   * Paint: a `#rrggbb` colour overriding the part's default one. Only parts whose `PART_INFO[type].paintable` is true can
+   * be painted (the wheel cannot). Missing = the default colour. Read it through `partColor()`.
+   */
+  color?: string;
 }
 
 export const cellKey = (c: Vec3): string => `${c[0]},${c[1]},${c[2]}`;
@@ -46,3 +51,6 @@ export function wheelAxle(part: Pick<Part, 'face' | 'rotation'>): Vec3 {
 
 /** Three.js yaw (counter-clockwise seen from above, radians) of a number of clockwise quarter turns. */
 export const yawOfTurns = (turns: number): number => (-turns * Math.PI) / 2;
+
+/** True for a `#rrggbb` colour string (what saved parts may carry in `Part.color`). */
+export const isHexColor = (value: unknown): value is string => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);

@@ -55,9 +55,10 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Cursor modes',
         rows: [
-          { keys: ['Q'], text: 'Build mode (default): the left button places the part of the selected hotbar slot.' },
-          { keys: ['W'], text: 'Inspect mode: click a part to select it and see its details in a panel centred on the right edge. Clicking empty ground deselects. The left button also rotates the camera here.' },
-          { keys: ['E'], text: 'Remove mode: the left button removes the part under the cursor; drag to erase several (one undo step). Parts under the cursor are outlined in red.' },
+          { keys: ['Q'], text: 'Inspect mode: click a part to select it and see its details in a panel centred on the right edge. Clicking empty ground deselects. The left button also rotates the camera here. The panel also shows the part\'s colour.' },
+          { keys: ['W'], text: 'Build mode (default): the left button places the part of the selected hotbar slot.' },
+          { keys: ['E'], text: 'Paint mode: pick a colour in the palette under the top bar (the first swatch restores the default colour), then click a block to paint it; drag to paint several (one undo step). Wheels cannot be painted.' },
+          { keys: ['R'], text: 'Remove mode: the left button removes the part under the cursor; drag to erase several (one undo step). Parts under the cursor are outlined in red.' },
           { text: 'The modes are in the top bar, on the left. Choosing a hotbar slot switches back to Build.' },
         ],
       },
@@ -134,7 +135,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Build mode',
         rows: [
-          { keys: ['Q', 'W', 'E'], text: 'Cursor mode: Build, Inspect, Remove.' },
+          { keys: ['Q', 'W', 'E', 'R'], text: 'Cursor mode: Inspect, Build, Paint, Remove.' },
           { keys: ['A', 'D'], text: 'Rotate the part to place (counter-clockwise / clockwise).' },
           { keys: ['1 – 9'], text: 'Select the part in that hotbar slot (and switch to Build).' },
           { keys: ['B', 'C'], text: 'Open or close the parts catalog.' },
@@ -145,7 +146,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Play mode',
         rows: [
-          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). Q/W/E and A/D only switch modes / rotate while building.' },
+          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). Q/W/E/R and A/D only switch modes / rotate while building.' },
           { keys: ['R'], text: 'Restart.' },
         ],
       },

@@ -1,4 +1,4 @@
-import { PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, TEXT } from '../constants';
+import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, PREVIEW, SIZE, TEXT } from '../constants';
 import { Grid } from '../build/grid';
 import { Part, Vec3, partRotation, subVec, wheelAxle } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
@@ -43,8 +43,8 @@ export class PartInspector {
     header.append(title, close);
 
     const canvas = createPreviewCanvas(SIZE.partInspectorPreview);
-    renderPartPreview(part.type, canvas);
-    this.stopSpin = startSpin(part.type, canvas, PREVIEW.inspectSpinSpeed, false);
+    renderPartPreview(part.type, canvas, undefined, part.color);
+    this.stopSpin = startSpin(part.type, canvas, PREVIEW.inspectSpinSpeed, false, part.color);
 
     const remove = text('button', 'catalog-action danger', TEXT.inspector.remove) as HTMLButtonElement;
     remove.type = 'button';
@@ -80,6 +80,7 @@ export class PartInspector {
       [TEXT.inspector.rotation, TEXT.inspector.degrees(partRotation(part))],
     ];
     if (part.type === 'block') {
+      rows.push([TEXT.inspector.color, PAINT_COLORS.find((c) => c.hex.toLowerCase() === part.color)?.name ?? TEXT.inspector.defaultColor]);
       rows.push([TEXT.inspector.rigidBody, TEXT.inspector.blocks(this.grid.connectedBlocks(part.cell))]);
       rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {

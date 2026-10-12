@@ -103,7 +103,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   shown only while building) are driven by `Hud.setHistoryState`; `main.ts` handles `Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`
   and `Ctrl/Cmd+Shift+Z` (ignored while a stroke is in progress and outside build mode).
 - **Cursor modes** (`CursorMode` in `types.ts`, `CURSOR_MODES` in `constants/cursor-modes.ts`) — `build`, `inspect`,
-  `remove` (keys Q/W/E). `main.ts` `setCursorMode` applies one mode everywhere: `BuildMode.setMode`, the highlighted
+  `paint`, `remove` (keys Q = inspect, W = build, E = paint, R = remove). `main.ts` `setCursorMode` applies one mode everywhere: `BuildMode.setMode`, the highlighted
   button of the top bar (`Hud.setCursorMode`; the buttons are created from `CURSOR_MODES`: key cap + an SVG icon taken from
   the `icon` field, with the name in the tooltip and `aria-label`), `body[data-cursor-mode]`
   (cursor shape in CSS) and `controls.mouseButtons` (`LEFT` is `ROTATE` only in inspect mode, `null` otherwise, so a left
@@ -182,6 +182,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   swallows every other key (capture-phase listener + `stopPropagation`, so the game under it does not react: no
   hotbar selection, undo or driving) and allows a single modal at a time. Callers pass `build()` (fills the dialog and
   returns the element to focus), optional `onKeyDown` and `onClose`.
+- **Painting** — `Part.color?` (`#rrggbb`, validated by `isHexColor`), allowed only when `PART_INFO[type].paintable` (block yes, wheel no). `Grid.paint(cell, color|null)` replaces the part (no-op for unpaintable/invalid/unchanged) and `Grid.load` strips bad paint from saves. `createPartObject` takes per-colour cached materials (edge = colour × `PAINT_EDGE_FACTOR`), so Play shows the paint too. Painting happens only in the **paint** cursor mode: `PaintPalette` (`ui/paint-palette.ts`, `#paint-palette` under the top bar, colours in `PAINT_COLORS`) tells `BuildMode.setPaintColor`; a left click/drag paints (same stroke machinery as remove, one undo step). The inspector only displays the colour; the catalog never paints.
 - **`PartInspector`** (`src/ui/part-inspector.ts`) — the panel in inspect mode (`#part-inspector`, `position: fixed` on the
   **right edge, vertically centred**: `top` and `bottom` are both `SIZE.hotbarReserved`, so the margins above and below
   are equal, it never reaches the top bar or the hotbar and it **fills the height between them**; when the window is

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { ALPHA, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber } from '../constants';
-import { Part, Vec3, partRotation, wheelAxle, yawOfTurns } from '../types';
+import { ALPHA, PAINT_EDGE_FACTOR, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber } from '../constants';
+import { Part, Vec3, isHexColor, partRotation, wheelAxle, yawOfTurns } from '../types';
 import { wheelGeometry } from './wheel-model';
 
 const color = (hex: string): number => hexToNumber(hex);
@@ -18,6 +18,22 @@ const blockMat = new THREE.MeshStandardMaterial({
   polygonOffsetFactor: 1,
   polygonOffsetUnits: 1,
 });
+/** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
+const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
+function blockMaterials(paint?: string) {
+  if (!isHexColor(paint)) return { face: blockMat, edge: edgeMat };
+  const key = paint.toLowerCase();
+  let pair = paintCache.get(key);
+  if (!pair) {
+    pair = {
+      face: blockMat.clone(),
+      edge: new THREE.LineBasicMaterial({ color: new THREE.Color(color(key)).multiplyScalar(PAINT_EDGE_FACTOR) }),
+    };
+    pair.face.color.setHex(color(key));
+    paintCache.set(key, pair);
+  }
+  return pair;
+}
 const tireMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.tire), roughness: ROUGHNESS.tire });
 const rimMat = new THREE.MeshStandardMaterial({
   color: color(COLORS.part.rim),
@@ -54,18 +70,19 @@ export function faceQuaternion(face: Vec3): THREE.Quaternion {
 }
 
 /** Builds the visual for a part, centred on its own origin (cell centre). */
-export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation'>, ghost?: 'ok' | 'bad'): THREE.Group {
+export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation' | 'color'>, ghost?: 'ok' | 'bad'): THREE.Group {
   const root = new THREE.Group();
   const ghostMat = ghost === 'ok' ? ghostOk : ghost === 'bad' ? ghostBad : undefined;
   const noRaycast = { raycast: () => {} };
 
   if (part.type === 'block') {
-    const mesh = new THREE.Mesh(blockGeo, ghostMat ?? blockMat);
+    const mats = blockMaterials(part.color);
+    const mesh = new THREE.Mesh(blockGeo, ghostMat ?? mats.face);
     mesh.castShadow = mesh.receiveShadow = !ghost;
     if (ghost) mesh.scale.setScalar(GHOST_BLOCK_SCALE);
     root.add(mesh);
     if (!ghost) {
-      const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+      const edges = new THREE.LineSegments(edgeGeo, mats.edge);
       Object.assign(edges, noRaycast);
       edges.scale.setScalar(BLOCK_EDGE_SCALE);
       root.add(edges);

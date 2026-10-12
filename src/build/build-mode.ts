@@ -36,7 +36,7 @@ interface Stroke {
   before: Checkpoint;
 }
 
-/** A left-button drag in remove mode that erases every part it passes over. */
+/** A left-button drag in remove or paint mode that removes / paints every part it passes over. */
 interface Erase {
   before: Checkpoint;
   /** Pointer position of the last removal; the next one needs some movement (no drilling through a stack). */
@@ -48,6 +48,7 @@ interface Erase {
  * Turns pointer input into edits of the grid, depending on the cursor mode:
  * - build: the left button places the hotbar part (drag to paint blocks), a right click removes;
  * - inspect: a left click selects the part under the cursor (outlined; listeners such as the inspector panel are told);
+ * - paint: the left button paints the part under the cursor with the chosen colour (drag to paint several; wheels are skipped);
  * - remove: the left button removes the part under the cursor (drag to erase), a right click removes too.
  * The camera buttons are configured in `main.ts` per mode (the left button only rotates the camera in inspect mode).
  */
@@ -66,6 +67,8 @@ export class BuildMode {
   private selectionOutline: THREE.Group | null = null;
   private selectionListeners: Array<(part: Part | null) => void> = [];
   private erase: Erase | null = null;
+  /** Colour of the paint mode (null = the default colour, i.e. removes paint). */
+  private paintColor: string | null = null;
   /** The part to place (the one in the selected hotbar slot); null when that slot is empty. */
   private tool: PartType | null = 'block';
   private enabled = true;
@@ -130,6 +133,10 @@ export class BuildMode {
       this.ghostYaw = this.ghostTargetYaw = wrapped;
     }
     if (this.ghost) this.ghost.object.rotation.y = this.ghostYaw;
+  }
+
+  setPaintColor(color: string | null): void {
+    this.paintColor = color;
   }
 
   setMode(mode: CursorMode): void {
@@ -237,7 +244,7 @@ export class BuildMode {
   private onDown(e: PointerEvent): void {
     this.down = { x: e.clientX, y: e.clientY, button: e.button };
     if (!this.enabled || e.button !== 0) return;
-    if (this.mode === 'remove') {
+    if (this.mode === 'remove' || this.mode === 'paint') {
       this.erase = { before: this.history.begin(), x: e.clientX, y: e.clientY };
       this.eraseAt(e, true);
       return;
@@ -277,7 +284,7 @@ export class BuildMode {
     this.stroke = null;
   }
 
-  /** Ends a paint stroke or an erase stroke, each as one undo step. */
+  /** Ends a block-placing stroke or an erase / paint stroke, each as one undo step. */
   private endGestures(): void {
     this.endStroke();
     if (this.erase) {
@@ -294,7 +301,8 @@ export class BuildMode {
     if (!part) return;
     s.x = e.clientX;
     s.y = e.clientY;
-    this.grid.remove(part.cell);
+    if (this.mode === 'paint') this.grid.paint(part.cell, this.paintColor);
+    else this.grid.remove(part.cell);
   }
 
   /**
@@ -356,7 +364,7 @@ export class BuildMode {
     if (this.hover && part && cellKey(this.hover.part.cell) === cellKey(part.cell) && this.hover.part.type === part.type) return;
     disposeOutline(this.hover?.outline ?? null);
     this.hover = null;
-    if (!part || (this.mode === 'inspect' && this.selection && cellKey(part.cell) === cellKey(this.selection.cell))) return;
+    if (!part || (this.mode === 'paint' && !PART_INFO[part.type].paintable) || (this.mode === 'inspect' && this.selection && cellKey(part.cell) === cellKey(this.selection.cell))) return;
     const remove = this.mode === 'remove';
     const outline = createOutline(
       partBounds(part),
@@ -406,7 +414,7 @@ export class BuildMode {
 
     if (this.mode === 'inspect') {
       if (e.button === 0 && !moved) this.select(this.pick(e)?.part ?? null);
-    } else if (e.button === 2 && !moved) {
+    } else if (e.button === 2 && !moved && this.mode !== 'paint') {
       const p = this.pick(e);
       if (p?.part) {
         const cell = p.part.cell;

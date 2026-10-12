@@ -1,4 +1,5 @@
-import { Part, Vec3, addVec, cellKey, subVec } from '../types';
+import { PART_INFO } from '../constants';
+import { Part, Vec3, addVec, cellKey, isHexColor, subVec } from '../types';
 
 export class Grid {
   private parts = new Map<string, Part>();
@@ -48,6 +49,21 @@ export class Grid {
     return added;
   }
 
+  /**
+   * Paints the part at `cell` with `color` (`#rrggbb`), or restores its default colour with `null`. Parts are replaced,
+   * not mutated (history snapshots share them). Returns false, changing nothing, when there is no such part, it cannot
+   * be painted (`PART_INFO[type].paintable`), the colour is invalid or it already has that colour.
+   */
+  paint(cell: Vec3, color: string | null): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].paintable || (color !== null && !isHexColor(color))) return false;
+    if ((part.color ?? null) === (color && color.toLowerCase())) return false;
+    const { color: _old, ...rest } = part;
+    this.parts.set(cellKey(cell), color === null ? rest : { ...rest, color: color.toLowerCase() });
+    this.emit();
+    return true;
+  }
+
   /** Removes the part at `cell`; removing a block also removes the wheels mounted on it. */
   remove(cell: Vec3): void {
     const part = this.get(cell);
@@ -70,7 +86,14 @@ export class Grid {
 
   load(parts: Part[]): void {
     this.parts.clear();
-    for (const p of parts) this.parts.set(cellKey(p.cell), p);
+    for (const p of parts) {
+      // Saves may carry a bad or forbidden paint: keep the part, drop the colour.
+      const valid = isHexColor(p.color) && PART_INFO[p.type].paintable;
+      if (p.color !== undefined && !valid) {
+        const { color: _bad, ...rest } = p;
+        this.parts.set(cellKey(p.cell), rest);
+      } else this.parts.set(cellKey(p.cell), p);
+    }
     this.emit();
   }
 

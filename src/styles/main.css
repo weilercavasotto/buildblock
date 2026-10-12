@@ -424,6 +424,22 @@ body.dragging * {
 .inspector-props dd {
   margin: 0;
 }
+.paint-swatch {
+  width: var(--size-paint-swatch);
+  height: var(--size-paint-swatch);
+  flex: none;
+  padding: 0;
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.paint-swatch:hover {
+  border-color: var(--color-text-primary);
+}
+.paint-swatch.selected {
+  border-color: var(--color-accent-highlight);
+  box-shadow: 0 0 0 2px var(--color-accent-highlight);
+}
 .inspector-tips {
   padding-left: var(--space-lg);
 }
@@ -466,6 +482,22 @@ body.dragging * {
 #top-bar div.build-only {
   display: flex;
   gap: var(--space-sm);
+}
+/* Paint mode: the colour palette hangs under the top bar. */
+#paint-palette {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--size-palette-gap);
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel);
+}
+#paint-palette[hidden] {
+  display: none;
 }
 #top-bar button {
   border: var(--border-regular) solid transparent;
@@ -525,6 +557,7 @@ body.dragging * {
 body[data-cursor-mode='inspect'] > canvas {
   cursor: help;
 }
+body[data-cursor-mode='paint'] > canvas,
 body[data-cursor-mode='remove'] > canvas {
   cursor: crosshair;
 }

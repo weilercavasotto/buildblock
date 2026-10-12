@@ -12,6 +12,9 @@ export const TEXT = {
     group: 'Cursor mode',
     tooltip: (label: string, key: string, description: string) => `${label} mode (${key}): ${description}`,
   },
+  paint: {
+    group: 'Paint colour',
+  },
   rotation: {
     group: 'Rotate the part to place',
     left: 'Rotate left',
@@ -32,6 +35,8 @@ export const TEXT = {
     mountedOn: 'Mounted on',
     axle: 'Axle',
     axis: (axis: string) => `${axis} axis`,
+    color: 'Color',
+    defaultColor: 'Default',
     remove: 'Remove part',
     removeHint: 'Removing a block also removes the wheels mounted on it.',
   },

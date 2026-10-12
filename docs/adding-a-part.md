@@ -23,3 +23,7 @@ Example: a new part type `'thruster'`.
 10. **Confirmations** — for destructive actions use `confirmDialog` from `src/ui/confirm-dialog.ts` (strings in `TEXT`),
    never `window.confirm`.
 11. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).
+
+## Painting
+
+Set `paintable` in `PART_INFO`. Only paintable parts can be painted, and only in paint mode (never in the catalog); `createPartObject` must honour `part.color` for them.

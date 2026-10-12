@@ -9,7 +9,7 @@ interface PreviewScene {
   camera: THREE.PerspectiveCamera;
   pivot: THREE.Group;
   /** Per part: the centred object and the camera distance that frames it. */
-  parts: Map<PartType, { object: THREE.Object3D; distance: number }>;
+  parts: Map<string, { object: THREE.Object3D; distance: number }>;
 }
 
 let shared: PreviewScene | null = null;
@@ -30,18 +30,19 @@ function setup(): PreviewScene {
   return shared;
 }
 
-function partEntry(type: PartType) {
+function partEntry(type: PartType, color?: string) {
   const s = setup();
-  let entry = s.parts.get(type);
+  const key = `${type}:${color ?? ''}`;
+  let entry = s.parts.get(key);
   if (!entry) {
     // Rotation 0: a wheel is shown with its axle along X.
-    const object = createPartObject({ type });
+    const object = createPartObject({ type, color });
     const box = new THREE.Box3().setFromObject(object);
     object.position.sub(box.getCenter(new THREE.Vector3()));
     const radius = box.getBoundingSphere(new THREE.Sphere()).radius;
     const distance = (radius * PREVIEW.margin) / Math.sin(THREE.MathUtils.degToRad(PREVIEW.fov / 2));
     entry = { object, distance };
-    s.parts.set(type, entry);
+    s.parts.set(key, entry);
   }
   return entry;
 }
@@ -60,9 +61,10 @@ export function renderPartPreview(
   type: PartType,
   canvas: HTMLCanvasElement,
   angle: number = PART_INFO[type].previewAngle,
+  color?: string,
 ): void {
   const s = setup();
-  const entry = partEntry(type);
+  const entry = partEntry(type, color);
   const size = canvas.width;
   s.renderer.setPixelRatio(1);
   s.renderer.setSize(size, size, false);
@@ -83,16 +85,16 @@ export function renderPartPreview(
  * Keeps rotating the preview in `canvas` until the returned function is called, which also puts it back at the resting
  * angle (or leaves it as is with `reset = false`).
  */
-export function startSpin(type: PartType, canvas: HTMLCanvasElement, speed: number, reset = true): () => void {
+export function startSpin(type: PartType, canvas: HTMLCanvasElement, speed: number, reset = true, color?: string): () => void {
   let frame = 0;
   const start = performance.now();
   const tick = (now: number) => {
-    renderPartPreview(type, canvas, PART_INFO[type].previewAngle + ((now - start) / 1000) * speed);
+    renderPartPreview(type, canvas, PART_INFO[type].previewAngle + ((now - start) / 1000) * speed, color);
     frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);
   return () => {
     cancelAnimationFrame(frame);
-    if (reset) renderPartPreview(type, canvas);
+    if (reset) renderPartPreview(type, canvas, undefined, color);
   };
 }

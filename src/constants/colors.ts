@@ -62,6 +62,28 @@ export const COLORS = {
   },
 } as const;
 
+/**
+ * Colours offered in the part inspector to paint parts that can be painted. The first entry is the default colour of a
+ * block (choosing it removes the paint); the names are shown as tooltips.
+ */
+export const PAINT_COLORS: ReadonlyArray<{ name: string; hex: string }> = [
+  { name: 'Default (azure)', hex: COLORS.part.block },
+  { name: 'Red', hex: '#d9453b' },
+  { name: 'Orange', hex: '#f08a3c' },
+  { name: 'Yellow', hex: '#f2c94c' },
+  { name: 'Green', hex: '#6fbf73' },
+  { name: 'Teal', hex: '#2fa89a' },
+  { name: 'Purple', hex: '#9b6fd6' },
+  { name: 'Pink', hex: '#e87ab0' },
+  { name: 'White', hex: '#f2f4f8' },
+  { name: 'Gray', hex: '#9aa3b2' },
+  { name: 'Charcoal', hex: '#3b4252' },
+  { name: 'Brown', hex: '#8d6e4a' },
+];
+
+/** Outline colour of a painted block, derived from its paint (the default block uses `COLORS.part.blockEdge`). */
+export const PAINT_EDGE_FACTOR = 0.45;
+
 export const ALPHA = {
   panel: 0.85,
   panelStrong: 0.92,

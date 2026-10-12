@@ -31,6 +31,7 @@ import { openCatalog } from './ui/catalog-dialog';
 import { confirmDialog } from './ui/confirm-dialog';
 import { Hud } from './ui/hud';
 import { Hotbar } from './ui/hotbar';
+import { PaintPalette } from './ui/paint-palette';
 import { PartInspector } from './ui/part-inspector';
 import { isHelpOpen, toggleHelpDialog } from './ui/help-dialog';
 import { ZoomControl } from './ui/zoom-control';
@@ -230,11 +231,13 @@ async function main(): Promise<void> {
   });
   history.subscribe(() => hud.setHistoryState(history.canUndo, history.canRedo));
 
-  // Cursor modes (Q / W / E): what the left mouse button does. The camera buttons depend on it: in build and remove
+  // Cursor modes (Q / W / E / R): what the left mouse button does. The camera buttons depend on it: in build and remove
   // mode the left button is taken, in inspect mode it also rotates the camera (a click without movement inspects).
+  const palette = new PaintPalette((color) => build.setPaintColor(color));
   const setCursorMode = (mode: CursorMode) => {
     build.setMode(mode);
     hud.setCursorMode(mode);
+    palette.show(mode === 'paint');
     controls.mouseButtons = {
       LEFT: mode === 'inspect' ? THREE.MOUSE.ROTATE : null,
       MIDDLE: THREE.MOUSE.ROTATE,

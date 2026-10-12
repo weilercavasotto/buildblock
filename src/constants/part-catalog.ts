@@ -16,6 +16,8 @@ export interface PartInfo {
   category: PartCategory;
   /** Can the player rotate it before placing it (A / D)? */
   rotatable: boolean;
+  /** Can it be painted? Painting is done in the part inspector (inspect mode), never in the catalog. */
+  paintable: boolean;
   /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
   previewAngle: number;
   /** One line shown under the name. */
@@ -32,6 +34,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     name: 'Block',
     category: 'structure',
     rotatable: true,
+    paintable: true,
     previewAngle: 0.6,
     tagline: 'The basic building cube.',
     description:
@@ -41,6 +44,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Placement', value: 'On the ground or against any face of another block' },
       { label: 'Physics', value: 'Touching blocks merge into one rigid body' },
       { label: 'Rotation', value: 'Free, in 90° steps (A / D)' },
+      { label: 'Paint', value: 'Yes, in paint mode (E)' },
       { label: 'Friction', value: String(CHASSIS.friction) },
       { label: 'Density', value: String(CHASSIS.density) },
     ],
@@ -52,6 +56,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     category: 'mobility',
     // The axle points along X; turn it so the wheel face is seen at a three-quarter angle.
     rotatable: true,
+    paintable: false,
     previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
     description:
@@ -61,6 +66,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Width', value: `${WHEEL.width} cells` },
       { label: 'Placement', value: 'Side faces of a block only' },
       { label: 'Rotation', value: 'A / D turn the axle a quarter turn from the face normal' },
+      { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Grip', value: String(WHEEL.friction) },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],

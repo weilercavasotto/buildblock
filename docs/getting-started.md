@@ -80,20 +80,21 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 
 ## Controls
 
-### Cursor modes (`Q` / `W` / `E`)
+### Cursor modes (`Q` / `W` / `E` / `R`)
 
 The left part of the top bar has three **cursor modes**; press the key or click the button. They decide what the left
 mouse button does (the middle button always rotates the camera, the right button pans, scroll zooms):
 
 | Mode | Key | Left button |
 |---|---|---|
-| **Build** (default) | `Q` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
-| **Inspect** | `W` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button). Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
-| **Remove** | `E` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |
+| **Inspect** | `Q` | **Click** a part to select it: it gets a yellow outline and an **inspector panel** opens **centred on the right edge**, filling the height between the top bar and the hotbar (preview, position, how many blocks are welded into its rigid body, wheels attached or host block and axle, properties, a *Remove part* button; blocks also show their **Color**, which is changed in Paint mode) Clicking empty ground, the `×` or leaving the mode deselects. **Dragging rotates the camera** in this mode. Parts under the cursor are outlined in white |
+| **Build** (default) | `W` | Places the part of the selected hotbar slot; drag to paint blocks (see below). A right click removes a part |
+| **Paint** | `E` | A **palette** appears under the top bar; pick a colour (the first swatch is the default colour and removes paint) and click a block to paint it, or **drag** to paint several (one undo step). Wheels cannot be painted. Painting is undoable, saved and shown in Play. Not available in the catalog |
+| **Remove** | `R` | Removes the part under the cursor; **drag to erase** several (one undo step, it does not drill through a stack: it needs some pointer movement between removals). The part under the cursor is outlined in red. A right click removes too |
 
 Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The shortcuts only work while
-building (in Play, `W` drives). The modes are **icons** with their key cap beside them: a hammer (Build), a mouse
-cursor (Inspect) and a trash can (Remove); hover one for its name and description. Undo and Redo are icon-only buttons
+building (in Play, `W` drives). The modes are **icons** with their key cap beside them: a mouse cursor (Inspect), a hammer
+(Build), a brush (Paint) and a trash can (Remove); hover one for its name and description. Undo and Redo are icon-only buttons
 (curved arrows) in the same style; their tooltip gives the shortcut (`Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`), so they carry no key cap.
 
 ### Rotating the part to place (`A` / `D`)

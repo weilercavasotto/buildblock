@@ -50,6 +50,9 @@ export const SIZE = {
   dragGhost: 64,
   partInspectorWidth: 280,
   partInspectorPreview: 72,
+  paintSwatch: 28,
+  /** Gap between the top bar and the paint palette hanging under it. */
+  paletteGap: 8,
   /** Margin above and below the part inspector (it is centred on the right edge); also the room kept free for the hotbar. */
   hotbarReserved: 100,
   zoomSliderHeight: 140,
