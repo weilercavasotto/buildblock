@@ -17,6 +17,7 @@ src/
   ui/confirm-dialog.ts         Reusable modal confirmation: confirmDialog(options) -> Promise<boolean>
   ui/menu.ts                   Main menu and saved-games panel (DOM bound to index.html)
   parts/part-defs.ts           Visuals (meshes/materials) of every part
+  parts/wheel-model.ts         Geometry of the wheel: tire (lathe + tread lugs), rim (lip, spokes, hub, nuts), recessed disc
   build/grid.ts                Data model: the set of placed parts
   build/history.ts             Undo/redo: snapshot history of grid edits (one step per user action)
   build/build-mode.ts          Mouse picking, ghost preview, place/remove
@@ -131,6 +132,14 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
   click removes (build and remove modes) and a right *drag* pans, told apart by pointer movement
   (< `BUILD.clickMaxDistance`). Owns the `group` of build meshes and hides it during Play (which also clears the
   selection).
+- **`wheel-model`** (`src/parts/wheel-model.ts`) — the wheel's geometry, built once and shared by all wheels, all around the Y
+  axis (the axle; `createPartObject` turns it onto the real axle). A **tire** (a `LatheGeometry` of the rubber ring with flat
+  sidewalls, rounded shoulders and a flat tread, plus staggered tread lugs) around a **rim** (lip ring, 5 spokes, hub cap
+  and 6-sided lug nuts, merged into one light-metal mesh) and a darker **recessed disc** between the spokes. Each wheel is
+  3 meshes (`mergeGeometries`), ~2k triangles. The tire is `R - lugHeight` thick plus the lugs, so nothing sticks out
+  of the physical radius `WHEEL.radius`; the ghost preview uses a plain cylinder (`silhouette`) because overlapping
+  transparent meshes look blotchy. Every measure is in `WHEEL_VISUAL` (`constants/game.ts`), colours in `COLORS.part`
+  (`tire`, `rim`, `rimRecess`), rim roughness/metalness in `ROUGHNESS` / `METALNESS`.
 - **`part-defs`** — shared geometries/materials, `createPartObject(part, ghost?)` and
   `faceQuaternion(face)` (maps the cylinder's Y axis to the axle). Used by build mode, ghost and Play.
 - **`PhysicsWorld`** — see [physics.md](physics.md).

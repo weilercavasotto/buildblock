@@ -45,14 +45,35 @@ export const LIGHTS = {
   shadowFar: 80,
 } as const;
 
-/** Wheel mesh details (the physical size is in `WHEEL`, see physics.ts). */
+/**
+ * Wheel model details (the physical size is in `WHEEL`, see physics.ts): a tire (rubber with rounded shoulders and a
+ * staggered tread) around a rim (lip, recessed disc, spokes, hub cap and lug nuts). All lengths are world units.
+ */
 export const WHEEL_VISUAL = {
-  tireSegments: 28,
-  /** Length of the hub bar as a multiple of the wheel radius. */
-  spokeLength: 1.5,
-  /** How far the hub bar sticks out of the tire on each side. */
-  spokeOverhang: 0.04,
-  spokeThickness: 0.14,
+  /** Segments around the wheel. */
+  segments: 40,
+  /** Rounding of the tire's shoulders and its inner radius (it sits under the rim lip). */
+  tireShoulder: 0.07,
+  tireInnerRadius: 0.37,
+  /** Tread lugs: how many (alternating between two rows), how far they stand out, their size and the row offset. */
+  treadLugs: 28,
+  lugHeight: 0.025,
+  lugLength: 0.065,
+  lugWidth: 0.11,
+  lugRowOffset: 0.07,
+  /** Rim: outer radius, width (narrower than the tire), the lip ring and how deep the disc is recessed. */
+  rimRadius: 0.4,
+  rimWidth: 0.3,
+  rimLip: 0.045,
+  rimRecess: 0.05,
+  /** Hub cap at the centre (and how far it sticks out of the rim), spokes and lug nuts. */
+  hubRadius: 0.1,
+  hubProtrusion: 0.015,
+  spokes: 5,
+  spokeWidth: 0.075,
+  nuts: 5,
+  nutRadius: 0.026,
+  nutCircle: 0.17,
 } as const;
 
 /** Procedural sky dome with blocky "voxel" clouds (see src/scene/sky.ts). */
@@ -84,11 +105,16 @@ export const SKY = {
   minCellPixels: 3,
 } as const;
 
+/** Metal-ness of the rim (the scene has no environment map, so keep it low or it looks black). */
+export const METALNESS = {
+  rim: 0.15,
+} as const;
+
 export const ROUGHNESS = {
   floor: 1,
   block: 0.55,
   tire: 0.9,
-  spoke: 0.4,
+  rim: 0.35,
   scenery: 0.8,
 } as const;
 

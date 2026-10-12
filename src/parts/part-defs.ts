@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, HIGHLIGHT, ROUGHNESS, WHEEL, WHEEL_VISUAL, hexToNumber } from '../constants';
+import { ALPHA, BLOCK_VISUAL_SIZE, COLORS, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber } from '../constants';
 import { Part, Vec3, partRotation, wheelAxle, yawOfTurns } from '../types';
+import { wheelGeometry } from './wheel-model';
 
 const color = (hex: string): number => hexToNumber(hex);
 const ghostMaterial = (hex: string) =>
@@ -8,16 +9,18 @@ const ghostMaterial = (hex: string) =>
 
 const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
 const edgeGeo = new THREE.EdgesGeometry(blockGeo);
-const tireGeo = new THREE.CylinderGeometry(WHEEL.radius, WHEEL.radius, WHEEL.width, WHEEL_VISUAL.tireSegments);
-const spokeGeo = new THREE.BoxGeometry(
-  WHEEL.radius * WHEEL_VISUAL.spokeLength,
-  WHEEL.width + WHEEL_VISUAL.spokeOverhang,
-  WHEEL_VISUAL.spokeThickness,
-);
-
 const blockMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.block), roughness: ROUGHNESS.block });
 const tireMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.tire), roughness: ROUGHNESS.tire });
-const spokeMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.spoke), roughness: ROUGHNESS.spoke });
+const rimMat = new THREE.MeshStandardMaterial({
+  color: color(COLORS.part.rim),
+  roughness: ROUGHNESS.rim,
+  metalness: METALNESS.rim,
+});
+const rimRecessMat = new THREE.MeshStandardMaterial({
+  color: color(COLORS.part.rimRecess),
+  roughness: ROUGHNESS.rim,
+  metalness: METALNESS.rim,
+});
 const edgeMat = new THREE.LineBasicMaterial({ color: color(COLORS.part.blockEdge) });
 const ghostOk = ghostMaterial(COLORS.part.ghostValid);
 const ghostBad = ghostMaterial(COLORS.part.ghostInvalid);
@@ -62,10 +65,16 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'rotation'>,
   } else {
     const pivot = new THREE.Group();
     pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));
-    const tire = new THREE.Mesh(tireGeo, ghostMat ?? tireMat);
-    tire.castShadow = !ghost;
-    pivot.add(tire);
-    if (!ghost) pivot.add(new THREE.Mesh(spokeGeo, spokeMat));
+    if (ghostMat) {
+      pivot.add(new THREE.Mesh(wheelGeometry.silhouette, ghostMat));
+    } else {
+      // Tire (rubber), rim (metal) and the darker recessed disc of the rim; see wheel-model.ts.
+      const tire = new THREE.Mesh(wheelGeometry.tire, tireMat);
+      tire.castShadow = true;
+      const rim = new THREE.Mesh(wheelGeometry.rim, rimMat);
+      rim.castShadow = true;
+      pivot.add(tire, rim, new THREE.Mesh(wheelGeometry.rimDisc, rimRecessMat));
+    }
     root.add(pivot);
   }
   return root;
