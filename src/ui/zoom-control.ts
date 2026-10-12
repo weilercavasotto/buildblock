@@ -5,8 +5,8 @@ import { CAMERA, TEXT, ZOOM } from '../constants';
 /**
  * Zoom control (top left, under the home button): +/- buttons and a vertical slider, kept in sync with the
  * mouse-wheel zoom of the orbit controls. Zoom is the camera's distance to its target, limited to
- * [CAMERA.minDistance, CAMERA.maxDistance]; the slider is logarithmic (top = closest) and the label shows the
- * zoom relative to the default camera distance.
+ * [CAMERA.minDistance, CAMERA.maxDistance]; the slider is logarithmic (top = closest) and the label shows its position
+ * as a percentage: 0% at the farthest zoom, 100% at the closest.
  */
 export class ZoomControl {
   private root = document.getElementById('zoom')!;
@@ -15,9 +15,6 @@ export class ZoomControl {
   private zoomIn = document.getElementById('zoom-in')!;
   private zoomOut = document.getElementById('zoom-out')!;
   private lastLabel = '';
-  private referenceDistance = new THREE.Vector3(...CAMERA.startPosition).distanceTo(
-    new THREE.Vector3(...CAMERA.startTarget),
-  );
 
   constructor(
     private controls: OrbitControls,
@@ -46,13 +43,14 @@ export class ZoomControl {
   /** Refreshes the slider and label from the current camera distance. Safe to call at any time. */
   sync(): void {
     const distance = this.distance;
-    const label = TEXT.hud.zoom(this.referenceDistance / distance);
+    const position = this.sliderFromDistance(distance);
+    const label = TEXT.hud.zoom(position);
     if (label !== this.lastLabel) {
       this.lastLabel = label;
       this.label.textContent = label;
     }
     // While the slider is being dragged it already holds the value; rewriting it would fight the thumb.
-    if (document.activeElement !== this.slider) this.slider.value = String(this.sliderFromDistance(distance));
+    if (document.activeElement !== this.slider) this.slider.value = String(position);
   }
 
   private get distance(): number {

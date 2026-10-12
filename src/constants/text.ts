@@ -2,8 +2,8 @@
 export const TEXT = {
   hud: {
     fps: (value: number) => `${value} FPS`,
-    /** Zoom relative to the default camera distance, as a percentage (100% = the default view). */
-    zoom: (factor: number) => `${Math.round(factor * 100)}%`,
+    /** Zoom level as a percentage of the zoom slider: 0% = farthest, 100% = closest. */
+    zoom: (position: number) => `${Math.round(position * 100)}%`,
     play: '▶ Play',
     stop: '■ Stop',
     resetLabel: '↺ Reset',

@@ -153,7 +153,7 @@ the physics collider/joint and the vehicle controller use). At placement a wheel
 - **`ZoomControl`** (`src/ui/zoom-control.ts`) — zoom is the camera's distance to the orbit target. The limits are
   applied to `OrbitControls.minDistance/maxDistance`, so the wheel, pinch and the control itself share them. The slider
   is logarithmic (equal steps = equal ratio; top = closest) and the label (inside the bar, above the slider) is the
-  zoom as a percentage: default distance divided by the current one (`100%` = default view). It listens to the controls' `change` event (wheel, damping, the camera following the car), so mouse zoom moves
+  zoom as the slider position in percent (`0%` = farthest, `100%` = closest; the camera distance itself is unchanged). It listens to the controls' `change` event (wheel, damping, the camera following the car), so mouse zoom moves
   the slider; slider/buttons move the camera along its line of sight (`setDistance`). The slider value is not rewritten
   while it is being dragged, and the control releases keyboard focus after a click so the arrow keys keep driving.
   Hidden in the menu (`main.ts` calls `setVisible` and `sync()` together with the HUD). `#zoom` is fixed at the top left, right
