@@ -9,8 +9,7 @@ Example: a new part type `'thruster'`.
    depends on another part (as wheels depend on their block).
 4. **Build mode** — extend `BuildMode.target` in `src/build/build-mode.ts` to say where the part goes
    for a given pick.
-5. **Rotation** — set `rotatable` in its `PART_INFO` entry (`false` if its orientation must not be chosen by the player). `Part.rotation` (clockwise quarter turns) is applied by `createPartObject`; an asymmetric part must
-   also use `partRotation(part)` in its physics collider.
+5. **Rotation** — every part is oriented the same way (`Part.studs` + `Part.spin`, see architecture.md): set `rotatable` in its `PART_INFO` entry (`false` if its orientation must not be chosen by the player), build its visual in its own frame (`createPartObject` turns the root by the orientation), say in `symmetryOf` (`parts/orientation.ts`) which turns look the same, and read the orientation in its physics (like `axleOf` / `frontOf`).
 6. **Catalog and hotbar** — add its entry to `PART_INFO` (and `PART_ORDER`) in `src/constants/part-catalog.ts`: name,
    category (add one to `PART_CATEGORIES` if needed), description, properties, tips and `previewAngle`. It then appears
    in the catalog with a 3D preview (built from `createPartObject`) and can be dragged onto the hotbar; nothing else

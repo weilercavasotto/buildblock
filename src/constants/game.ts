@@ -323,6 +323,8 @@ export const STORAGE = {
 } as const;
 
 export const SAVE = {
+  /** Version of how parts are stored: 2 = every part is oriented the same way (`Part.studs` / `Part.spin`); older saves have none. */
+  format: 2,
   nameMaxLength: 30,
   legacyName: 'My creation',
 } as const;

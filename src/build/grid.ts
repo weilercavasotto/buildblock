@@ -1,7 +1,7 @@
 import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampPower, clampWeight, legacyTireValue, tireValueOf, partVolume, powerOf, weightOf, ENGINE } from '../constants';
-import { isSpin } from '../parts/orientation';
+import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, subVec, StructuralType } from '../types';
+import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -57,11 +57,12 @@ export class Grid {
     if (box.min[1] < GROUND_Y - EPS || box.max[1] > maxY + 0.5 + EPS) return false;
     if (this.get(part.cell) || this.overlapping(part).length > 0) return false;
     if (isMountedType(part.type)) {
-      // Wheels go on the side faces of a block, an engine on any face (and may not point into the block it is on).
+      // Wheels go on the side faces of a block, an engine on any face, but its front may not point into the block it is on and it
+      // may not be upside down (its cylinder heads, its local up, pointing down).
       if (!part.face) return false;
       if (part.type === 'engine') {
-        const front = frontOf(part);
-        if (!isAxisDirection(front) || front.every((v, i) => v === -part.face![i])) return false;
+        if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
+        if (studsOf(part)[1] === -1) return false;
       } else if (part.face[1] !== 0) {
         return false;
       }
@@ -217,10 +218,14 @@ export class Grid {
     this.emit();
   }
 
-  load(parts: Part[]): void {
+  /**
+   * Replaces everything with `parts` (cleaned: see `sanitize`). `legacyFormat` says the parts were saved before every part was
+   * oriented the same way (wheels had `rotation` / `pitch`, engines `front`), so they are converted.
+   */
+  load(parts: Part[], legacyFormat = false): void {
     this.parts.clear();
     for (const p of parts) {
-      const clean = sanitize(p);
+      const clean = sanitize(p, legacyFormat);
       if (clean) this.parts.set(cellKey(clean.cell), clean);
     }
     this.emit();
@@ -287,8 +292,13 @@ export class Grid {
  * Cleans a part from a save: drops what its type does not allow (a bad or forbidden paint / suspension / tire / weight) and
  * converts older shapes. Returns null for a part that cannot be kept.
  */
-function sanitize(part: Part): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, studs, spin, pitch, front, ...rest } = part as Part & { layers?: number };
+function sanitize(part: Part, legacyFormat: boolean): Part | null {
+  const { color, suspension, tire: savedTire, weight, power, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+    layers?: number;
+    rotation?: number;
+    pitch?: number;
+    front?: Vec3;
+  };
   const info = PART_INFO[part.type];
   if (!info) return null; // a type this version does not know
   let out: Part = { ...rest };
@@ -307,12 +317,11 @@ function sanitize(part: Part): Part | null {
   if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
   if (power !== undefined && typeof power === 'number' && info.hasPower) out.power = clampPower(power);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
-  if (isStructural(part.type) && isAxisDirection(studs) && !(studs[0] === 0 && studs[1] === 1 && studs[2] === 0)) out.studs = studs;
-  if (isStructural(part.type) && isSpin(spin) && spin % SHAPES[part.type].spins !== 0) out.spin = spin % SHAPES[part.type].spins;
-  if (part.type === 'wheel' && (pitch === 1 || pitch === -1)) out.pitch = pitch;
-  if (part.type === 'engine') {
-    if (!part.face) return null; // an engine is always mounted on a block
-    if (isAxisDirection(front) && !front.every((v, i) => v === -part.face![i]) && !front.every((v, i) => v === part.face![i])) out.front = front;
-  }
-  return out;
+  if (isMountedType(part.type) && !part.face) return null; // wheels and engines are always mounted on a block
+  // Orientation: the same fields for every part. Wheels and engines saved before that had `rotation` / `pitch` / `front`.
+  const fromLegacy = isMountedType(part.type) && (rotation !== undefined || pitch !== undefined || front !== undefined || (legacyFormat && studs === undefined && spin === undefined));
+  const orientation = fromLegacy
+    ? legacyOrientation({ type: part.type, face: part.face, rotation, pitch, front }, legacyFormat)
+    : canonicalOrientation(part.type, { studs: isAxisDirection(studs) ? studs : [0, 1, 0], spin: isSpin(spin) ? spin : 0 });
+  return { ...out, ...orientationFields(orientation) };
 }

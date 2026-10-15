@@ -1,6 +1,5 @@
 import { CELL_SIZE, ENGINE_BODY, SHAPES, STUD } from '../constants';
-import { Part, Vec3, addVec, isStructural, partCells, partCentre, studsOf, spinOf } from '../types';
-import { Matrix, matrixOf, orientationOfPart } from './orientation';
+import { Part, Vec3, addVec, applyMatrix, isStructural, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
 
 /** Axis-aligned box, in world units. */
 export interface Box {
@@ -17,10 +16,8 @@ export interface StudBox extends Box {
 export const EPS = 1e-3;
 
 /** The parts' fields that decide their boxes and studs. */
-type Shape = Pick<Part, 'type' | 'cell' | 'face' | 'rotation' | 'studs' | 'spin'>;
+type Shape = Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>;
 
-const applyMatrix = (m: Matrix, v: Vec3): Vec3 =>
-  [0, 1, 2].map((i) => m[0][i] * v[0] + m[1][i] * v[1] + m[2][i] * v[2]) as Vec3;
 
 const relativeCache = new Map<string, StudBox[]>();
 

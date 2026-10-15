@@ -26,7 +26,7 @@ import {
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
 import { partBox, relativeBoxes } from '../parts/part-geometry';
-import { Part, Vec3, cellKey, frontOf, isStructural, isWheelType, partCentre, subVec, wheelAxle } from '../types';
+import { Part, Vec3, axleOf, cellKey, frontOf, isStructural, isWheelType, partCentre, subVec } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -221,7 +221,7 @@ export class PhysicsWorld {
     for (const wheel of wheelParts) {
       // `face` is where the wheel is mounted (its host block); the axle comes from its rotation (or is the face normal).
       const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
-      const axle = wheelAxle(wheel);
+      const axle = axleOf(wheel);
       if (!host) continue;
 
       const centre = partCentre(wheel);

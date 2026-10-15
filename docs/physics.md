@@ -11,8 +11,8 @@ every time Play starts (and on `R`).
    `CHASSIS.density × weightMass(weight)` (the block's `Part.weight`, 1-16, default 4 = ×1: the body's mass is the sum of
    weight / 4 over its blocks). A single body keeps
    structures stiff; joints between individual cubes would make them wobble.
-2. **Wheels**: every wheel is its **own body** with a cylinder collider (axis from the wheel's `rotation`, see
-   `wheelAxle`) spinning on a `RevoluteImpulseJoint`. The hinge is carried by a light **hub** body (no collider,
+2. **Wheels**: every wheel is its **own body** with a cylinder collider (axis from the wheel's orientation, see
+   `axleOf`) spinning on a `RevoluteImpulseJoint`. The hinge is carried by a light **hub** body (no collider,
    `SUSPENSION.hubMass` and a large `hubInertia`: the wheel motor is acceleration based, so it acts on the reduced inertia of hub and wheel and would be too weak to steer with a tiny hub) that hangs from the chassis by a vertical **spring**:
    `chassis -prismatic spring- hub -revolute- wheel`. The wheel and hub bodies start un-rotated so the joint axes
    are identical in both local frames.
@@ -63,7 +63,7 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
 
 `VehicleController` (`src/play/vehicle-controller.ts`):
 
-- **Engines** (`Part.power`, `Part.front`, `ENGINE`, `PhysicsWorld.wheels[].engines`): an engine is mounted on a block and adds a compact collider
+- **Engines** (`Part.power`, its orientation (`frontOf`), `ENGINE`, `PhysicsWorld.wheels[].engines`): an engine is mounted on a block and adds a compact collider
   (`ENGINE_BODY`, density so that it weighs `ENGINE.mass` blocks) and its visual to that block's rigid body. When the game needs engines
   (`Grid.engineDrive`, true for saves made since the engine exists; old saves leave it false and every wheel is driven) a wheel is
   powered only by the engines of its host body. Each engine pushes towards its front (`frontOf`); its signed push is

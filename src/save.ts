@@ -10,6 +10,8 @@ export interface SaveGame {
   gridCells?: number;
   /** Wheels need an engine to be driven (games made since the engine exists); missing in older saves, whose wheels are all driven. */
   engineDrive?: boolean;
+  /** How the parts are stored (see `SAVE.format`); missing in older saves, whose wheels and engines are converted when loaded. */
+  format?: number;
 }
 
 /** The grid size of a save, whatever it holds. */
@@ -59,7 +61,7 @@ export function getSave(id: string): SaveGame | undefined {
 }
 
 export function createSave(name: string, gridCells: number): SaveGame {
-  const save: SaveGame = { id: newId(), name, updatedAt: Date.now(), parts: [], gridCells: validGridCells(gridCells), engineDrive: true };
+  const save: SaveGame = { id: newId(), name, updatedAt: Date.now(), parts: [], gridCells: validGridCells(gridCells), engineDrive: true, format: SAVE.format };
   writeAll([...readAll(), save]);
   return save;
 }
@@ -69,6 +71,7 @@ export function updateSave(id: string, parts: Part[]): void {
   const save = saves.find((s) => s.id === id);
   if (!save) return;
   save.parts = parts;
+  save.format = SAVE.format; // the parts in memory are always in the current format
   save.updatedAt = Date.now();
   writeAll(saves);
 }

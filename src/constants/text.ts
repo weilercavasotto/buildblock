@@ -41,8 +41,6 @@ export const TEXT = {
     close: 'Close',
     thisPart: 'This part',
     position: 'Position',
-    rotation: 'Rotation',
-    degrees: (turns: number) => `${turns * 90}°`,
     rigidBody: 'Rigid body',
     blocks: (n: number) => (n === 1 ? '1 part' : `${n} connected parts`),
     wheelsAttached: 'Wheels attached',

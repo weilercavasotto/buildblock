@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ALPHA, PAINT_EDGE_FACTOR, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, Vec3, frontOf, isHexColor, isStructural, partCentre, wheelAxle } from '../types';
-import { Orientation, matrixOf, orientationOfPart } from './orientation';
+import { Part, Vec3, axleOf, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
+import { Orientation, matrixOf } from './orientation';
 import { createEngineModel, engineMetal } from './engine-model';
 import { partBox } from './part-geometry';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -123,7 +123,7 @@ function makeGhost(root: THREE.Object3D, bad: boolean): void {
 }
 
 /** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
-export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'front' | 'rotation' | 'studs' | 'spin' | 'pitch'>): THREE.Box3 {
+export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): THREE.Box3 {
   const margin = new THREE.Vector3().setScalar(HIGHLIGHT.margin);
   if (isStructural(part.type) || part.type === 'engine') {
     const box = partBox(part);
@@ -131,7 +131,7 @@ export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'front' |
   }
   const { scale } = wheelSizeOf(part.type);
   const half = new THREE.Vector3().setScalar(WHEEL.radius * scale);
-  const axle = wheelAxle(part).findIndex((v) => v !== 0);
+  const axle = axleOf(part).findIndex((v) => v !== 0);
   half.setComponent(axle, (WHEEL.width * scale) / 2);
   half.add(margin);
   const centre = new THREE.Vector3(...partCentre(part));
@@ -143,7 +143,7 @@ export function faceQuaternion(face: Vec3): THREE.Quaternion {
   return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...face));
 }
 
-/** The turn of a structural part: its local frame (studs up) to the world. Any integer spin works. */
+/** The turn of a part: its local frame to the world (see `Part.studs`). Any integer spin works. */
 export function orientationQuaternion(o: Orientation): THREE.Quaternion {
   const [x, y, z] = matrixOf(o);
   return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(...x), new THREE.Vector3(...y), new THREE.Vector3(...z)));
@@ -183,7 +183,7 @@ function socketsMesh(size: Vec3, studs: Vec3): THREE.Mesh {
 }
 
 /** Builds the visual for a part, centred on its own origin (cell centre). */
-export function createPartObject(part: Pick<Part, 'type' | 'face' | 'front' | 'rotation' | 'color' | 'studs' | 'spin' | 'pitch'>, ghost?: 'ok' | 'bad'): THREE.Group {
+export function createPartObject(part: Pick<Part, 'type' | 'color' | 'studs' | 'spin'>, ghost?: 'ok' | 'bad'): THREE.Group {
   const root = new THREE.Group();
   const noRaycast = { raycast: () => {} };
 
@@ -205,20 +205,16 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'front' | 'r
       group.add(socketsMesh(box.size, box.studs));
       root.add(group);
     }
-    root.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
   } else if (part.type === 'engine') {
-    // The engine, turned so that its front points where the engine pushes and its bottom rests on the block it is mounted on.
-    const face = part.face ?? [1, 0, 0];
-    const front = frontOf({ face, front: part.front });
-    const alongFace = front.every((v, i) => v === face[i]); // pointing straight out of the face: any perpendicular will do as "up"
-    const up = new THREE.Vector3(...(alongFace ? (face[1] === 0 ? [0, 1, 0] : [1, 0, 0]) : face));
-    const forward = new THREE.Vector3(...front);
+    // The engine in its own frame: front +z, cylinder heads up.
     root.add(createEngineModel(blockMaterials(part.color, 'engine').face));
-    root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(up.clone().cross(forward), up, forward));
   } else {
+    // A wheel in its own frame: the axle along +x (a large wheel is the same model, scaled).
     const pivot = new THREE.Group();
-    pivot.quaternion.copy(faceQuaternion(wheelAxle(part)));
-    pivot.scale.setScalar(wheelSizeOf(part.type).scale); // a large wheel is the same model, scaled
+    // The wheel's body stays unturned in Play (Rapier's joint axis; see AGENTS.md) and moves the whole object, so a wheel
+    // carries its orientation inside, in the pivot, instead of on the root like the other parts.
+    pivot.quaternion.copy(orientationQuaternion(orientationOfPart(part))).multiply(faceQuaternion([1, 0, 0]));
+    pivot.scale.setScalar(wheelSizeOf(part.type).scale);
     // Tire (rubber), rim (metal) and the darker recessed disc of the rim; see wheel-model.ts.
     const tire = new THREE.Mesh(wheelGeometry.tire, tireMat);
     tire.castShadow = true;
@@ -227,6 +223,8 @@ export function createPartObject(part: Pick<Part, 'type' | 'face' | 'front' | 'r
     pivot.add(tire, rim, new THREE.Mesh(wheelGeometry.rimDisc, rimRecessMat));
     root.add(pivot);
   }
+  // Every other part is turned the same way: its own frame to the world by its orientation.
+  if (!isWheelType(part.type)) root.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
   if (ghost) {
     makeGhost(root, ghost === 'bad');
     root.scale.setScalar(GHOST_BLOCK_SCALE); // a hair smaller: no z-fighting with the faces of its neighbours

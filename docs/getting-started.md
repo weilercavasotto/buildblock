@@ -176,14 +176,13 @@ The **Engine** (catalog, *Mobility*) is what drives the wheels. It is a separate
 ### The large wheel
 
 The **Large wheel** (catalog, category *Mobility*; drag it onto a hotbar slot) is a wheel of **twice the size** (radius 1.3,
-width 0.8): it **occupies 2 × 2 cells** in the plane of the block face it is mounted on. Click a **side face** of a block
-as with the normal wheel: the wheel is anchored at the cell you point at (beside that block) and fills that cell, the one
-above it and the two beside them, so the four must be **free** and inside the grid (the ghost is red otherwise). **`A` / `D`
-choose the side it extends toward** (even rotation: along +Z for an X face and +X for a Z face; odd: the opposite way);
-its axle is always perpendicular to the face. Its centre is the middle of the four cells, so at ground level it overhangs
+width 0.8): it **occupies 2 × 2 cells** (a square perpendicular to its axle). Click a **side face** of a block
+as with the normal wheel: the wheel is anchored at the cell you point at (beside that block) and fills a 2 × 2 square of cells starting there, so the four must be **free** and inside the grid (the ghost is red
+otherwise). Like every part it is turned freely (`A` / `D`, `W` / `S`): that chooses its axle and which way the 2 × 2 square extends (by default
+its axle is X and it extends up and towards +Z). Its centre is the middle of the four cells, so at ground level it overhangs
 the floor a little and the whole creation spawns slightly higher. It has the same **Tire** and **Suspension** controls
 as the normal wheel, cannot be painted, and turns more slowly (it still covers more ground per turn). Removing any of its
-4 cells (or its block) removes it. Inspecting it shows *Occupies* instead of *Rotation*.
+4 cells (or its block) removes it. Inspecting it shows *Occupies* and its *Axle*.
 
 ### Rotating the part to place (`A` / `D`, `W` / `S`)
 
@@ -195,7 +194,7 @@ In Build mode you can turn the part you are about to place in **quarter turns ar
   screen's left-right (so it follows the camera: `W` turns the top of the part away from you, `S` towards you); the **↑ ↓ buttons** do the same.
   `W` / `A` / `S` / `D` are only used to rotate the part while building (they drive while playing).
 - The placement preview **turns smoothly** to the chosen orientation (always the quarter turn you asked for, never an extra twist; it is a quaternion
-  interpolation towards the nearest equivalent orientation, see `BuildMode.update`). If the studs lie along the tilt axis (they point to the
+  interpolation towards the orientation you chose, see `BuildMode.update`). If the studs lie along the tilt axis (they point to the
   right or left of the screen), `W` / `S` roll the part around the other horizontal axis instead, so the key always does something: `W` points
   the studs up, `S` down. The orientation resets when you pick another part.
 
@@ -208,10 +207,12 @@ What it does for each part:
   and a plate upside down on a block's studs is not. The placement is checked exactly as before: no overlap, inside the build
   area, and supported (on the ground, or at least one stud engaged); with the studs sideways a block may hang from the
   side of another one. Nothing changes while the studs point up and you only press `A` / `D`.
-- **Wheels:** `A` / `D` choose the axle as before (perpendicular to the face, or along it, in either direction); `↑` / `↓`
-  point the axle **straight up or down** (a wheel that spins like a turntable; it is not driven, because it is not aligned with
-  the forward direction) and back. Shown as *Axle* in the inspector.
-- The **large wheel** keeps its fixed axle: `A` / `D` choose the side it extends toward and `W` / `S` do nothing.
+- **Every part turns the same way, freely, in all directions**, with the same keys and the same smooth preview. Blocks, plates and brackets: the studs go with
+  the turn; a **wheel**'s axle (its local X, *Axle* in the inspector) and a **large wheel**'s axle and reach go with it; an **engine**'s front (the fan) goes with it. The
+  part only has to be **mounted** where it is allowed: wheels on the side faces of a block, an engine on any face, but its front cannot point into the block it is mounted on and it cannot be upside down, with its cylinder heads pointing down (the ghost turns red). A wheel with its axle
+  along X is a normal wheel on a side face along X; turned a quarter turn it lies along the face, like a caster, and with its axle up or down it spins like a
+  turntable (not driven: it is not aligned with the forward direction). The preview turns even for a part that looks the same after the turn
+  (a square block with its studs up): you see every quarter turn.
 
 The buttons are dimmed (and the keys do nothing) outside Build mode and with an empty hotbar slot; `W` / `A` / `S` / `D` and the arrows only rotate while
 building (they drive while playing).

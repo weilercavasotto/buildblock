@@ -13,6 +13,7 @@ import {
   GROUND_Y,
   LIGHTS,
   ROUGHNESS,
+  SAVE,
   SCENE,
   DEFAULT_GRID_CELLS,
   TEXT,
@@ -218,7 +219,7 @@ async function main(): Promise<void> {
             activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
             setGridSize(gridCellsOf(save));
             grid.engineDrive = save.engineDrive === true;
-            grid.load(save.parts);
+            grid.load(save.parts, save.format !== SAVE.format);
             activeSave = id;
             history.clear();
           },

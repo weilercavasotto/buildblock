@@ -1,6 +1,6 @@
 import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, powerOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { Grid } from '../build/grid';
-import { Part, Vec3, frontOf, isStructural, partCells, partRotation, studsOf, subVec, wheelAxle } from '../types';
+import { Part, Vec3, axleOf, frontOf, isStructural, partCells, studsOf, subVec } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
@@ -211,10 +211,8 @@ export class PartInspector {
   /** Label / value rows that depend on where this particular part is. */
   private placedRows(part: Part): Array<[string, string]> {
     const rows: Array<[string, string]> = [[TEXT.inspector.position, coords(part.cell)]];
-    // A large wheel's axle is fixed (its rotation only picks a side), so a rotation in degrees would mislead.
     if (part.type === 'bigWheel') rows.push([TEXT.inspector.occupies, TEXT.inspector.cells(partCells(part).length)]);
     else if (isStructural(part.type)) rows.push([TEXT.inspector.studs, TEXT.inspector.studsDirection(studsOf(part))]);
-    else rows.push([TEXT.inspector.rotation, TEXT.inspector.degrees(partRotation(part))]);
     if (isStructural(part.type)) {
       rows.push([TEXT.inspector.color, PAINT_COLORS.find((c) => c.hex.toLowerCase() === part.color)?.name ?? TEXT.inspector.defaultColor]);
       rows.push([TEXT.inspector.weight, String(weightOf(part))]);
@@ -230,7 +228,7 @@ export class PartInspector {
       } else {
         rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
         rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
-        rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[wheelAxle(part).findIndex((v) => v !== 0)])]);
+        rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[axleOf(part).findIndex((v) => v !== 0)])]);
       }
     }
     return rows;
