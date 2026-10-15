@@ -86,6 +86,28 @@ export const ENGINE_BODY = {
 } as const;
 
 /**
+ * The brake model (`parts/brake-model.ts`): a drilled disc lying in the yz plane (its axis along x, like a wheel's) with a
+ * caliper clamped on its top edge, in its own frame and at the size it has on a normal wheel (a large wheel scales it). `inset` is
+ * how far toward the vehicle the disc sits from the middle of the wheel. Lengths in cells.
+ */
+export const BRAKE_VISUAL = {
+  discRadius: 0.27,
+  discThickness: 0.04,
+  hubRadius: 0.07,
+  hubLength: 0.08,
+  /** The drilled holes: how many, their radius and the radius of the circle they sit on. */
+  holes: 6,
+  holeRadius: 0.03,
+  holeCircle: 0.17,
+  /** The caliper (width along the disc's axis, height and length along the rim). */
+  caliperThickness: 0.12,
+  caliperHeight: 0.14,
+  caliperLength: 0.2,
+  inset: 0.11,
+  segments: 28,
+} as const;
+
+/**
  * The engine model (`parts/engine-model.ts`): a V engine drawn in its own frame, `ENGINE_BODY.width` on a side, with the
  * front (where the fan is) towards +z and the cylinder heads up. Lengths in cells.
  */
@@ -162,7 +184,7 @@ export const LIGHTS = {
 
 /**
  * Wheel model details (the physical size is in `WHEEL`, see physics.ts): a tire (rubber with rounded shoulders and a
- * staggered tread) around a rim (lip, recessed disc, spokes, hub cap and lug nuts). All lengths are world units.
+ * staggered tread) around a rim (lip, spokes, hub cap and lug nuts, open between the spokes). All lengths are world units.
  */
 export const WHEEL_VISUAL = {
   /** Segments around the wheel. */
@@ -176,7 +198,7 @@ export const WHEEL_VISUAL = {
   lugLength: 0.065,
   lugWidth: 0.11,
   lugRowOffset: 0.07,
-  /** Rim: outer radius, width (narrower than the tire), the lip ring and how deep the disc is recessed. */
+  /** Rim: outer radius, width (narrower than the tire), the lip ring and how deep the rim is recessed (the length of the lug nuts). */
   rimRadius: 0.4,
   rimWidth: 0.3,
   rimLip: 0.045,

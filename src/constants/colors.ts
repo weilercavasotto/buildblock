@@ -69,9 +69,12 @@ export const COLORS = {
     engine: '#aab3bd',
     engineRim: '#7b858f',
     engineDark: '#2c323a',
+    /** The brake: a steel disc with dark holes and a red caliper. */
+    brakeDisc: '#b8bec8',
+    brakeHole: '#2c323a',
+    brakeCaliper: '#d94a4a',
     tire: '#23262d',
     rim: '#dfe3ea',
-    rimRecess: '#8f98a8',
     /** The placement ghost turns this colour when the part cannot be placed (otherwise it is the part itself, translucent). */
     ghostInvalid: '#ff3b30',
   },

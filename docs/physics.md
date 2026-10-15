@@ -63,6 +63,7 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
 
 `VehicleController` (`src/play/vehicle-controller.ts`):
 
+- **Brakes** (`Part.brake`, `BRAKE`, `VEHICLE.brakeStrength`, `WheelDrive.brake`): each wheel has its own brake strength over `BRAKE.default` (0 with no brake). While `Space` is held (`VehicleController`, `Space` in `KEY_MAP`, or `setAutopilot({ brake })`) a wheel with a brake is held at velocity 0 with strength `idleBrake + brakeStrength * brake`, driven or not, and the throttle does not apply to it; wheels without a brake ignore `Space`.
 - **Engines** (`Part.power`, its orientation (`frontOf`), `ENGINE`, `PhysicsWorld.wheels[].engines`): an engine is mounted on a block and adds a compact collider
   (`ENGINE_BODY`, density so that it weighs `ENGINE.mass` blocks) and its visual to that block's rigid body. When the game needs engines
   (`Grid.engineDrive`, true for saves made since the engine exists; old saves leave it false and every wheel is driven) a wheel is

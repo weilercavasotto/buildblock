@@ -2,11 +2,12 @@ import { WheelDrive } from './physics-world';
 import { ENGINE, VEHICLE } from '../constants';
 import { Vec3 } from '../types';
 
-const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right'> = {
+const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'brake'> = {
   KeyW: 'forward', ArrowUp: 'forward',
   KeyS: 'back', ArrowDown: 'back',
   KeyA: 'left', ArrowLeft: 'left',
   KeyD: 'right', ArrowRight: 'right',
+  Space: 'brake',
 };
 
 const cross = (a: Vec3, b: Vec3): Vec3 => [
@@ -27,8 +28,8 @@ interface DrivenWheel {
 }
 
 export class VehicleController {
-  private pressed = { forward: false, back: false, left: false, right: false };
-  private autopilot: { throttle: number; steer: number } | null = null;
+  private pressed = { forward: false, back: false, left: false, right: false, brake: false };
+  private autopilot: { throttle: number; steer: number; brake?: boolean } | null = null;
   private driven: DrivenWheel[];
   private listening: boolean;
 
@@ -86,7 +87,7 @@ export class VehicleController {
   }
 
   /** Drives the vehicle with the given throttle/steer in [-1, 1]; `null` hands control back to the keyboard. */
-  setAutopilot(input: { throttle: number; steer: number } | null): void {
+  setAutopilot(input: { throttle: number; steer: number; brake?: boolean } | null): void {
     this.autopilot = input;
   }
 
@@ -102,7 +103,14 @@ export class VehicleController {
     const steer = this.autopilot?.steer ?? Number(this.pressed.right) - Number(this.pressed.left);
     const idle = throttle === 0 && steer === 0;
 
+    const braking = this.autopilot?.brake ?? this.pressed.brake;
+
     for (const { wheel, roll, side, power } of this.driven) {
+      // Braking (Space) holds the wheels that have a brake, driven or not, and overrides the throttle for them.
+      if (braking && wheel.brake > 0) {
+        wheel.joint.configureMotorVelocity(0, VEHICLE.idleBrake + VEHICLE.brakeStrength * wheel.brake); // on top of the light hold of a wheel at rest
+        continue;
+      }
       if (roll === 0) continue;
       if (idle) {
         wheel.joint.configureMotorVelocity(0, VEHICLE.idleBrake);

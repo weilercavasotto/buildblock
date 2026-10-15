@@ -25,6 +25,8 @@ export interface PartInfo {
   hasTire: boolean;
   /** Does it have an adjustable weight (set in the part inspector)? */
   hasWeight: boolean;
+  /** Can a brake be fitted to it (the wheels)? The brake strength is then set in the part inspector. */
+  hasBrake: boolean;
   /** Does it have an adjustable power (an engine; set in the part inspector)? */
   hasPower: boolean;
   /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
@@ -60,6 +62,7 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     hasSuspension: false,
     hasTire: false,
     hasWeight: true,
+    hasBrake: false,
     hasPower: false,
     previewAngle: 0.6,
     tagline: t.tagline,
@@ -168,6 +171,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: false,
     hasTire: false,
     hasWeight: false,
+    hasBrake: false,
     hasPower: true,
     previewAngle: 0.6,
     tagline: 'Drives the wheels of its body.',
@@ -187,6 +191,34 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'More wheels than the engine can drive get less torque each: add a second engine to a heavy or many-wheeled vehicle.',
     ],
   },
+  brake: {
+    type: 'brake',
+    name: 'Brake',
+    category: 'mobility',
+    // It is fitted to a wheel and takes the wheel's turn, so there is nothing to rotate.
+    rotatable: false,
+    paintable: false,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasBrake: false,
+    hasPower: false,
+    previewAngle: 0.6,
+    tagline: 'Fits to a wheel to stop it.',
+    description:
+      'A drilled steel disc with a caliper that you fit to a wheel: pick the brake and click a wheel, and the disc appears behind its rim. Hold Space while playing and every wheel with a brake is held back, whether it is driven or not; a wheel without one rolls on. Each wheel has its own brake, with a strength you set in the part inspector.',
+    properties: [
+      { label: 'Fits to', value: 'A wheel (small or large), one brake per wheel' },
+      { label: 'Strength', value: 'Adjustable in the inspector (1-10, default 5)' },
+      { label: 'Control', value: 'Hold Space while playing' },
+      { label: 'Remove', value: 'The Remove brake button in the wheel\'s inspector (the wheel stays)' },
+    ],
+    tips: [
+      'Brake only the wheels you want: the back ones make the car slide in a turn, the front ones stop it hardest.',
+      'Select the wheel in inspect mode (I) to change the strength of its brake or take the brake off.',
+      'Brake hard while turning: the wheels lock, the car slides and throws up earth.',
+    ],
+  },
   wheel: {
     type: 'wheel',
     name: 'Wheel',
@@ -197,6 +229,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: true,
     hasTire: true,
     hasWeight: false,
+    hasBrake: true,
     hasPower: false,
     previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
@@ -228,6 +261,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: true,
     hasTire: true,
     hasWeight: false,
+    hasBrake: true,
     hasPower: false,
     previewAngle: -0.45,
     tagline: 'A wheel twice the size, for big machines.',
@@ -263,6 +297,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'bracketSmall',
   'bracket',
   'engine',
+  'brake',
   'wheel',
   'bigWheel',
 ];

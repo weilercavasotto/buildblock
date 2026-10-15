@@ -4,10 +4,9 @@ import { WHEEL, WHEEL_VISUAL as V } from '../constants';
 
 /**
  * Geometry of the wheel model, built once and shared by every wheel. All of it is around the Y axis (the axle), centred on
- * the origin; `createPartObject` turns the Y axis onto the real axle. Three pieces, each one merged mesh:
+ * the origin; `createPartObject` turns the Y axis onto the real axle. Two pieces, each one merged mesh (the rim is open between the spokes):
  * - `tire`: a lathe-turned rubber ring (flat sidewalls, rounded shoulders, flat tread) plus staggered tread lugs;
  * - `rim`: the light metal parts: lip ring, five spokes, hub cap and lug nuts;
- * - `rimDisc`: the darker recessed disc between the spokes.
  */
 export const wheelGeometry = (() => {
   const R = WHEEL.radius;
@@ -71,8 +70,5 @@ export const wheelGeometry = (() => {
   }
   const rim = mergeGeometries(rimParts.map((g) => g.toNonIndexed()))!;
 
-  // ---- recessed disc between the spokes ----
-  const rimDisc = new THREE.CylinderGeometry(V.rimRadius - V.rimLip, V.rimRadius - V.rimLip, rw - V.rimRecess * 2, V.segments);
-
-  return { tire, rim, rimDisc };
+  return { tire, rim };
 })();

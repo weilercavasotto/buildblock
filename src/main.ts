@@ -303,6 +303,7 @@ async function main(): Promise<void> {
     onWeight: (part, weight, connected) => history.run(() => grid.setWeight(part.cell, weight, connected)),
     onTire: (part, tire, wholeBody) => history.run(() => grid.setTire(part.cell, tire, wholeBody)),
     onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
+    onBrake: (part, strength, wholeBody) => history.run(() => grid.setBrake(part.cell, strength, wholeBody)),
     onSuspension: (part, strength) => history.run(() => grid.setSuspension(part.cell, strength)),
     onClose: () => build.select(null),
   });

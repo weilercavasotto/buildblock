@@ -1,4 +1,4 @@
-import { PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, powerOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { Grid } from '../build/grid';
 import { Part, Vec3, axleOf, frontOf, isStructural, partCells, studsOf, subVec } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
@@ -13,6 +13,8 @@ export interface InspectorHandlers {
   onWeight(part: Part, weight: number, connected: boolean): void;
   /** Sets the power (an integer, see `ENGINE`) of an engine, or of all the engines on its body with `connected`. */
   onPower(part: Part, power: number, connected: boolean): void;
+  /** Fits a brake of the given strength to a wheel (or takes it off with null), or to every braked wheel on its body with `wholeBody`. */
+  onBrake(part: Part, strength: number | null, wholeBody: boolean): void;
   onClose(): void;
 }
 
@@ -73,6 +75,7 @@ export class PartInspector {
       summary,
       remove,
       ...this.tireSection(part),
+      ...this.brakeSection(part),
       ...this.powerSection(part),
       ...this.weightSection(part),
       ...this.suspensionSection(part),
@@ -102,6 +105,32 @@ export class PartInspector {
       onCommit: (value) => this.handlers.onTire(part, value, false),
       applyAll: wheels > 1 ? { label: TEXT.inspector.tireApplyAll(wheels), run: () => this.handlers.onTire(part, tireValueOf(part), true) } : undefined,
     });
+  }
+
+  /** Brake of a wheel that has one: a strength slider (with "apply to the other braked wheels") and a button that takes the brake off. */
+  private brakeSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasBrake || brakeOf(part) === 0) return [];
+    const braked = this.grid.wheelsOnBody(part.cell).filter((w) => brakeOf(w) > 0).length;
+    const t = TEXT.inspector;
+    const remove = text('button', 'catalog-action', t.brakeRemove) as HTMLButtonElement;
+    remove.type = 'button';
+    remove.onclick = () => this.handlers.onBrake(part, null, false);
+    return [
+      ...this.sliderSection({
+        heading: t.brake,
+        min: BRAKE.min,
+        max: BRAKE.max,
+        step: BRAKE.step,
+        value: brakeOf(part),
+        defaultValue: BRAKE.default,
+        low: t.brakeLow,
+        high: t.brakeHigh,
+        hint: t.brakeHint,
+        onCommit: (value) => this.handlers.onBrake(part, value, false),
+        applyAll: braked > 1 ? { label: t.brakeApplyAll(braked), run: () => this.handlers.onBrake(part, brakeOf(part), true) } : undefined,
+      }),
+      remove,
+    ];
   }
 
   /** Suspension slider (wheels only; it is the only place to change it, the catalog just lists the property). */
@@ -227,6 +256,7 @@ export class PartInspector {
         rows.push([TEXT.inspector.bodyPower, TEXT.inspector.engines(this.grid.enginesOnBody(part.cell).length)]);
       } else {
         rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
+        rows.push([TEXT.inspector.brake, brakeOf(part) > 0 ? String(brakeOf(part)) : TEXT.inspector.brakeNone]);
         rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
         rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[axleOf(part).findIndex((v) => v !== 0)])]);
       }

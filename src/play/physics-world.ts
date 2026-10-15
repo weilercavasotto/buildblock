@@ -6,7 +6,9 @@ import {
   CHASSIS,
   COLLISION_GROUP,
   GROUND_COLLIDER,
+  BRAKE,
   ENGINE,
+  brakeOf,
   ROUGHNESS,
   SCENERY,
   SPAWN_CLEARANCE,
@@ -24,7 +26,7 @@ import {
   weightOf,
   wheelSizeOf,
 } from '../constants';
-import { createPartObject, faceQuaternion } from '../parts/part-defs';
+import { createCaliperObject, createPartObject, faceQuaternion } from '../parts/part-defs';
 import { partBox, relativeBoxes } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, WheelFx } from './play-effects';
 import { Part, Vec3, axleOf, cellKey, frontOf, isStructural, isWheelType, partCentre, subVec } from '../types';
@@ -50,6 +52,8 @@ export interface WheelDrive {
   engines: Array<{ front: Vec3; power: number }> | null;
   /** How many wheels are mounted on the same body (the engines' power is shared among them). */
   wheelCount: number;
+  /** This wheel's brake strength over the default (`BRAKE`), 0 when it has no brake: what it is held with while Space is pressed. */
+  brake: number;
 }
 
 interface SyncPair {
@@ -288,11 +292,19 @@ export class PhysicsWorld {
       this.wheels.push({ joint, axis: axle, cell: centre, speed: tireOf(wheel).speed * sizeSpeed, torque: tireOf(wheel).torque * sizeTorque, cruise,
         engines: grid.engineDrive ? (enginesOfBody.get(host.body) ?? []) : null,
         wheelCount: wheelsOn.get(host.body) ?? 1,
+        brake: brakeOf(wheel) / BRAKE.default,
       });
 
-      const obj = createPartObject(wheel);
+      // The wheel (with the disc of its brake, which turns with it) follows the wheel body; the caliper follows the hub, so it
+      // stays on the suspension while the wheel spins.
+      const obj = createPartObject(wheel, undefined, { caliper: false });
       this.group.add(obj);
       this.pairs.push({ body, object: obj });
+      if (brakeOf(wheel) > 0) {
+        const caliper = createCaliperObject(wheel);
+        this.group.add(caliper);
+        this.pairs.push({ body: hub, object: caliper });
+      }
     }
   }
 }

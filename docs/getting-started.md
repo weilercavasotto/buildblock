@@ -175,6 +175,16 @@ A part you place **bounces like jelly**: it squashes, stretches and wobbles for 
 bounce anything); a part you **remove** (right click, remove mode, the inspector button or Clear) swells a little and **pops away**, wheels and engines with it. In **Play**, the wheels throw up **earth** while they grip the ground and the vehicle moves (more and bigger clods with speed and wheel spin) and every
 **engine** puffs **smoke** from its exhaust (more, bigger puffs the faster you go, a light puff already when you press the throttle) and **shakes**, a little at idle and a lot under power. Tuning: `FX` and `COLORS.fx`.
 
+### The brake
+
+The **Brake** (catalog, *Mobility*; drag it onto a hotbar slot) is **fitted to a wheel**: pick it and click a wheel (small or large), and a
+drilled steel disc with a red caliper appears behind its rim (every wheel's rim is open between the spokes, so you can see it through them);
+one brake per wheel, and the preview turns red on a wheel that already has one. It is not a part of the grid, it is a property of the wheel
+(`Part.brake`, 1-10), saved and undoable like the tire and the suspension. In Play, **holding `Space`** holds back every wheel that has a brake, driven
+or not (it overrides the throttle for them); wheels without a brake keep rolling. Select the wheel in inspect mode to set the **Brake** strength
+(a slider, with "apply to the braked wheels on this body") or press **Remove brake**; removing the wheel removes its brake. Measured on a 2 × 2
+car at 8.9 m/s: no brake stops in 2.9 s, brakes (5) on the two front wheels in 2.2 s and on all four in 0.7 s (10: 0.6 s); a locked wheel is limited by its grip.
+
 ### The engine
 
 The **Engine** (catalog, *Mobility*) is what drives the wheels. It is a separate unit, not a block: a small **V engine** (a 0.8-cell cube: aluminium crankcase, two banks of cylinders with bores, dark oil pan and intake) that you **mount on a face of a block** (top, bottom or sides) like a wheel, without taking the place of a block. Its cylinder heads point away from the block and the **fan** (blades in a ring, with a small yellow nose) marks its **front**. In Play the vehicle is pushed **towards the front of its engine**: turn it with `A` / `D` (around the vertical axis) and `W` / `S` (tilt it up / down) before placing; turned the other way, `W` / `S` are reversed, and an engine facing sideways or up does nothing. The front cannot point into the block it is mounted on (the ghost turns red). Wheels are driven only by the engines mounted on **their body** (the blocks welded together); wheels on a body without an engine roll freely, and a message under the top bar tells you when no wheel is driven. The inspector has a **Power** slider (1-10, default 5, plus "apply to all the engines on this body"): a body's engines add their power and share it among its wheels; one default engine drives 4 wheels at full torque, more wheels get less each, fewer get up to twice as much. An engine weighs as much as two blocks. Removing the block an engine is mounted on removes the engine. Games made before the engine existed keep driving every wheel; new games need an engine.
@@ -251,6 +261,7 @@ bottom) and click. The face you click defines the wheel's axle.
 | `W` / `S` (or ↑ / ↓) | Accelerate / reverse |
 | `A` / `D` (or ← / →) | Steer left / right |
 | `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
+| `Space` | Brake: holds the wheels that have a **Brake** (hold it) |
 | `P` / `Esc` | Stop and return to build mode (the same as **Stop**); `P` in build mode starts Play (an open dialog takes the `Esc` first) |
 | **Stop** | Return to build mode; the build is untouched |
 

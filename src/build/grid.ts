@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampPower, clampWeight, legacyTireValue, tireValueOf, partVolume, powerOf, weightOf, ENGINE } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -200,6 +200,26 @@ export class Grid {
   }
 
   /**
+   * Fits a brake of `strength` (1-10) to the wheel at `cell`, or takes its brake off with `null`; with `wholeBody` the same goes
+   * for every wheel that already has a brake on the same body (see `wheelsOnBody`). Returns false, changing nothing, when there
+   * is no such wheel or no wheel changes.
+   */
+  setBrake(cell: Vec3, strength: number | null, wholeBody = false): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasBrake || (strength !== null && !Number.isFinite(strength))) return false;
+    const value = strength === null ? null : clampBrake(strength);
+    let changed = false;
+    for (const target of wholeBody ? this.wheelsOnBody(part.cell).filter((w) => cellKey(w.cell) === cellKey(part.cell) || brakeOf(w) > 0) : [part]) {
+      if ((value === null ? 0 : value) === brakeOf(target)) continue;
+      const { brake: _old, ...rest } = target;
+      this.parts.set(cellKey(target.cell), value === null ? rest : { ...rest, brake: value });
+      changed = true;
+    }
+    if (changed) this.emit();
+    return changed;
+  }
+
+  /**
    * Removes the part whose centre is `cell`; removing a block also removes the wheels mounted on it. Parts that rested on
    * it stay where they are (they simply stop being supported).
    */
@@ -293,7 +313,7 @@ export class Grid {
  * converts older shapes. Returns null for a part that cannot be kept.
  */
 function sanitize(part: Part, legacyFormat: boolean): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+  const { color, suspension, tire: savedTire, weight, power, brake, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
     layers?: number;
     rotation?: number;
     pitch?: number;
@@ -316,6 +336,7 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
   if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
   if (power !== undefined && typeof power === 'number' && info.hasPower) out.power = clampPower(power);
+  if (brake !== undefined && typeof brake === 'number' && info.hasBrake) out.brake = clampBrake(brake);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   if (isMountedType(part.type) && !part.face) return null; // wheels and engines are always mounted on a block
   // Orientation: the same fields for every part. Wheels and engines saved before that had `rotation` / `pitch` / `front`.
