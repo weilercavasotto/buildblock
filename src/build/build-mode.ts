@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Grid } from './grid';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BUILD, COLORS, GROUND_Y, PART_INFO, ROTATION, STUD, hexToNumber } from '../constants';
+import { BUILD, COLORS, FX, GROUND_Y, PART_INFO, ROTATION, STUD, hexToNumber } from '../constants';
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
@@ -79,6 +79,17 @@ export class BuildMode {
   private pointer = new THREE.Vector2();
   private down: { x: number; y: number; button: number } | null = null;
   private stroke: Stroke | null = null;
+  /** Placed parts that are squashing and stretching like jelly (see `FX.bounce`), with the seconds since they were placed. */
+  private bounces: Array<{ key: string; holder: THREE.Group; age: number }> = [];
+  /** True while the player's own placement is adding parts: only those bounce (not a load, an undo or a redo). */
+  private placing = false;
+  /** The parts in the scene (their holders, by cell), to tell the new ones and the removed ones apart on a rebuild. */
+  private shown = new Map<string, THREE.Group>();
+  /** True while the player's own removal is running: only the parts it removes pop away (not an undo, a redo or a load). */
+  private removing = false;
+  /** The parts that are popping away (`FX.pop`), kept in their own group so that they cannot be picked any more. */
+  private dyingGroup = new THREE.Group();
+  private dying: Array<{ holder: THREE.Group; age: number }> = [];
 
   constructor(
     private scene: THREE.Scene,
@@ -87,7 +98,7 @@ export class BuildMode {
     private grid: Grid,
     private history: History,
   ) {
-    scene.add(this.group);
+    scene.add(this.group, this.dyingGroup);
     grid.subscribe(() => this.rebuild());
     this.rebuild();
 
@@ -179,6 +190,45 @@ export class BuildMode {
       this.ghostQuat.copy(this.ghostTargetQuat);
     }
     if (this.ghost) this.ghost.object.quaternion.copy(this.ghostQuat);
+    this.animateBounces(dt);
+    this.animateRemovals(dt);
+  }
+
+  /** Runs `edit` (which removes parts from the grid) so that the parts it removes pop away (see `FX.pop`). */
+  removeAnimated(edit: () => void): void {
+    this.removing = true;
+    try {
+      edit();
+    } finally {
+      this.removing = false;
+    }
+  }
+
+  /** A removed part swells a little and then shrinks to nothing, quickly. */
+  private animateRemovals(dt: number): void {
+    const { duration, swell } = FX.pop;
+    this.dying = this.dying.filter((d) => {
+      d.age += dt;
+      const t = Math.min(1, d.age / duration);
+      d.holder.scale.setScalar(Math.max(0, (1 - t * t) * (1 + swell * Math.sin(Math.PI * t))));
+      if (t >= 1) this.dyingGroup.remove(d.holder);
+      return t < 1;
+    });
+  }
+
+  /**
+   * Jelly: a part that has just been placed squashes flat, stretches tall and settles in a few wobbles (a damped cosine along
+   * the vertical, the sides giving the other way by `FX.bounce.volume`).
+   */
+  private animateBounces(dt: number): void {
+    const { duration, amplitude, frequency, damping, volume } = FX.bounce;
+    this.bounces = this.bounces.filter((bounce) => {
+      bounce.age += dt;
+      const done = bounce.age >= duration;
+      const wobble = done ? 0 : -amplitude * Math.exp(-damping * bounce.age) * Math.cos(2 * Math.PI * frequency * bounce.age);
+      bounce.holder.scale.set(1 - wobble * volume, 1 + wobble, 1 - wobble * volume);
+      return !done;
+    });
   }
 
   setPaintColor(color: string | null): void {
@@ -227,14 +277,32 @@ export class BuildMode {
 
   private rebuild(): void {
     this.group.clear();
+    const wobbling = new Map(this.bounces.map((bounce) => [bounce.key, bounce.age])); // a rebuild does not cut a bounce short
+    this.bounces = [];
+    const shown = new Map<string, THREE.Group>();
     for (const part of this.grid.all()) {
-      const obj = createPartObject(part);
-      obj.position.set(...partCentre(part));
-      obj.userData.part = part;
-      this.group.add(obj);
+      // Each part sits in a holder at its place, so it can be squashed along the world's vertical whatever its own turn.
+      const holder = new THREE.Group();
+      holder.position.set(...partCentre(part));
+      holder.userData.part = part;
+      holder.add(createPartObject(part));
+      this.group.add(holder);
+      const key = cellKey(part.cell);
+      shown.set(key, holder);
+      const age = wobbling.get(key) ?? (this.placing && !this.shown.has(key) ? 0 : undefined);
+      if (age !== undefined) this.bounces.push({ key, holder, age });
       // Raycasts use the world matrix, which is otherwise only refreshed on the next rendered frame.
-      obj.updateMatrixWorld(true);
+      holder.updateMatrixWorld(true);
     }
+    // A part that is gone because the player removed it (and its wheels with it) pops away instead of just vanishing.
+    if (this.removing) {
+      for (const [key, holder] of this.shown) {
+        if (shown.has(key)) continue;
+        this.dyingGroup.add(holder);
+        this.dying.push({ holder, age: 0 });
+      }
+    }
+    this.shown = shown;
     if (this.hover) {
       disposeOutline(this.hover.outline);
       this.hover = null;
@@ -348,7 +416,10 @@ export class BuildMode {
     const part = p && this.target(p);
     if (!p || !part) return;
     const before = this.history.begin();
-    if (!this.grid.add(part)) return;
+    this.placing = true;
+    const added = this.grid.add(part);
+    this.placing = false;
+    if (!added) return;
     this.setGhost(null);
     if (part.type !== 'block') {
       this.history.commit(before);
@@ -394,7 +465,7 @@ export class BuildMode {
     s.x = e.clientX;
     s.y = e.clientY;
     if (this.mode === 'paint') this.grid.paint(part.cell, this.paintColor);
-    else this.grid.remove(part.cell);
+    else this.removeAnimated(() => this.grid.remove(part.cell));
   }
 
   /**
@@ -420,7 +491,9 @@ export class BuildMode {
       const cell = s.last.map((v, i) => roundCoord(s.start[i] + Math.round(v + ((goal[i] - v) * step) / steps - s.start[i]))) as Vec3;
       cells.push({ type: 'block', cell, ...orientationFields(canonicalOrientation('block', this.orientation)) });
     }
+    this.placing = true;
     this.grid.addMany(cells);
+    this.placing = false;
     s.last = goal;
   }
 
@@ -507,7 +580,7 @@ export class BuildMode {
       const p = this.pick(e);
       if (p?.part) {
         const cell = p.part.cell;
-        this.history.run(() => this.grid.remove(cell));
+        this.history.run(() => this.removeAnimated(() => this.grid.remove(cell)));
       }
     }
     this.clearHints();

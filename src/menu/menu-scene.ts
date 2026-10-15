@@ -53,6 +53,7 @@ export class MenuScene {
 
     this.drive(dt, new THREE.Vector3(t.x, 0, t.z), rotation);
     this.vehicle.update();
+    this.physics.level = this.vehicle.level;
     this.physics.step(dt);
 
     this.focus.lerp(new THREE.Vector3(t.x, t.y + MENU_SCENE.focusYOffset, t.z), 1 - Math.exp(-dt * MENU_SCENE.focusSmoothing));

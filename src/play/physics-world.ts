@@ -26,6 +26,7 @@ import {
 } from '../constants';
 import { createPartObject, faceQuaternion } from '../parts/part-defs';
 import { partBox, relativeBoxes } from '../parts/part-geometry';
+import { EngineFx, PlayEffects, WheelFx } from './play-effects';
 import { Part, Vec3, axleOf, cellKey, frontOf, isStructural, isWheelType, partCentre, subVec } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
@@ -60,14 +61,21 @@ export class PhysicsWorld {
   readonly group = new THREE.Group();
   readonly wheels: WheelDrive[] = [];
   focus: RAPIER.RigidBody | null = null;
+  /** How hard the vehicle is being driven (0-1): what the engines' smoke and shaking follow (see `VehicleController.level`). */
+  level = 0;
 
   private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
   private accumulator = 0;
+  private wheelFx: WheelFx[] = [];
+  private engineFx: EngineFx[] = [];
+  private effects: PlayEffects;
 
   constructor(grid: Grid) {
     this.buildScenery();
     this.buildCreation(grid);
+    this.effects = new PlayEffects(this.world, this.wheelFx, this.engineFx);
+    this.group.add(this.effects.group);
     this.sync();
   }
 
@@ -78,9 +86,11 @@ export class PhysicsWorld {
       this.accumulator -= WORLD.step;
     }
     this.sync();
+    this.effects.update(dt, this.level);
   }
 
   dispose(): void {
+    this.effects.dispose();
     this.world.free();
     this.group.clear();
   }
@@ -206,6 +216,7 @@ export class PhysicsWorld {
       const obj = createPartObject(engine);
       obj.position.set(...local);
       host.visual.add(obj);
+      this.engineFx.push({ body: host.body, object: obj, position: obj.position.clone(), quaternion: obj.quaternion.clone() });
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }
 
@@ -242,6 +253,7 @@ export class PhysicsWorld {
         body,
       );
       const axis = { x: axle[0], y: axle[1], z: axle[2] };
+      this.wheelFx.push({ body, radius: WHEEL.radius * scale, width: WHEEL.width * scale, axle: new THREE.Vector3(...axle) });
       const anchor = subVec(centre, host.origin);
 
       const hub = this.world.createRigidBody(

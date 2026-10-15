@@ -67,6 +67,13 @@ export class VehicleController {
     }
   }
 
+  /** How hard the vehicle is being driven, 0-1 (throttle or steering input): the engines' smoke and shaking follow it. */
+  get level(): number {
+    const throttle = this.autopilot?.throttle ?? Number(this.pressed.forward) - Number(this.pressed.back);
+    const steer = this.autopilot?.steer ?? Number(this.pressed.right) - Number(this.pressed.left);
+    return Math.min(1, Math.max(Math.abs(throttle), Math.abs(steer)));
+  }
+
   /** How many wheels are driven (an engine pushes them along the travel line). */
   get poweredWheels(): number {
     return this.driven.filter((d) => d.roll !== 0 && d.power > 0).length;

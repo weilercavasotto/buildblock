@@ -10,9 +10,14 @@ export interface SaveGame {
   gridCells?: number;
   /** Wheels need an engine to be driven (games made since the engine exists); missing in older saves, whose wheels are all driven. */
   engineDrive?: boolean;
+  /** The old name of `engineDrive` (games made while the engine was still called the motor). */
+  motorDrive?: boolean;
   /** How the parts are stored (see `SAVE.format`); missing in older saves, whose wheels and engines are converted when loaded. */
   format?: number;
 }
+
+/** Do the wheels of this save need an engine to be driven? (Older games, from before the engine, drive every wheel.) */
+export const engineDriveOf = (save: Pick<SaveGame, 'engineDrive' | 'motorDrive'>): boolean => (save.engineDrive ?? save.motorDrive) === true;
 
 /** The grid size of a save, whatever it holds. */
 export const gridCellsOf = (save: Pick<SaveGame, 'gridCells'>): number => validGridCells(save.gridCells ?? DEFAULT_GRID_CELLS);
@@ -72,6 +77,8 @@ export function updateSave(id: string, parts: Part[]): void {
   if (!save) return;
   save.parts = parts;
   save.format = SAVE.format; // the parts in memory are always in the current format
+  if (engineDriveOf(save)) save.engineDrive = true; // keeps the flag of a game saved under its old name
+  delete save.motorDrive;
   save.updatedAt = Date.now();
   writeAll(saves);
 }

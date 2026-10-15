@@ -53,6 +53,12 @@ export const COLORS = {
     obstacleBlue: '#4d6f8a',
   },
 
+  /** Particle effects in the 3D scene (see `FX`). */
+  fx: {
+    dust: ['#8a6f4d', '#a08462', '#6f5a3e'],
+    smoke: ['#8a919c', '#a9afb8', '#c9ced6'],
+  },
+
   part: {
     /** Default block colour: a soft blue. */
     block: '#5fa0d6',

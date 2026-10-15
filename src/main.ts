@@ -26,7 +26,7 @@ import { Sky } from './scene/sky';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
 import { FrameLimiter } from './frame-limiter';
-import { createSave, getSave, gridCellsOf, updateSave } from './save';
+import { createSave, engineDriveOf, getSave, gridCellsOf, updateSave } from './save';
 import { CursorMode } from './types';
 import './styles/main.css';
 import { FpsCounter } from './ui/fps-counter';
@@ -218,7 +218,7 @@ async function main(): Promise<void> {
           run: () => {
             activeSave = null; // do not rewrite the save (and bump its date) just because it was loaded
             setGridSize(gridCellsOf(save));
-            grid.engineDrive = save.engineDrive === true;
+            grid.engineDrive = engineDriveOf(save);
             grid.load(save.parts, save.format !== SAVE.format);
             activeSave = id;
             history.clear();
@@ -263,7 +263,7 @@ async function main(): Promise<void> {
         cancelLabel: cancel,
         danger: true,
       });
-      if (confirmed) history.run(() => grid.clear());
+      if (confirmed) history.run(() => build.removeAnimated(() => grid.clear()));
     },
     onMenu: () => void loading.run([{ label: TEXT.loading.toMenu, run: enterMenu }]),
     onMode: (mode) => setCursorMode(mode),
@@ -299,7 +299,7 @@ async function main(): Promise<void> {
   hotbar.onUserSelect(() => setCursorMode('build')); // choosing a part to place means building
 
   const inspector = new PartInspector(grid, {
-    onRemove: (part) => history.run(() => grid.remove(part.cell)),
+    onRemove: (part) => history.run(() => build.removeAnimated(() => grid.remove(part.cell))),
     onWeight: (part, weight, connected) => history.run(() => grid.setWeight(part.cell, weight, connected)),
     onTire: (part, tire, wholeBody) => history.run(() => grid.setTire(part.cell, tire, wholeBody)),
     onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
@@ -368,6 +368,7 @@ async function main(): Promise<void> {
       menuScene.update(dt);
     } else if (physics) {
       vehicle?.update();
+      physics.level = vehicle?.level ?? 0;
       physics.step(dt);
       if (physics.focus) {
         const t = physics.focus.translation();

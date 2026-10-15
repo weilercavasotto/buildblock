@@ -21,6 +21,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/types.ts`: `Part`, `Vec3`, cell helpers
 - `src/build/`: `grid.ts` (data model), `build-mode.ts` (picking, ghost, place/remove)
 - `src/play/`: `physics-world.ts` (grid -> Rapier), `vehicle-controller.ts` (WASD -> engines)
+- `src/play/play-effects.ts` + `src/play/particles.ts`: Play effects (wheel dust, engine smoke, engine shaking; `PhysicsWorld.level` from `VehicleController.level`); the placement bounce is in `BuildMode.animateBounces`; tunables in `FX` / `COLORS.fx` (`src/constants/`)
 - `src/parts/part-defs.ts`: visuals/dimensions of every part
 - `src/menu/`: main-menu background (`menu-scene.ts`: random car + orbiting camera, `random-build.ts`)
 - `src/constants/`: design tokens and tunables (colours, spacing, typography, physics, game, text); `theme.ts` publishes them as CSS variables

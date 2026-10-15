@@ -302,6 +302,50 @@ export const DRAG = {
   threshold: 5,
 } as const;
 
+/**
+ * Visual effects. `bounce`: a part that has just been placed squashes and stretches like jelly (`amplitude` of the first squash,
+ * `frequency` Hz, `damping` 1/s, `volume` how much the sides give for the height). `dust`: earth thrown up by a wheel that
+ * grips the ground (the values here are the strongest effect, at `maxSpeed`; slower, fewer and smaller / gentler particles are thrown, down
+ * to `scaleMin` of the size, lift and reach; `slip` is the extra dust of a wheel that spins faster than it moves). `smoke`: puffs from an engine's exhaust (the values here are at `maxSpeed` of the vehicle; slower there are fewer, smaller and gentler puffs, between `idleRate` and `drivingRate`, down to `scaleMin`; `throttleShare` of the full effect shows as soon as the throttle is pressed). `pop`: the swelling and shrinking of a removed part (`swell` is how much it grows first); `vibration`: how much a running engine
+ * shakes (metres, radians). All lengths in cells, times in seconds.
+ */
+export const FX = {
+  bounce: { duration: 0.6, amplitude: 0.32, frequency: 3.4, damping: 7, volume: 0.5 },
+  dust: {
+    max: 600,
+    rate: 70,
+    maxSpeed: 14,
+    minSpeed: 1.2,
+    slip: 0.5,
+    size: [0.1, 0.22],
+    life: [0.45, 0.9],
+    gravity: 6,
+    drag: 1.6,
+    spread: 1.1,
+    lift: [0.8, 2.2],
+    back: 0.35,
+    scaleMin: 0.35,
+  },
+  smoke: {
+    max: 400,
+    idleRate: 5,
+    drivingRate: 18,
+    size: [0.06, 0.34],
+    life: [1.0, 1.8],
+    rise: [0.7, 1.4],
+    drift: 0.35,
+    drag: 0.6,
+    maxSpeed: 14,
+    scaleMin: 0.35,
+    throttleShare: 0.3,
+    /** Where it leaves the engine, in the engine model's own frame (the back, on top). */
+    exhaust: [0.12, 0.34, -0.3],
+  },
+  /** A part the player removes swells for a moment and pops away. */
+  pop: { duration: 0.28, swell: 0.22 },
+  vibration: { idle: 0.004, driving: 0.014, tilt: 0.02, frequency: 42 },
+} as const;
+
 export const ROTATION = {
   /** Exponential rate (1/s) at which the placement ghost turns towards its target orientation. */
   smoothing: 14,
