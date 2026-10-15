@@ -7,6 +7,8 @@ export const TEXT = {
     zoom: (position: number) => `${Math.round(position * 100)}%`,
     play: '▶ Play',
     stop: '■ Stop',
+    playTooltip: 'Play (P)',
+    stopTooltip: 'Stop (P or Esc)',
     resetLabel: '↺ Reset',
     reset: 'Reset the simulation (R)',
     help: { title: 'Help', close: 'Close', or: 'or' },

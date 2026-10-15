@@ -165,6 +165,7 @@ export class Hud {
     this.updateVisibility();
     const playing = mode === 'play';
     this.playButton.textContent = playing ? TEXT.hud.stop : TEXT.hud.play;
+    this.playButton.title = playing ? TEXT.hud.stopTooltip : TEXT.hud.playTooltip;
     this.playButton.classList.toggle('playing', playing);
   }
 }

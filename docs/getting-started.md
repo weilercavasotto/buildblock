@@ -251,6 +251,7 @@ bottom) and click. The face you click defines the wheel's axle.
 | `W` / `S` (or ↑ / ↓) | Accelerate / reverse |
 | `A` / `D` (or ← / →) | Steer left / right |
 | `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
+| `P` / `Esc` | Stop and return to build mode (the same as **Stop**); `P` in build mode starts Play (an open dialog takes the `Esc` first) |
 | **Stop** | Return to build mode; the build is untouched |
 
 ## Persistence

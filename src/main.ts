@@ -320,6 +320,17 @@ async function main(): Promise<void> {
       toggleHelpDialog();
       return;
     }
+    // Esc also stops while playing (a dialog that is open takes the Esc itself: see `openModal`).
+    if (e.code === 'Escape' && mode === 'play') {
+      stop();
+      return;
+    }
+    // P plays, and stops again while playing (like the Play / Stop button).
+    if (e.code === 'KeyP' && mode !== 'menu' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (physics) stop();
+      else startPlay();
+      return;
+    }
     if (mode === 'play' && e.code === 'KeyR') startPlay();
     if (mode !== 'build') return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {

@@ -133,6 +133,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['A', '←'], text: 'Steer left.' },
           { keys: ['D', '→'], text: 'Steer right.' },
           { keys: ['R'], text: 'Restart the simulation from your build (also the Reset button next to Stop).' },
+          { keys: ['P'], text: 'Play, and stop again (the same as the Play / Stop button); Esc stops too.' },
           { text: 'Wheels are driven only by the engines mounted on their body. An engine pushes the vehicle towards its front, the side with the fan: turned around it reverses W / S, and sideways it does nothing. Wheels on a body with no engine roll freely. (Games saved before the engine existed still drive every wheel.)' },
         ],
       },
@@ -150,6 +151,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['W', 'S'], text: 'Tilt the part to place up / down (the ↑ ↓ arrows too).' },
           { keys: ['1 – 9'], text: 'Select the part in that hotbar slot (and switch to Build).' },
           { keys: ['C'], text: 'Open or close the parts catalog.' },
+          { keys: ['P'], text: 'Play (press P again to stop).' },
           { keys: ['Ctrl / Cmd + Z'], text: 'Undo.' },
           { keys: ['Ctrl / Cmd + Y', 'Ctrl / Cmd + Shift + Z'], text: 'Redo.' },
         ],
@@ -159,6 +161,7 @@ export const HELP_TABS: HelpTab[] = [
         rows: [
           { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). I/B/E/R switch modes and W/A/S/D only rotate the part to place while building.' },
           { keys: ['R'], text: 'Restart.' },
+          { keys: ['P', 'Esc'], text: 'Stop and go back to building.' },
         ],
       },
       {
