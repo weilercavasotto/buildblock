@@ -1,5 +1,5 @@
-import { ENGINE_BODY, PLATE } from './game';
-import { CHASSIS, ENGINE, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, PLATE, TURBO_BODY } from './game';
+import { CHASSIS, ENGINE, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -191,6 +191,36 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'More wheels than the engine can drive get less torque each: add a second engine to a heavy or many-wheeled vehicle.',
     ],
   },
+  turbo: {
+    type: 'turbo',
+    name: 'Turbo',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasBrake: false,
+    hasPower: true,
+    previewAngle: 0.6,
+    tagline: 'A nitro boost for the driven wheels.',
+    description:
+      'A nitrous bottle that you mount on a face of a block, like the engine. Hold Shift while playing and the wheels that an engine drives, on the same body, turn faster and push harder, with a blue flame out of the nozzle. It only boosts: without an engine on the body it does nothing. The boosts of a body\'s turbos add up.',
+    properties: [
+      { label: 'Size', value: `${TURBO_BODY.width} × ${TURBO_BODY.width} × ${TURBO_BODY.depth} cells, against the block` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps), in every direction; the nozzle (the flame) goes with it' },
+      { label: 'Boost', value: 'Adjustable in the inspector (1-10, default 5)' },
+      { label: 'Control', value: 'Hold Shift while playing' },
+      { label: 'Mass', value: `${TURBO.mass} block of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the bottle takes the colour' },
+    ],
+    tips: [
+      'Mount it on the same body as the engine and the wheels it should boost.',
+      'Point the nozzle backwards (the flame leaves the back of the bottle) so it looks right.',
+      'Two turbos add their boost: up to three times the push of one default turbo.',
+    ],
+  },
   brake: {
     type: 'brake',
     name: 'Brake',
@@ -297,6 +327,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'bracketSmall',
   'bracket',
   'engine',
+  'turbo',
   'brake',
   'wheel',
   'bigWheel',

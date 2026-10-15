@@ -55,6 +55,7 @@ export const COLORS = {
 
   /** Particle effects in the 3D scene (see `FX`). */
   fx: {
+    flame: ['#7fb8ff', '#bfe0ff', '#ffffff'],
     dust: ['#8a6f4d', '#a08462', '#6f5a3e'],
     smoke: ['#8a919c', '#a9afb8', '#c9ced6'],
   },
@@ -73,6 +74,11 @@ export const COLORS = {
     brakeDisc: '#b8bec8',
     brakeHole: '#2c323a',
     brakeCaliper: '#d94a4a',
+    /** The turbo: a blue nitrous bottle with a white band, a brass valve and a dark nozzle. */
+    turbo: '#3b6fb6',
+    turboBand: '#e8edf5',
+    turboValve: '#d6a23a',
+    turboNozzle: '#2c323a',
     tire: '#23262d',
     rim: '#dfe3ea',
     /** The placement ghost turns this colour when the part cannot be placed (otherwise it is the part itself, translucent). */

@@ -106,6 +106,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Plate'], text: 'A thin square panel (a fifth of a block) with 4 studs, to tie blocks together (one plate on two side-by-side blocks welds them) and for floors and panels. Same placement as a block. Add it to the hotbar from the parts catalog (C).' },
           { keys: ['Half plate', 'Large plate', 'Large half plate'], text: 'Plates of other sizes: half as wide (0.5 × 1, 2 studs), 2 × 2 (16 studs) and 1 × 2 (8 studs). Turn them with A / D to choose which way they run.' },
           { keys: ['L bracket', 'Small L bracket'], text: 'Two plates at a right angle: a flat plate with studs on top and a wall with studs on its outside (8 studs, or 4 for the small one). A / D turn the wall to the side you need; a part engages the wall studs when its own studs point the same way (tilt it with W / S).' },
+          { keys: ['Turbo'], text: 'A nitrous bottle that boosts the wheels of its body. A separate unit: click any face of a block to mount it there (it does not take the place of a block) and turn it (A / D, W / S) so the nozzle, where the flame leaves, points backwards. While you hold Shift in Play, the wheels that an engine drives, on the same body, turn faster and push harder. Its boost (slider in the inspector, 1-10) adds up with the other turbos of the body; it does nothing without an engine.' },
           { keys: ['Brake'], text: 'Fits to a wheel: pick the brake from the hotbar or the catalog and click a wheel, and a drilled disc with a caliper appears behind its rim (one brake per wheel). While you hold Space in Play, every wheel with a brake is held back, driven or not. Select the wheel in inspect mode (I) to set the strength of its brake (1-10) or take it off.' },
           { keys: ['Engine'], text: 'Drives the wheels of its body. A separate unit: click any face of a block to mount it there (it does not take the place of a block), and turn it (A / D, W / S) so the fan on its front points where the vehicle should go; it cannot point into its block, nor be upside down. A body\'s engines add their power (slider in the inspector, 1-10); one engine of the default power drives 4 wheels at full torque, more wheels share it. It weighs two blocks.' },
           {
@@ -134,6 +135,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['A', '←'], text: 'Steer left.' },
           { keys: ['D', '→'], text: 'Steer right.' },
           { keys: ['Space'], text: 'Brake: holds the wheels that have a brake (see the Brake part).' },
+          { keys: ['Shift'], text: 'Turbo: boosts the driven wheels of a body that has a turbo (hold it).' },
           { keys: ['R'], text: 'Restart the simulation from your build (also the Reset button next to Stop).' },
           { keys: ['P'], text: 'Play, and stop again (the same as the Play / Stop button); Esc stops too.' },
           { text: 'Wheels are driven only by the engines mounted on their body. An engine pushes the vehicle towards its front, the side with the fan: turned around it reverses W / S, and sideways it does nothing. Wheels on a body with no engine roll freely. (Games saved before the engine existed still drive every wheel.)' },
@@ -163,6 +165,7 @@ export const HELP_TABS: HelpTab[] = [
         rows: [
           { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). I/B/E/R switch modes and W/A/S/D only rotate the part to place while building.' },
           { keys: ['Space'], text: 'Brake the wheels that have a brake.' },
+          { keys: ['Shift'], text: 'Turbo boost (a body with a turbo).' },
           { keys: ['R'], text: 'Restart.' },
           { keys: ['P', 'Esc'], text: 'Stop and go back to building.' },
         ],

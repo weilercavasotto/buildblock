@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE, TURBO } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -57,14 +57,14 @@ export class Grid {
     if (box.min[1] < GROUND_Y - EPS || box.max[1] > maxY + 0.5 + EPS) return false;
     if (this.get(part.cell) || this.overlapping(part).length > 0) return false;
     if (isMountedType(part.type)) {
-      // Wheels go on the side faces of a block, an engine on any face, but its front may not point into the block it is on and it
+      // Wheels go on the side faces of a block, an engine and a turbo on any face, but its front may not point into the block it is on and it
       // may not be upside down (its cylinder heads, its local up, pointing down).
       if (!part.face) return false;
       if (part.type === 'engine') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
         if (studsOf(part)[1] === -1) return false;
-      } else if (part.face[1] !== 0) {
-        return false;
+      } else if (part.type !== 'turbo' && part.face[1] !== 0) {
+        return false; // a turbo goes on any face, like the engine; the wheels only on the sides
       }
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
@@ -132,16 +132,16 @@ export class Grid {
   }
 
   /**
-   * Sets the power (an integer from `ENGINE.min` to `ENGINE.max`) of the engine at `cell`, or of every engine welded to its body
-   * with `connected`; the default power is stored as "not set". Returns false, changing nothing, when there is no such
-   * engine or no engine changes.
+   * Sets the power (an integer from `ENGINE.min` to `ENGINE.max`; the boost of a turbo) of the engine or turbo at `cell`, or of
+   * every part of the same kind on its body with `connected`; the default power is stored as "not set". Returns false, changing
+   * nothing, when there is no such part or nothing changes.
    */
   setPower(cell: Vec3, power: number, connected = false): boolean {
     const part = this.get(cell);
     if (!part || !PART_INFO[part.type].hasPower || !Number.isFinite(power)) return false;
     const value = clampPower(power);
     let changed = false;
-    for (const target of connected ? this.enginesOnBody(part.cell) : [part]) {
+    for (const target of connected ? this.mountedOfTypeOnBody(part.cell, part.type) : [part]) {
       if (powerOf(target) === value) continue;
       const { power: _old, ...rest } = target;
       this.parts.set(cellKey(target.cell), value === ENGINE.default ? rest : { ...rest, power: value });
@@ -151,12 +151,22 @@ export class Grid {
     return changed;
   }
 
-  /** The engines mounted on the same rigid body as the block or engine at `cell` (the engine itself included); [] when there is none. */
-  enginesOnBody(cell: Vec3): Part[] {
+  /** The parts of `type` mounted on the same rigid body as the block or mounted part at `cell` (itself included); [] when there is none. */
+  mountedOfTypeOnBody(cell: Vec3, type: Part['type']): Part[] {
     const part = this.get(cell);
     if (!part) return [];
-    const host = part.type === 'engine' && part.face ? subVec(part.cell, part.face) : part.cell;
-    return this.connectedBlockParts(host).flatMap((block) => this.mountedOn(block.cell).filter((p) => PART_INFO[p.type].hasPower));
+    const host = isMountedType(part.type) && part.face ? subVec(part.cell, part.face) : part.cell;
+    return this.connectedBlockParts(host).flatMap((block) => this.mountedOn(block.cell).filter((p) => p.type === type));
+  }
+
+  /** The engines mounted on the same rigid body as the block or engine at `cell` (the engine itself included); [] when there is none. */
+  enginesOnBody(cell: Vec3): Part[] {
+    return this.mountedOfTypeOnBody(cell, 'engine');
+  }
+
+  /** The turbos mounted on the same rigid body as the block or turbo at `cell` (the turbo itself included); [] when there is none. */
+  turbosOnBody(cell: Vec3): Part[] {
+    return this.mountedOfTypeOnBody(cell, 'turbo');
   }
 
   /**
@@ -280,8 +290,8 @@ export class Grid {
   connectedWeight(cell: Vec3): number {
     const blocks = this.connectedBlockParts(cell);
     if (blocks.length === 0) return 0;
-    const engines = blocks.reduce((total, p) => total + this.mountedOn(p.cell).filter((m) => m.type === 'engine').length, 0);
-    const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + engines * ENGINE.mass * WEIGHT.default;
+    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : 0), 0);
+    const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + mountedMass * WEIGHT.default;
     return Math.round(sum * 10) / 10;
   }
 

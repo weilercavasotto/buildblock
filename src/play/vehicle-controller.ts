@@ -1,13 +1,14 @@
 import { WheelDrive } from './physics-world';
-import { ENGINE, VEHICLE } from '../constants';
+import { ENGINE, TURBO, VEHICLE } from '../constants';
 import { Vec3 } from '../types';
 
-const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'brake'> = {
+const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'brake' | 'boost'> = {
   KeyW: 'forward', ArrowUp: 'forward',
   KeyS: 'back', ArrowDown: 'back',
   KeyA: 'left', ArrowLeft: 'left',
   KeyD: 'right', ArrowRight: 'right',
   Space: 'brake',
+  ShiftLeft: 'boost', ShiftRight: 'boost',
 };
 
 const cross = (a: Vec3, b: Vec3): Vec3 => [
@@ -28,8 +29,8 @@ interface DrivenWheel {
 }
 
 export class VehicleController {
-  private pressed = { forward: false, back: false, left: false, right: false, brake: false };
-  private autopilot: { throttle: number; steer: number; brake?: boolean } | null = null;
+  private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false };
+  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean } | null = null;
   private driven: DrivenWheel[];
   private listening: boolean;
 
@@ -68,6 +69,11 @@ export class VehicleController {
     }
   }
 
+  /** Is the boost key (Shift) held? The turbos' flames follow it. */
+  get boosting(): boolean {
+    return this.autopilot?.boost ?? this.pressed.boost;
+  }
+
   /** How hard the vehicle is being driven, 0-1 (throttle or steering input): the engines' smoke and shaking follow it. */
   get level(): number {
     const throttle = this.autopilot?.throttle ?? Number(this.pressed.forward) - Number(this.pressed.back);
@@ -87,7 +93,7 @@ export class VehicleController {
   }
 
   /** Drives the vehicle with the given throttle/steer in [-1, 1]; `null` hands control back to the keyboard. */
-  setAutopilot(input: { throttle: number; steer: number; brake?: boolean } | null): void {
+  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean } | null): void {
     this.autopilot = input;
   }
 
@@ -104,6 +110,7 @@ export class VehicleController {
     const idle = throttle === 0 && steer === 0;
 
     const braking = this.autopilot?.brake ?? this.pressed.brake;
+    const boosting = this.boosting;
 
     for (const { wheel, roll, side, power } of this.driven) {
       // Braking (Space) holds the wheels that have a brake, driven or not, and overrides the throttle for them.
@@ -120,7 +127,12 @@ export class VehicleController {
       const speed = throttle - steer * side * VEHICLE.steerGain;
       // Full strength to steer, `cruise` of it in a straight line (see `WHEEL_SIZES`), blended with the steering input.
       const strength = wheel.cruise + (1 - wheel.cruise) * Math.min(1, Math.abs(steer));
-      wheel.joint.configureMotorVelocity(roll * speed * VEHICLE.maxWheelSpeed * wheel.speed, VEHICLE.motorStrength * wheel.torque * strength * power);
+      // The turbos of the wheel's body (Shift) make it turn faster and push harder.
+      const boost = boosting ? wheel.boost : 0;
+      wheel.joint.configureMotorVelocity(
+        roll * speed * VEHICLE.maxWheelSpeed * wheel.speed * (1 + TURBO.speedGain * boost),
+        VEHICLE.motorStrength * wheel.torque * strength * power * (1 + TURBO.torqueGain * boost),
+      );
     }
   }
 }

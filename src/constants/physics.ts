@@ -175,6 +175,19 @@ export const ENGINE = {
   mass: 2,
 } as const;
 
+/**
+ * The turbo (`Part.power` as its boost, on the same 1-10 scale as the engine's): a part mounted on a face of a block that boosts
+ * the wheels of that body while `Shift` is held. The boosts of a body's turbos add up (one turbo of the `default` strength counts
+ * as 1, up to `maxBoost`); the driven wheels then turn `speedGain` times faster and push `torqueGain` times harder for each
+ * unit of boost. A turbo weighs `mass` blocks of the default weight.
+ */
+export const TURBO = {
+  speedGain: 0.4,
+  torqueGain: 1,
+  maxBoost: 3,
+  mass: 1,
+} as const;
+
 export const clampPower = (value: number): number =>
   Math.min(ENGINE.max, Math.max(ENGINE.min, Math.round(Number.isFinite(value) ? value : ENGINE.default)));
 

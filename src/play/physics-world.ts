@@ -8,6 +8,7 @@ import {
   GROUND_COLLIDER,
   BRAKE,
   ENGINE,
+  TURBO,
   brakeOf,
   ROUGHNESS,
   SCENERY,
@@ -28,8 +29,8 @@ import {
 } from '../constants';
 import { createCaliperObject, createPartObject, faceQuaternion } from '../parts/part-defs';
 import { partBox, relativeBoxes } from '../parts/part-geometry';
-import { EngineFx, PlayEffects, WheelFx } from './play-effects';
-import { Part, Vec3, axleOf, cellKey, frontOf, isStructural, isWheelType, partCentre, subVec } from '../types';
+import { EngineFx, PlayEffects, TurboFx, WheelFx } from './play-effects';
+import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isStructural, isWheelType, partCentre, subVec } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -52,6 +53,8 @@ export interface WheelDrive {
   engines: Array<{ front: Vec3; power: number }> | null;
   /** How many wheels are mounted on the same body (the engines' power is shared among them). */
   wheelCount: number;
+  /** The boost of the turbos on this wheel's body, 0 with none, in units of one default turbo (capped by `TURBO.maxBoost`): what `Shift` adds. */
+  boost: number;
   /** This wheel's brake strength over the default (`BRAKE`), 0 when it has no brake: what it is held with while Space is pressed. */
   brake: number;
 }
@@ -67,18 +70,21 @@ export class PhysicsWorld {
   focus: RAPIER.RigidBody | null = null;
   /** How hard the vehicle is being driven (0-1): what the engines' smoke and shaking follow (see `VehicleController.level`). */
   level = 0;
+  /** Is the boost key held (see `VehicleController.boosting`)? The turbos' flames follow it. */
+  boosting = false;
 
   private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
   private accumulator = 0;
   private wheelFx: WheelFx[] = [];
   private engineFx: EngineFx[] = [];
+  private turboFx: TurboFx[] = [];
   private effects: PlayEffects;
 
   constructor(grid: Grid) {
     this.buildScenery();
     this.buildCreation(grid);
-    this.effects = new PlayEffects(this.world, this.wheelFx, this.engineFx);
+    this.effects = new PlayEffects(this.world, this.wheelFx, this.engineFx, this.turboFx);
     this.group.add(this.effects.group);
     this.sync();
   }
@@ -90,7 +96,7 @@ export class PhysicsWorld {
       this.accumulator -= WORLD.step;
     }
     this.sync();
-    this.effects.update(dt, this.level);
+    this.effects.update(dt, this.level, this.boosting);
   }
 
   dispose(): void {
@@ -147,6 +153,8 @@ export class PhysicsWorld {
     const seen = new Set<string>();
     const bodyOfBlock = new Map<string, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>();
     const enginesOfBody = new Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number }>>();
+    /** The boost of the turbos of each body, in units of one turbo of the default strength. */
+    const boostOfBody = new Map<RAPIER.RigidBody, number>();
     let biggest = 0;
 
     // Blocks and plates linked by studs become ONE rigid body with a collider per part (keeps the structure stiff).
@@ -202,8 +210,9 @@ export class PhysicsWorld {
       }
     }
 
-    // Engines are mounted on a block: a compact collider on its body (an engine weighs `ENGINE.mass` blocks) and its drive.
-    for (const engine of parts.filter((p) => p.type === 'engine' && p.face)) {
+    // Engines and turbos are mounted on a block: a compact collider on its body (an engine weighs `ENGINE.mass` blocks, a turbo
+    // `TURBO.mass`), its visual and what it does (the engine's drive, the turbo's boost).
+    for (const engine of parts.filter((p) => isCompactMounted(p.type) && p.face)) {
       const host = bodyOfBlock.get(cellKey(subVec(engine.cell, engine.face!)));
       if (!host) continue;
       const box = partBox(engine);
@@ -212,7 +221,7 @@ export class PhysicsWorld {
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
           .setTranslation(...local)
-          .setDensity((CHASSIS.density * ENGINE.mass) / (8 * half[0] * half[1] * half[2]))
+          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -220,6 +229,11 @@ export class PhysicsWorld {
       const obj = createPartObject(engine);
       obj.position.set(...local);
       host.visual.add(obj);
+      if (engine.type === 'turbo') {
+        boostOfBody.set(host.body, (boostOfBody.get(host.body) ?? 0) + powerOf(engine) / ENGINE.default);
+        this.turboFx.push({ object: obj });
+        continue;
+      }
       this.engineFx.push({ body: host.body, object: obj, position: obj.position.clone(), quaternion: obj.quaternion.clone() });
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }
@@ -292,6 +306,7 @@ export class PhysicsWorld {
       this.wheels.push({ joint, axis: axle, cell: centre, speed: tireOf(wheel).speed * sizeSpeed, torque: tireOf(wheel).torque * sizeTorque, cruise,
         engines: grid.engineDrive ? (enginesOfBody.get(host.body) ?? []) : null,
         wheelCount: wheelsOn.get(host.body) ?? 1,
+        boost: Math.min(TURBO.maxBoost, boostOfBody.get(host.body) ?? 0),
         brake: brakeOf(wheel) / BRAKE.default,
       });
 

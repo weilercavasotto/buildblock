@@ -1,4 +1,4 @@
-import { CELL_SIZE, ENGINE_BODY } from './constants/game';
+import { CELL_SIZE, MOUNTED_BODY } from './constants/game';
 export type Vec3 = [number, number, number];
 /** Parts that make up the body of a creation: blocks, plates and L brackets in several sizes (see `SHAPES`). */
 export const STRUCTURAL_TYPES = [
@@ -17,7 +17,7 @@ export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
  * Every kind of part in the catalog. `'brake'` is the odd one out: it is never placed in the grid, it is fitted to a wheel (it sets
  * `Part.brake`), so no grid part has that type.
  */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'brake';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'brake';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -26,7 +26,10 @@ export const isStructural = (type: PartType): type is StructuralType => (STRUCTU
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine';
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo';
+
+/** The parts with a compact body against their host block (`MOUNTED_BODY`) and a power slider: the engine and the turbo. */
+export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' => type === 'engine' || type === 'turbo';
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
@@ -165,9 +168,9 @@ export function partCells(part: Pick<Part, 'type' | 'cell' | 'studs' | 'spin'>):
 
 /** The centre of a part in world coordinates: its cell, except a large wheel (the middle of its 4 cells) and an engine (nearer its host block). */
 export function partCentre(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): Vec3 {
-  if (part.type === 'engine' && part.face) {
-    // The engine body is smaller than a cell and rests against its host block.
-    const back = (CELL_SIZE - ENGINE_BODY.depth) / 2;
+  if (isCompactMounted(part.type) && part.face) {
+    // The body of an engine or a turbo is smaller than a cell and rests against its host block.
+    const back = (CELL_SIZE - MOUNTED_BODY[part.type].depth) / 2;
     return [part.cell[0] - part.face[0] * back, part.cell[1] - part.face[1] * back, part.cell[2] - part.face[2] * back];
   }
   if (part.type !== 'bigWheel') return part.cell;

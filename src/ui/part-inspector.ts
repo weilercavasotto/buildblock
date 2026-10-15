@@ -150,22 +150,24 @@ export class PartInspector {
     });
   }
 
-  /** Power slider (engines only), with a shortcut to give the same power to every engine on this body. */
+  /** Power slider (engines) or boost slider (turbos), with a shortcut to give the same value to every part of its kind on this body. */
   private powerSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasPower) return [];
-    const engines = this.grid.enginesOnBody(part.cell).length;
+    const turbo = part.type === 'turbo';
+    const engines = this.grid.mountedOfTypeOnBody(part.cell, part.type).length;
+    const t = TEXT.inspector;
     return this.sliderSection({
-      heading: TEXT.inspector.power,
+      heading: turbo ? t.boost : t.power,
       min: ENGINE.min,
       max: ENGINE.max,
       step: ENGINE.step,
       value: powerOf(part),
       defaultValue: ENGINE.default,
-      low: TEXT.inspector.powerLow,
-      high: TEXT.inspector.powerHigh,
-      hint: TEXT.inspector.powerHint,
+      low: turbo ? t.boostLow : t.powerLow,
+      high: turbo ? t.boostHigh : t.powerHigh,
+      hint: turbo ? t.boostHint : t.powerHint,
       onCommit: (value) => this.handlers.onPower(part, value, false),
-      applyAll: engines > 1 ? { label: TEXT.inspector.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
+      applyAll: engines > 1 ? { label: turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
     });
   }
 
@@ -254,6 +256,9 @@ export class PartInspector {
         rows.push([TEXT.inspector.front, TEXT.inspector.frontValue(frontOf(part))]);
         rows.push([TEXT.inspector.power, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyPower, TEXT.inspector.engines(this.grid.enginesOnBody(part.cell).length)]);
+      } else if (part.type === 'turbo') {
+        rows.push([TEXT.inspector.boost, String(powerOf(part))]);
+        rows.push([TEXT.inspector.bodyTurbos, String(this.grid.turbosOnBody(part.cell).length)]);
       } else {
         rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
         rows.push([TEXT.inspector.brake, brakeOf(part) > 0 ? String(brakeOf(part)) : TEXT.inspector.brakeNone]);

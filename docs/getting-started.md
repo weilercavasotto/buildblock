@@ -175,6 +175,10 @@ A part you place **bounces like jelly**: it squashes, stretches and wobbles for 
 bounce anything); a part you **remove** (right click, remove mode, the inspector button or Clear) swells a little and **pops away**, wheels and engines with it. In **Play**, the wheels throw up **earth** while they grip the ground and the vehicle moves (more and bigger clods with speed and wheel spin) and every
 **engine** puffs **smoke** from its exhaust (more, bigger puffs the faster you go, a light puff already when you press the throttle) and **shakes**, a little at idle and a lot under power. Tuning: `FX` and `COLORS.fx`.
 
+### The turbo
+
+The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a white band, a brass valve and a dark nozzle) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): its nozzle, where the flame leaves, is the back of the bottle. In Play, **holding `Shift`** boosts the **driven wheels** of its body (the wheels an engine powers): they turn up to 40% faster and push twice as hard for each turbo of the default boost, with a blue-white flame out of the nozzle; without an engine on the body the turbo does nothing, and wheels that are not driven are not boosted. The inspector has a **Boost** slider (1-10, default 5, plus "apply to all the turbos on this body"); the boosts of a body's turbos add up, up to three times one default turbo. There is no charge limit yet: the boost lasts as long as you hold the key. A turbo weighs one block. Measured on a 2 × 2 car after 3 s at full throttle: 9.0 m/s without, 12.7 m/s with a default turbo and 13.3 m/s with the strongest one (the speed is also limited by the wheels' grip).
+
 ### The brake
 
 The **Brake** (catalog, *Mobility*; drag it onto a hotbar slot) is **fitted to a wheel**: pick it and click a wheel (small or large), and a
@@ -261,6 +265,7 @@ bottom) and click. The face you click defines the wheel's axle.
 | `W` / `S` (or ↑ / ↓) | Accelerate / reverse |
 | `A` / `D` (or ← / →) | Steer left / right |
 | `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
+| `Shift` | Turbo: boosts the driven wheels of a body that has a **Turbo** (hold it) |
 | `Space` | Brake: holds the wheels that have a **Brake** (hold it) |
 | `P` / `Esc` | Stop and return to build mode (the same as **Stop**); `P` in build mode starts Play (an open dialog takes the `Esc` first) |
 | **Stop** | Return to build mode; the build is untouched |

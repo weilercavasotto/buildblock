@@ -86,6 +86,36 @@ export const ENGINE_BODY = {
 } as const;
 
 /**
+ * The turbo body: a cube mounted against a face of a block, like the engine's (`width` across the face, `depth` out of it), in cells.
+ */
+export const TURBO_BODY = {
+  width: 0.6,
+  depth: 0.6,
+} as const;
+
+/** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY } as const;
+
+/**
+ * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,
+ * `TURBO_BODY.width` across. Lengths in cells.
+ */
+export const TURBO_VISUAL = {
+  bottleRadius: 0.2,
+  bottleLength: 0.4,
+  /** The rounded ends of the bottle (a dome each), the white band round its middle and the brass valve cap on the front. */
+  domeLength: 0.1,
+  bandLength: 0.07,
+  bandOverhang: 0.012,
+  valveRadius: 0.05,
+  valveLength: 0.07,
+  /** The nozzle: a short tube out of the back. */
+  nozzleRadius: 0.06,
+  nozzleLength: 0.12,
+  segments: 24,
+} as const;
+
+/**
  * The brake model (`parts/brake-model.ts`): a drilled disc lying in the yz plane (its axis along x, like a wheel's) with a
  * caliper clamped on its top edge, in its own frame and at the size it has on a normal wheel (a large wheel scales it). `inset` is
  * how far toward the vehicle the disc sits from the middle of the wheel. Lengths in cells.
@@ -332,6 +362,8 @@ export const DRAG = {
  * shakes (metres, radians). All lengths in cells, times in seconds.
  */
 export const FX = {
+  /** The flame of a turbo that is firing: particles per second, size, life, speed (along the nozzle) and scatter. */
+  flame: { max: 400, rate: 130, size: [0.1, 0.22], life: [0.14, 0.3], speed: [3, 5.5], spread: 0.35 },
   bounce: { duration: 0.6, amplitude: 0.32, frequency: 3.4, damping: 7, volume: 0.5 },
   dust: {
     max: 600,

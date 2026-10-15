@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { COLLISION_GROUP, COLORS, FX, hexToNumber } from '../constants';
+import { turboNozzleTip } from '../parts/turbo-model';
 import { ParticleSystem } from './particles';
 
 /** A wheel the effects follow: its body, its size and its axle (in the body's own frame, where the joint's axis is given). */
@@ -20,6 +21,11 @@ export interface EngineFx {
   quaternion: THREE.Quaternion;
 }
 
+/** A turbo the effects follow: its visual (the flame leaves its nozzle). */
+export interface TurboFx {
+  object: THREE.Object3D;
+}
+
 const range = ([low, high]: readonly [number, number]): number => low + Math.random() * (high - low);
 const pickColour = (hexes: readonly string[]): THREE.Color => new THREE.Color(hexToNumber(hexes[Math.floor(Math.random() * hexes.length)]));
 
@@ -30,10 +36,12 @@ const pickColour = (hexes: readonly string[]): THREE.Color => new THREE.Color(he
 export class PlayEffects {
   readonly group = new THREE.Group();
   private dust = new ParticleSystem(FX.dust.max, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial(), FX.dust.gravity, FX.dust.drag);
+  private flame = new ParticleSystem(FX.flame.max, new THREE.IcosahedronGeometry(0.5, 0), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }), 0, 3.5);
   private smoke = new ParticleSystem(FX.smoke.max, new THREE.IcosahedronGeometry(0.5, 1), new THREE.MeshLambertMaterial({ transparent: true, opacity: 0.65, depthWrite: false }), -0.3, FX.smoke.drag);
   /** Particles still owed to each wheel / engine (the fractions of a particle that did not fit in a frame). */
   private wheelDebt: number[];
   private engineDebt: number[];
+  private turboDebt: number[];
   private time = 0;
   private ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 });
 
@@ -41,23 +49,28 @@ export class PlayEffects {
     private world: RAPIER.World,
     private wheels: WheelFx[],
     private engines: EngineFx[],
+    private turbos: TurboFx[],
   ) {
     this.wheelDebt = wheels.map(() => 0);
     this.engineDebt = engines.map(() => 0);
-    this.group.add(this.dust.mesh, this.smoke.mesh);
+    this.turboDebt = turbos.map(() => 0);
+    this.group.add(this.dust.mesh, this.smoke.mesh, this.flame.mesh);
   }
 
-  update(dt: number, level: number): void {
+  update(dt: number, level: number, boosting: boolean): void {
     this.time += dt;
     this.wheels.forEach((wheel, i) => this.emitDust(wheel, i, dt));
     this.engines.forEach((engine, i) => this.runEngine(engine, i, dt, level));
+    this.turbos.forEach((turbo, i) => this.fireTurbo(turbo, i, dt, boosting));
     this.dust.update(dt);
     this.smoke.update(dt);
+    this.flame.update(dt);
   }
 
   dispose(): void {
     this.dust.dispose();
     this.smoke.dispose();
+    this.flame.dispose();
     this.group.clear();
   }
 
@@ -90,6 +103,26 @@ export class PlayEffects {
       if (moving) velocity.addScaledVector(moving, -speed * FX.dust.back * Math.random());
       const size = range(FX.dust.size) * scale;
       this.dust.spawn({ position, velocity, life: range(FX.dust.life), sizeStart: size * 0.6, sizeEnd: size, colour: pickColour(COLORS.fx.dust) });
+    }
+  }
+
+  /** While the boost key is held, a turbo breathes a blue-white flame out of its nozzle (backwards along the bottle). */
+  private fireTurbo(turbo: TurboFx, index: number, dt: number, boosting: boolean): void {
+    if (!boosting) {
+      this.turboDebt[index] = 0;
+      return;
+    }
+    turbo.object.updateWorldMatrix(true, false);
+    const [x, y, z] = turboNozzleTip;
+    const tip = turbo.object.localToWorld(new THREE.Vector3(x, y, z));
+    const direction = turbo.object.localToWorld(new THREE.Vector3(x, y, z - 1)).sub(tip).normalize();
+    this.turboDebt[index] += FX.flame.rate * dt;
+    while (this.turboDebt[index] >= 1) {
+      this.turboDebt[index] -= 1;
+      const velocity = direction.clone().multiplyScalar(range(FX.flame.speed));
+      velocity.add(new THREE.Vector3((Math.random() - 0.5) * FX.flame.spread, (Math.random() - 0.5) * FX.flame.spread, (Math.random() - 0.5) * FX.flame.spread));
+      const size = range(FX.flame.size);
+      this.flame.spawn({ position: tip.clone(), velocity, life: range(FX.flame.life), sizeStart: size, sizeEnd: size * 0.3, colour: pickColour(COLORS.fx.flame) });
     }
   }
 

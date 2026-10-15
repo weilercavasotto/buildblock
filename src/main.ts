@@ -381,6 +381,7 @@ async function main(): Promise<void> {
     } else if (physics) {
       vehicle?.update();
       physics.level = vehicle?.level ?? 0;
+      physics.boosting = vehicle?.boosting ?? false;
       physics.step(dt);
       if (physics.focus) {
         const t = physics.focus.translation();

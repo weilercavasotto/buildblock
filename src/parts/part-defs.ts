@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, Vec3, axleOf, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
+import { Part, Vec3, axleOf, isCompactMounted, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc, createBrakeModel } from './brake-model';
+import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
 import { partBox } from './part-geometry';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -69,7 +70,7 @@ const blockMat = new THREE.MeshStandardMaterial({
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const key = paint.toLowerCase();
   let pair = paintCache.get(key);
   if (!pair) {
@@ -121,7 +122,7 @@ function makeGhost(root: THREE.Object3D, bad: boolean): void {
 /** Axis-aligned box around a placed part (slightly larger than the part), used for selection / hover outlines. */
 export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): THREE.Box3 {
   const margin = new THREE.Vector3().setScalar(HIGHLIGHT.margin);
-  if (isStructural(part.type) || part.type === 'engine') {
+  if (isStructural(part.type) || isCompactMounted(part.type)) {
     const box = partBox(part);
     return new THREE.Box3(new THREE.Vector3(...box.min).sub(margin), new THREE.Vector3(...box.max).add(margin));
   }
@@ -242,6 +243,9 @@ export function createPartObject(
   } else if (part.type === 'brake') {
     // The brake part itself (what the catalog and the placement preview show): the whole brake, in its own frame.
     root.add(createBrakeModel());
+  } else if (part.type === 'turbo') {
+    // The turbo in its own frame: the bottle along z, the nozzle at the back.
+    root.add(createTurboModel(blockMaterials(part.color, 'turbo').face));
   } else if (part.type === 'engine') {
     // The engine in its own frame: front +z, cylinder heads up.
     root.add(createEngineModel(blockMaterials(part.color, 'engine').face));
