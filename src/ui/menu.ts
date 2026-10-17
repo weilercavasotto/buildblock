@@ -17,12 +17,14 @@ export class Menu {
   private gridCells = DEFAULT_GRID_CELLS;
   private list = document.getElementById('save-list')!;
   private nameInput = document.getElementById('new-name') as HTMLInputElement;
+  /** True while the saved-games panel is open over a game (the button beside Home) instead of being part of the main menu. */
+  private overlay = false;
 
   constructor(private handlers: MenuHandlers) {
     document.getElementById('menu-version')!.textContent = TEXT.menu.version(__APP_VERSION__);
     this.nameInput.maxLength = SAVE.nameMaxLength;
     document.getElementById('menu-play')!.onclick = () => this.showSaves();
-    document.getElementById('menu-back')!.onclick = () => this.showMain();
+    document.getElementById('menu-back')!.onclick = () => (this.overlay ? this.hide() : this.showMain());
     document.getElementById('menu-back')!.textContent = TEXT.menu.back;
     const open = document.getElementById('new-open')!;
     open.textContent = TEXT.menu.newGame;
@@ -35,15 +37,35 @@ export class Menu {
     this.nameInput.onkeydown = (e) => {
       if (e.key === 'Enter') this.create();
     };
+    // Esc closes the panel opened over a game (from "New game" it goes back to the list first).
+    addEventListener('keydown', (e) => {
+      if (!this.overlay || e.code !== 'Escape') return;
+      if (this.newGame.hidden) this.hide();
+      else this.showSaves();
+    });
+  }
+
+  /** Is the saved-games panel open over a game? (the game's shortcuts must wait) */
+  get overGame(): boolean {
+    return this.overlay;
+  }
+
+  /** Opens the saved-games panel (the same as the main menu's) over the current game. */
+  openSaves(): void {
+    this.overlay = true;
+    this.root.classList.add('open', 'over-game');
+    this.showSaves();
   }
 
   show(): void {
+    this.overlay = false;
     this.root.classList.add('open');
     this.showMain();
   }
 
   hide(): void {
-    this.root.classList.remove('open');
+    this.overlay = false;
+    this.root.classList.remove('open', 'over-game');
   }
 
   private showMain(): void {

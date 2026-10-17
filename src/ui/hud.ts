@@ -7,6 +7,8 @@ export interface HudHandlers {
   onClear(): void;
   onMenu(): void;
   onHelp(): void;
+  /** Opens the saved-games panel over the current game. */
+  onSaves(): void;
   onUndo(): void;
   onMode(mode: CursorMode): void;
   onRotate(direction: 1 | -1): void;
@@ -38,6 +40,7 @@ export class Hud {
     reset.textContent = TEXT.hud.resetLabel;
     reset.title = TEXT.hud.reset;
     document.getElementById('btn-menu')!.onclick = handlers.onMenu;
+    document.getElementById('btn-saves')!.onclick = handlers.onSaves;
     this.helpButton.onclick = handlers.onHelp;
     this.createModeButtons(handlers.onMode);
     this.setupRotateButtons(handlers.onRotate, handlers.onTilt);

@@ -153,6 +153,7 @@ body.dragging * {
   gap: var(--space-sm);
 }
 #help-button,
+#btn-saves,
 #btn-menu {
   display: flex;
   align-items: center;
@@ -166,14 +167,17 @@ body.dragging * {
   cursor: pointer;
 }
 #help-button,
+#btn-saves,
 #btn-menu {
   width: var(--size-icon-button);
 }
 #help-button:hover,
+#btn-saves:hover,
 #btn-menu:hover {
   background: var(--overlay-panel-hover);
 }
 #help-button svg,
+#btn-saves svg,
 #btn-menu svg {
   width: var(--size-icon);
   height: var(--size-icon);
@@ -961,6 +965,23 @@ body[data-cursor-mode='remove'] > canvas {
 }
 #menu.open {
   display: flex;
+}
+/* Opened over a game (the folder button beside Home): above the HUD, so nothing behind it can be clicked. */
+#menu.over-game {
+  z-index: var(--z-index-dialog);
+  animation: dialog-fade var(--motion-fast) ease-out;
+}
+/* The panels pop in like a dialog (the catalog's animation) each time they are shown. */
+#menu.over-game #menu-saves,
+#menu.over-game #menu-new {
+  animation: dialog-pop var(--motion-fast) ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  #menu.over-game,
+  #menu.over-game #menu-saves,
+  #menu.over-game #menu-new {
+    animation: none;
+  }
 }
 #menu-main {
   display: flex;

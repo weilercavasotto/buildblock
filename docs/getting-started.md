@@ -93,7 +93,7 @@ Press **Play** to open the *Saved games* panel:
 The bottom-right corner shows the game version (`vX.Y.Z`), read from `package.json` at build time
 (`vite.config.ts` defines `__APP_VERSION__`). Bump the `version` field there to release a new version.
 
-In the game, the **home icon** button (top-left, next to the ⓘ help button, on its left) returns to the main menu.
+In the game, the **home icon** button (top-left, the first of the three) returns to the main menu. The **folder icon** button, between home and ⓘ, opens the same **Saved games** panel over the game, fading and popping in like the catalog (load, delete, New game; `Back` or `Esc` closes it; opening it while playing stops the simulation, and the game's shortcuts are off while it is open); loading a game goes through the loading screen as from the menu. Edits autosave, so nothing is lost by switching.
 
 ## Help
 
@@ -106,7 +106,7 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 
 | Where | What |
 |---|---|
-| Top left | the **home** button (back to the main menu) and, next to it, **ⓘ Help**; the **zoom control** below the home button |
+| Top left | the **home** button (back to the main menu), the **folder** button (saved games over the game) and **ⓘ Help**; the **zoom control** below the home button |
 | Top centre | Bar with the cursor modes **Q W E**, the rotate buttons **A ↺ D ↻**, **Undo** and **Redo**, then **Clear** and **Play** (while playing it only shows **Stop**) |
 | Right edge, centred | The **part inspector** (inspect mode, when a part is selected) |
 | Top right | **FPS counter** |

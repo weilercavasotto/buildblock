@@ -170,7 +170,7 @@ Saves made before (a wheel's `rotation` / `pitch`, a large wheel's `rotation`, a
   `maxPolarAngle` only keeps the camera above its orbit target, but panning moves the target itself, so after every
   `controls.update()` `keepCameraAboveGround` clamps the target to the ground (`GROUND_Y`) and the camera to
   `GROUND_Y + CAMERA.minHeight` and re-aims it (it does nothing while the limits hold).
-- **`Hud`** — wires the buttons in `index.html` and decides what is visible. Three groups: `#top-left` (Menu and Help
+- **`Hud`** — wires the buttons in `index.html` and decides what is visible. Three groups: `#top-left` (Menu, Saved games — `Menu.openSaves()` shows `#menu-saves` over the game with `.over-game`, Back / Esc close it and `Menu.overGame` mutes the game's shortcuts — and Help
   buttons), `#top-bar` (top centre: Undo, Redo, a divider, Clear and Play/Stop) and `#hotbar` (bottom: the hotbar).
   Menu: nothing is shown. Build: everything. Play: `#top-left` and a `#top-bar` reduced to Stop (the elements marked
   `.build-only` are hidden) while `#hotbar` is hidden. The old instruction card was replaced by the help button.

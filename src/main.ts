@@ -266,6 +266,10 @@ async function main(): Promise<void> {
       if (confirmed) history.run(() => build.removeAnimated(() => grid.clear()));
     },
     onMenu: () => void loading.run([{ label: TEXT.loading.toMenu, run: enterMenu }]),
+    onSaves: () => {
+      if (physics) stop(); // the keys of the name field must not drive the vehicle
+      menu.openSaves();
+    },
     onMode: (mode) => setCursorMode(mode),
     onRotate: (direction) => build.rotate(direction),
     onTilt: (direction) => build.tilt(direction),
@@ -320,6 +324,7 @@ async function main(): Promise<void> {
   void loading.hide();
 
   addEventListener('keydown', (e) => {
+    if (menu.overGame) return; // the saved-games panel is open over the game: typing a name must not trigger shortcuts
     if (e.code === 'F3') {
       e.preventDefault();
       fps.toggle();
