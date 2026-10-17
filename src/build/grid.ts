@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE, TURBO } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE, THRUSTER, TURBO } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -63,8 +63,8 @@ export class Grid {
       if (part.type === 'engine') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
         if (studsOf(part)[1] === -1) return false;
-      } else if (part.type !== 'turbo' && part.face[1] !== 0) {
-        return false; // a turbo goes on any face, like the engine; the wheels only on the sides
+      } else if (part.type !== 'turbo' && part.type !== 'thruster' && part.face[1] !== 0) {
+        return false; // a turbo and a thruster go on any face, like the engine; the wheels only on the sides
       }
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
@@ -162,6 +162,11 @@ export class Grid {
   /** The engines mounted on the same rigid body as the block or engine at `cell` (the engine itself included); [] when there is none. */
   enginesOnBody(cell: Vec3): Part[] {
     return this.mountedOfTypeOnBody(cell, 'engine');
+  }
+
+  /** The thrusters mounted on the same rigid body as the block or thruster at `cell` (the thruster itself included); [] when there is none. */
+  thrustersOnBody(cell: Vec3): Part[] {
+    return this.mountedOfTypeOnBody(cell, 'thruster');
   }
 
   /** The turbos mounted on the same rigid body as the block or turbo at `cell` (the turbo itself included); [] when there is none. */
@@ -290,7 +295,7 @@ export class Grid {
   connectedWeight(cell: Vec3): number {
     const blocks = this.connectedBlockParts(cell);
     if (blocks.length === 0) return 0;
-    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : 0), 0);
+    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : 0), 0);
     const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + mountedMass * WEIGHT.default;
     return Math.round(sum * 10) / 10;
   }

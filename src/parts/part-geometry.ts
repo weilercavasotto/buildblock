@@ -64,7 +64,7 @@ export function boundingBox(boxes: ReadonlyArray<Box>): Box {
 }
 
 /**
- * The box a part occupies: for a structural part the one around all its boxes, an engine or a turbo its compact body, a wheel fills its
+ * The box a part occupies: for a structural part the one around all its boxes, an engine, a turbo or a thruster its compact body, a wheel fills its
  * cell, a large wheel its 2 x 2 cells.
  */
 export function partBox(part: Shape): Box {

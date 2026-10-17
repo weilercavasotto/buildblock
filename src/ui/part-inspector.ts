@@ -154,20 +154,21 @@ export class PartInspector {
   private powerSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasPower) return [];
     const turbo = part.type === 'turbo';
+    const thruster = part.type === 'thruster';
     const engines = this.grid.mountedOfTypeOnBody(part.cell, part.type).length;
     const t = TEXT.inspector;
     return this.sliderSection({
-      heading: turbo ? t.boost : t.power,
+      heading: thruster ? t.thrust : turbo ? t.boost : t.power,
       min: ENGINE.min,
       max: ENGINE.max,
       step: ENGINE.step,
       value: powerOf(part),
       defaultValue: ENGINE.default,
-      low: turbo ? t.boostLow : t.powerLow,
-      high: turbo ? t.boostHigh : t.powerHigh,
-      hint: turbo ? t.boostHint : t.powerHint,
+      low: thruster ? t.thrustLow : turbo ? t.boostLow : t.powerLow,
+      high: thruster ? t.thrustHigh : turbo ? t.boostHigh : t.powerHigh,
+      hint: thruster ? t.thrustHint : turbo ? t.boostHint : t.powerHint,
       onCommit: (value) => this.handlers.onPower(part, value, false),
-      applyAll: engines > 1 ? { label: turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
+      applyAll: engines > 1 ? { label: thruster ? t.thrustApplyAll(engines) : turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
     });
   }
 
@@ -256,6 +257,10 @@ export class PartInspector {
         rows.push([TEXT.inspector.front, TEXT.inspector.frontValue(frontOf(part))]);
         rows.push([TEXT.inspector.power, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyPower, TEXT.inspector.engines(this.grid.enginesOnBody(part.cell).length)]);
+      } else if (part.type === 'thruster') {
+        rows.push([TEXT.inspector.front, TEXT.inspector.frontValue(frontOf(part))]);
+        rows.push([TEXT.inspector.thrust, String(powerOf(part))]);
+        rows.push([TEXT.inspector.bodyThrusters, String(this.grid.thrustersOnBody(part.cell).length)]);
       } else if (part.type === 'turbo') {
         rows.push([TEXT.inspector.boost, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyTurbos, String(this.grid.turbosOnBody(part.cell).length)]);

@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { COLLISION_GROUP, COLORS, FX, hexToNumber } from '../constants';
+import { thrusterTip } from '../parts/thruster-model';
 import { turboNozzleTip } from '../parts/turbo-model';
 import { ParticleSystem } from './particles';
 
@@ -19,6 +20,11 @@ export interface EngineFx {
   object: THREE.Object3D;
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
+}
+
+/** A thruster the effects follow: its visual (the flame leaves the bell). */
+export interface ThrusterFx {
+  object: THREE.Object3D;
 }
 
 /** A turbo the effects follow: its visual (the flame leaves its nozzle). */
@@ -42,6 +48,7 @@ export class PlayEffects {
   private wheelDebt: number[];
   private engineDebt: number[];
   private turboDebt: number[];
+  private thrusterDebt: number[];
   private time = 0;
   private ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 });
 
@@ -50,18 +57,21 @@ export class PlayEffects {
     private wheels: WheelFx[],
     private engines: EngineFx[],
     private turbos: TurboFx[],
+    private thrusters: ThrusterFx[],
   ) {
     this.wheelDebt = wheels.map(() => 0);
     this.engineDebt = engines.map(() => 0);
     this.turboDebt = turbos.map(() => 0);
+    this.thrusterDebt = thrusters.map(() => 0);
     this.group.add(this.dust.mesh, this.smoke.mesh, this.flame.mesh);
   }
 
-  update(dt: number, level: number, boosting: boolean): void {
+  update(dt: number, level: number, boosting: boolean, thrusting: boolean): void {
     this.time += dt;
     this.wheels.forEach((wheel, i) => this.emitDust(wheel, i, dt));
     this.engines.forEach((engine, i) => this.runEngine(engine, i, dt, level));
     this.turbos.forEach((turbo, i) => this.fireTurbo(turbo, i, dt, boosting));
+    this.thrusters.forEach((thruster, i) => this.fireThruster(thruster, i, dt, thrusting));
     this.dust.update(dt);
     this.smoke.update(dt);
     this.flame.update(dt);
@@ -123,6 +133,27 @@ export class PlayEffects {
       velocity.add(new THREE.Vector3((Math.random() - 0.5) * FX.flame.spread, (Math.random() - 0.5) * FX.flame.spread, (Math.random() - 0.5) * FX.flame.spread));
       const size = range(FX.flame.size);
       this.flame.spawn({ position: tip.clone(), velocity, life: range(FX.flame.life), sizeStart: size, sizeEnd: size * 0.3, colour: pickColour(COLORS.fx.flame) });
+    }
+  }
+
+  /** While the thrust key is held, a thruster breathes an orange flame out of its bell (backwards along the jet). */
+  private fireThruster(thruster: ThrusterFx, index: number, dt: number, thrusting: boolean): void {
+    if (!thrusting) {
+      this.thrusterDebt[index] = 0;
+      return;
+    }
+    thruster.object.updateWorldMatrix(true, false);
+    const [x, y, z] = thrusterTip;
+    const tip = thruster.object.localToWorld(new THREE.Vector3(x, y, z));
+    const direction = thruster.object.localToWorld(new THREE.Vector3(x, y, z - 1)).sub(tip).normalize();
+    const f = FX.thrustFlame;
+    this.thrusterDebt[index] += f.rate * dt;
+    while (this.thrusterDebt[index] >= 1) {
+      this.thrusterDebt[index] -= 1;
+      const velocity = direction.clone().multiplyScalar(range(f.speed));
+      velocity.add(new THREE.Vector3((Math.random() - 0.5) * f.spread, (Math.random() - 0.5) * f.spread, (Math.random() - 0.5) * f.spread));
+      const size = range(f.size);
+      this.flame.spawn({ position: tip.clone(), velocity, life: range(f.life), sizeStart: size, sizeEnd: size * 0.25, colour: pickColour(COLORS.fx.thrust) });
     }
   }
 

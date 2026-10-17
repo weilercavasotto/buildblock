@@ -17,7 +17,7 @@ export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
  * Every kind of part in the catalog. `'brake'` is the odd one out: it is never placed in the grid, it is fitted to a wheel (it sets
  * `Part.brake`), so no grid part has that type.
  */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'brake';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'brake';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -26,10 +26,10 @@ export const isStructural = (type: PartType): type is StructuralType => (STRUCTU
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo';
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster';
 
-/** The parts with a compact body against their host block (`MOUNTED_BODY`) and a power slider: the engine and the turbo. */
-export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' => type === 'engine' || type === 'turbo';
+/** The parts with a compact body against their host block (`MOUNTED_BODY`) and a power slider: the engine, the turbo and the thruster. */
+export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' => type === 'engine' || type === 'turbo' || type === 'thruster';
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';

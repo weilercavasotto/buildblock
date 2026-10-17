@@ -1,5 +1,5 @@
-import { ENGINE_BODY, PLATE, TURBO_BODY } from './game';
-import { CHASSIS, ENGINE, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, PLATE, THRUSTER_BODY, TURBO_BODY } from './game';
+import { CHASSIS, ENGINE, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -191,6 +191,36 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'More wheels than the engine can drive get less torque each: add a second engine to a heavy or many-wheeled vehicle.',
     ],
   },
+  thruster: {
+    type: 'thruster',
+    name: 'Thruster',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasBrake: false,
+    hasPower: true,
+    previewAngle: 0.6,
+    tagline: 'Pushes its body, no wheels needed.',
+    description:
+      'A small jet that you mount on a face of a block, like the engine. Hold Space while playing and it pushes the body it is mounted on towards its front, from where it sits, with an orange flame out of the bell at the back, on the ground or in the air, with or without an engine. A thruster far from the centre of the body also turns it. The thrusts of a body\'s thrusters add up.',
+    properties: [
+      { label: 'Size', value: `${THRUSTER_BODY.width} × ${THRUSTER_BODY.width} × ${THRUSTER_BODY.depth} cells, against the block` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Front', value: 'The jet\'s front (the bell and the flame are at the back): Space pushes the body towards it. A / D turn it, W / S tilt it, in every direction' },
+      { label: 'Thrust', value: 'Adjustable in the inspector (1-10, default 5)' },
+      { label: 'Control', value: 'Hold Space while playing' },
+      { label: 'Mass', value: `${THRUSTER.mass} block of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the tube takes the colour' },
+    ],
+    tips: [
+      'Point the bell backwards: the thruster pushes the body towards the other end.',
+      'Mount one on the top of a body pointing down to hop, or two at the back to dash forward.',
+      'A thruster at the edge of the body spins it: put pairs on both sides to push straight.',
+    ],
+  },
   turbo: {
     type: 'turbo',
     name: 'Turbo',
@@ -327,6 +357,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'bracketSmall',
   'bracket',
   'engine',
+  'thruster',
   'turbo',
   'brake',
   'wheel',

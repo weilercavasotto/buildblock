@@ -56,6 +56,7 @@ export const COLORS = {
   /** Particle effects in the 3D scene (see `FX`). */
   fx: {
     flame: ['#7fb8ff', '#bfe0ff', '#ffffff'],
+    thrust: ['#ff8a2b', '#ffc94a', '#fff2b0'],
     dust: ['#8a6f4d', '#a08462', '#6f5a3e'],
     smoke: ['#8a919c', '#a9afb8', '#c9ced6'],
   },
@@ -79,6 +80,10 @@ export const COLORS = {
     turboBand: '#e8edf5',
     turboValve: '#d6a23a',
     turboNozzle: '#2c323a',
+    /** The thruster: a steel tube with a dark bell nozzle and a glowing orange ring. */
+    thruster: '#7b858f',
+    thrusterBell: '#2c323a',
+    thrusterGlow: '#ff8a2b',
     tire: '#23262d',
     rim: '#dfe3ea',
     /** The placement ghost turns this colour when the part cannot be placed (otherwise it is the part itself, translucent). */

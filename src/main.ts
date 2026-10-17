@@ -382,6 +382,9 @@ async function main(): Promise<void> {
       vehicle?.update();
       physics.level = vehicle?.level ?? 0;
       physics.boosting = vehicle?.boosting ?? false;
+      physics.thrusting = vehicle?.thrusting ?? false;
+      physics.steering = vehicle?.steering ?? false;
+      physics.pilot = vehicle?.pilot ?? { pitch: 0, roll: 0, yaw: 0 };
       physics.step(dt);
       if (physics.focus) {
         const t = physics.focus.translation();

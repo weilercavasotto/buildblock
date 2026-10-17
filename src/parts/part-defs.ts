@@ -3,6 +3,7 @@ import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, SHAPES, STUD, BLOCK_VISUAL_SIZE
 import { Part, Vec3, axleOf, isCompactMounted, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc, createBrakeModel } from './brake-model';
+import { createThrusterModel, thrusterTube } from './thruster-model';
 import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
 import { partBox } from './part-geometry';
@@ -70,7 +71,7 @@ const blockMat = new THREE.MeshStandardMaterial({
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const key = paint.toLowerCase();
   let pair = paintCache.get(key);
   if (!pair) {
@@ -243,6 +244,9 @@ export function createPartObject(
   } else if (part.type === 'brake') {
     // The brake part itself (what the catalog and the placement preview show): the whole brake, in its own frame.
     root.add(createBrakeModel());
+  } else if (part.type === 'thruster') {
+    // The thruster in its own frame: the jet along z, the bell at the back.
+    root.add(createThrusterModel(blockMaterials(part.color, 'thruster').face));
   } else if (part.type === 'turbo') {
     // The turbo in its own frame: the bottle along z, the nozzle at the back.
     root.add(createTurboModel(blockMaterials(part.color, 'turbo').face));

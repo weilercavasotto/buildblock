@@ -188,6 +188,18 @@ export const TURBO = {
   mass: 1,
 } as const;
 
+/**
+ * The thruster (`Part.power` as its thrust, on the same 1-10 scale as the engine's): a part mounted on a face of a block that pushes
+ * its body along its front, at the place where it is mounted (so one that is off-centre also turns the body), while `Space` is held,
+ * on the ground or in the air, with or without an engine. `thrust` is the force of one thruster of the `default` strength (a light
+ * 2 x 2 car with one weighs about 90 with the world's gravity, so one just lifts it); the thrusts of all the thrusters add up. A thruster weighs
+ * `mass` blocks of the default weight.
+ */
+export const THRUSTER = {
+  thrust: 100,
+  mass: 0.5,
+} as const;
+
 export const clampPower = (value: number): number =>
   Math.min(ENGINE.max, Math.max(ENGINE.min, Math.round(Number.isFinite(value) ? value : ENGINE.default)));
 
@@ -219,8 +231,39 @@ export const VEHICLE = {
   idleBrake: 12,
   /** Strength with which a braked wheel is held while `Space` is held, on top of `idleBrake` (times its brake strength over `BRAKE.default`). */
   brakeStrength: 22,
+  /**
+   * Driving assist: while the player does not steer, an upright vehicle (its up axis within `uprightMin` of vertical) holds the
+   * heading it had when the steering ended: its yaw rate is set to `-straighteningGain * heading error` (1/s), so a symmetric build
+   * keeps a straight line. The simulation has a small veer of its own (a few degrees over a hundred metres) that would otherwise
+   * show. A turn faster than `straighteningMaxRate` (rad/s, a collision, an off-centre thruster, a skid) is left alone and the
+   * heading is taken again when it calms down; steering (A / D) switches the assist off.
+   */
+  straighteningGain: 5,
+  straighteningMaxRate: 0.3,
+  uprightMin: 0.8,
+  /**
+   * Air drag of a vehicle: above `dragFreeSpeed` (m/s, a little over what the wheels reach by themselves, so it only matters for
+   * thrusters and falls) it slows down by `airDrag * (speed - dragFreeSpeed)^2` (m/s², whatever its mass), so it reaches a top speed.
+   */
+  airDrag: 0.2,
+  dragFreeSpeed: 10,
   /** How much steering input changes the speed of each side. */
   steerGain: 0.7,
+} as const;
+
+/**
+ * Flying (`PhysicsWorld.pilot`): while a vehicle has left the ground (none of its wheels or blocks touches it) the player can
+ * steer its attitude with W / S (pitch: W nose down, S nose up), A / D (roll) and Q / E (yaw). The attitude changes at `rate`
+ * rad/s² around the vehicle's axes (its nose is where its thrusters push, else where its engines push, else the way its wheels
+ * roll), up to `maxRate` rad/s; the control surfaces bite less at low speed (`minAuthority` at rest, full at `authoritySpeed`
+ * m/s); without input a flying vehicle's rotation fades at `damping` (1/s), and the heading hold of `VEHICLE` is off.
+ */
+export const FLIGHT = {
+  rate: 6,
+  maxRate: 2.5,
+  damping: 1.5,
+  authoritySpeed: 8,
+  minAuthority: 0.4,
 } as const;
 
 export const GROUND_COLLIDER = {

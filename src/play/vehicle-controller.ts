@@ -2,13 +2,15 @@ import { WheelDrive } from './physics-world';
 import { ENGINE, TURBO, VEHICLE } from '../constants';
 import { Vec3 } from '../types';
 
-const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'brake' | 'boost'> = {
+const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'brake' | 'boost' | 'yawLeft' | 'yawRight'> = {
   KeyW: 'forward', ArrowUp: 'forward',
   KeyS: 'back', ArrowDown: 'back',
   KeyA: 'left', ArrowLeft: 'left',
   KeyD: 'right', ArrowRight: 'right',
   Space: 'brake',
   ShiftLeft: 'boost', ShiftRight: 'boost',
+  KeyQ: 'yawLeft',
+  KeyE: 'yawRight',
 };
 
 const cross = (a: Vec3, b: Vec3): Vec3 => [
@@ -29,8 +31,8 @@ interface DrivenWheel {
 }
 
 export class VehicleController {
-  private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false };
-  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean } | null = null;
+  private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false, yawLeft: false, yawRight: false };
+  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean } | null = null;
   private driven: DrivenWheel[];
   private listening: boolean;
 
@@ -69,9 +71,33 @@ export class VehicleController {
     }
   }
 
+  /**
+   * What the pilot asks of a flying vehicle (see `FLIGHT`), each -1 to 1: pitch from W / S (W is nose down, +1), roll from A / D
+   * (D banks right, +1) and yaw from Q / E (E turns right, +1). The autopilot never flies.
+   */
+  get pilot(): { pitch: number; roll: number; yaw: number } {
+    if (this.autopilot) return { pitch: 0, roll: 0, yaw: 0 };
+    return {
+      pitch: Number(this.pressed.forward) - Number(this.pressed.back),
+      roll: Number(this.pressed.right) - Number(this.pressed.left),
+      yaw: Number(this.pressed.yawRight) - Number(this.pressed.yawLeft),
+    };
+  }
+
+  /** Is the thrust key (Space, the same as the brake's) held? The thrusters push and fire while it is. */
+  get thrusting(): boolean {
+    return this.autopilot?.thrust ?? this.pressed.brake;
+  }
+
   /** Is the boost key (Shift) held? The turbos' flames follow it. */
   get boosting(): boolean {
     return this.autopilot?.boost ?? this.pressed.boost;
+  }
+
+  /** Is the player steering (A / D, or the autopilot's steer)? The straightening assist is off while so. */
+  get steering(): boolean {
+    const steer = this.autopilot?.steer ?? Number(this.pressed.right) - Number(this.pressed.left);
+    return steer !== 0;
   }
 
   /** How hard the vehicle is being driven, 0-1 (throttle or steering input): the engines' smoke and shaking follow it. */
@@ -93,7 +119,7 @@ export class VehicleController {
   }
 
   /** Drives the vehicle with the given throttle/steer in [-1, 1]; `null` hands control back to the keyboard. */
-  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean } | null): void {
+  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean } | null): void {
     this.autopilot = input;
   }
 

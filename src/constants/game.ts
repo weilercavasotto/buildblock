@@ -93,8 +93,33 @@ export const TURBO_BODY = {
   depth: 0.6,
 } as const;
 
+/**
+ * The thruster body: a cube mounted against a face of a block, like the engine's (`width` across the face, `depth` out of it), in cells.
+ */
+export const THRUSTER_BODY = {
+  width: 0.6,
+  depth: 0.6,
+} as const;
+
+/**
+ * The thruster model (`parts/thruster-model.ts`): a jet pointing along +z (the way it pushes), a tube with a flared bell nozzle at
+ * the back (-z) where the flame leaves, in its own frame, `THRUSTER_BODY.width` across. Lengths in cells.
+ */
+export const THRUSTER_VISUAL = {
+  tubeRadius: 0.2,
+  tubeLength: 0.3,
+  /** The intake ring on the front, the bell (radius at the throat and at the mouth, length) and the glowing ring round its mouth. */
+  intakeRadius: 0.23,
+  intakeLength: 0.06,
+  bellMouthRadius: 0.29,
+  bellLength: 0.22,
+  ringRadius: 0.29,
+  ringTube: 0.022,
+  segments: 28,
+} as const;
+
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,
@@ -363,6 +388,8 @@ export const DRAG = {
  */
 export const FX = {
   /** The flame of a turbo that is firing: particles per second, size, life, speed (along the nozzle) and scatter. */
+  /** The flame of a thruster that is firing (bigger and longer than a turbo's, and orange). */
+  thrustFlame: { rate: 170, size: [0.14, 0.3], life: [0.18, 0.38], speed: [3.5, 6], spread: 0.4 },
   flame: { max: 400, rate: 130, size: [0.1, 0.22], life: [0.14, 0.3], speed: [3, 5.5], spread: 0.35 },
   bounce: { duration: 0.6, amplitude: 0.32, frequency: 3.4, damping: 7, volume: 0.5 },
   dust: {
