@@ -17,7 +17,7 @@ export const CURSOR_MODES: ReadonlyArray<{
     label: 'Inspect',
     key: 'I',
     code: 'KeyI',
-    description: 'Click a part to inspect it. The left button also rotates the camera.',
+    description: 'Click a part to inspect it, or drag a box to select several (they can then be moved).',
     // Mouse cursor (pointer arrow)
     icon: '<path d="M4.04 4.69a.5.5 0 0 1 .65-.65l16 6.5a.5.5 0 0 1-.06.95l-6.12 1.58a2 2 0 0 0-1.44 1.43l-1.58 6.13a.5.5 0 0 1-.95.06z"/>',
   },
@@ -49,3 +49,16 @@ export const CURSOR_MODES: ReadonlyArray<{
     icon: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
   },
 ];
+
+/**
+ * Icons of the buttons that move a selection (inner markup of a 24×24 stroked SVG, trusted constants): arrows on the ground
+ * for left / right / forward / back, and an arrow against a bar (the floor / ceiling) for up / down.
+ */
+export const MOVE_ICONS = {
+  left: '<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
+  right: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  forward: '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+  back: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  up: '<path d="M5 3h14"/><path d="m18 13-6-6-6 6"/><path d="M12 7v14"/>',
+  down: '<path d="M5 21h14"/><path d="m6 11 6 6 6-6"/><path d="M12 17V3"/>',
+} as const;

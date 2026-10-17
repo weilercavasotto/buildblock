@@ -1,7 +1,7 @@
 import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE, THRUSTER, TURBO } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
+import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -47,9 +47,10 @@ export class Grid {
   /**
    * Can `part` be placed? It must be inside the build area, not overlap another part and, for a block or plate, be
    * supported: on the ground, or resting on / hanging from another block or plate with at least one stud engaged
-   * (a wheel needs the block it is mounted on instead).
+   * (a wheel needs the block it is mounted on instead). With `needsSupport` false that support is not required (moving a selection
+   * may leave it hanging, like removing a part leaves what rested on it).
    */
-  canPlace(part: Part): boolean {
+  canPlace(part: Part, needsSupport = true): boolean {
     // Only the area of the floor grid that is drawn on the ground (see `setSize`).
     const { min, max, maxY } = this.range;
     const box = partBox(part);
@@ -69,7 +70,7 @@ export class Grid {
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
     // Blocks and plates: on the ground, or at least one stud engaged with a part above or below.
-    return box.min[1] <= GROUND_Y + EPS || this.engagedStuds(part) > 0;
+    return !needsSupport || box.min[1] <= GROUND_Y + EPS || this.engagedStuds(part) > 0;
   }
 
   /** How many studs `part` would engage with the blocks and plates touching it above and below. */
@@ -87,6 +88,40 @@ export class Grid {
     this.parts.set(cellKey(part.cell), part);
     this.emit();
     return true;
+  }
+
+  /**
+   * Moves `parts` (and what is mounted on the blocks among them) by `delta` cells as one group, only if every part can be placed
+   * where it lands, checked like a normal placement (build area, no overlap, a host block for what is mounted) but without needing
+   * support: a lifted selection may hang in the air. The group is put back from the bottom up. Returns the moved versions of `parts` (in order), or
+   * null, changing nothing, when any part cannot go. Listeners are told once.
+   */
+  moveParts(parts: ReadonlyArray<Part>, delta: Vec3): Part[] | null {
+    const moving = new Map<string, Part>();
+    for (const part of parts) {
+      const current = this.get(part.cell);
+      if (!current) return null;
+      moving.set(cellKey(current.cell), current);
+      if (current.type === 'block') for (const mounted of this.mountedOn(current.cell)) moving.set(cellKey(mounted.cell), mounted);
+    }
+    const before = new Map(this.parts);
+    for (const key of moving.keys()) this.parts.delete(key);
+    const order = [...moving.values()].sort((a, b) => Number(isMountedType(a.type)) - Number(isMountedType(b.type)) || partBox(a).min[1] - partBox(b).min[1]);
+    const moved = new Map<string, Part>();
+    for (const part of order) {
+      const next: Part = { ...part, cell: addVec(part.cell, delta) };
+      if (!this.canPlace(next, false)) {
+        this.parts = before;
+        return null;
+      }
+      this.parts.set(cellKey(next.cell), next);
+      moved.set(cellKey(part.cell), next);
+    }
+    this.emit();
+    return parts.flatMap((p) => {
+      const next = moved.get(cellKey(p.cell));
+      return next ? [next] : [];
+    });
   }
 
   /** Adds every part that can be placed (in order) and notifies listeners once. Returns how many were added. */

@@ -1189,3 +1189,60 @@ body[data-cursor-mode='remove'] > canvas {
     scrollbar-color: var(--color-surface-divider) transparent;
   }
 }
+
+/* The box dragged in inspect mode to select an area (see `BuildMode`). */
+.selection-marquee {
+  position: fixed;
+  z-index: var(--z-index-drag-ghost);
+  pointer-events: none;
+  box-sizing: border-box;
+  border: var(--border-regular) dashed var(--color-accent-highlight);
+  background: color-mix(in srgb, var(--color-accent-highlight) 15%, transparent);
+}
+
+/* The movement buttons of a multiple selection (see `PartInspector`). */
+#part-inspector .move-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+}
+#part-inspector .move-pad button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The mouse ways to move a selection: highlighted, so that Shift + drag (up and down) is not missed. */
+#part-inspector .move-mouse {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: var(--border-regular) solid var(--color-accent-highlight);
+  border-radius: var(--radius-sm);
+}
+#part-inspector .move-mouse .inspector-heading {
+  margin: 0;
+}
+#part-inspector .move-mouse-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+}
+#part-inspector .move-mouse-keys {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 0 0 auto;
+}
+#part-inspector .move-mouse-keys kbd {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border-bottom: var(--border-regular) solid var(--color-surface-divider);
+  background: var(--color-surface-control);
+  color: var(--color-accent-highlight);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}

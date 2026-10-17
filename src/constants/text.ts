@@ -102,6 +102,18 @@ export const TEXT = {
     suspensionValue: (value: number) => String(value),
     remove: 'Remove part',
     removeHint: 'Removing a block also removes the wheels mounted on it.',
+    selectedCount: (n: number) => `${n} parts selected`,
+    removeMany: (n: number) => `Remove ${n} parts`,
+    move: 'Move',
+    moveLabels: { up: 'Up', down: 'Down', left: 'Left', right: 'Right', forward: 'Forward (away from the camera)', back: 'Back (towards the camera)' },
+    moveHint: 'The arrows move the selection by half a cell (a plate when going up or down) as seen from the camera. A move that does not fit does nothing.',
+    /** Mouse moves, shown as key caps + text under the arrows: the Shift one must stand out. */
+    moveMouse: [
+      { keys: ['Drag'], text: 'Move along the ground' },
+      { keys: ['Shift', 'Drag'], text: 'Move up and down' },
+    ],
+    moveMouseHeading: 'Drag a selected part',
+    multiHint: 'Drag a box in inspect mode to select an area; hold Shift to add to the selection or click parts to toggle them. Select a single part to edit its properties.',
   },
   hotbar: {
     emptySlot: (n: number) => `Slot ${n}: empty`,

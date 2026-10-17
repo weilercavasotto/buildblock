@@ -275,15 +275,15 @@ async function main(): Promise<void> {
   });
   history.subscribe(() => hud.setHistoryState(history.canUndo, history.canRedo));
 
-  // Cursor modes (I / B / E / R): what the left mouse button does. The camera buttons depend on it: in build and remove
-  // mode the left button is taken, in inspect mode it also rotates the camera (a click without movement inspects).
+  // Cursor modes (I / B / E / R): what the left mouse button does (it never moves the camera: in inspect mode a drag draws a
+  // selection box).
   const palette = new PaintPalette((color) => build.setPaintColor(color));
   const setCursorMode = (mode: CursorMode) => {
     build.setMode(mode);
     hud.setCursorMode(mode);
     palette.show(mode === 'paint');
     controls.mouseButtons = {
-      LEFT: mode === 'inspect' ? THREE.MOUSE.ROTATE : null,
+      LEFT: null,
       MIDDLE: THREE.MOUSE.ROTATE,
       RIGHT: THREE.MOUSE.PAN,
     };
@@ -305,9 +305,16 @@ async function main(): Promise<void> {
     onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
     onBrake: (part, strength, wholeBody) => history.run(() => grid.setBrake(part.cell, strength, wholeBody)),
     onSuspension: (part, strength) => history.run(() => grid.setSuspension(part.cell, strength)),
+    onRemoveMany: (parts) =>
+      history.run(() =>
+        build.removeAnimated(() => {
+          for (const part of parts) grid.remove(part.cell);
+        }),
+      ),
+    onMove: (direction) => build.moveSelectionBy(direction),
     onClose: () => build.select(null),
   });
-  build.onSelectionChange((part) => inspector.show(part));
+  build.onSelectionChange((parts) => inspector.show(parts));
   hud.setHistoryState(history.canUndo, history.canRedo);
   enterMenu();
   void loading.hide();

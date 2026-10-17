@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Grid } from './grid';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BRAKE, BUILD, COLORS, FX, GROUND_Y, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber } from '../constants';
+import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber } from '../constants';
 import { brakePose, createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
@@ -46,13 +46,17 @@ interface Erase {
   y: number;
 }
 
+/** A direction the selection can be moved in: seen from the camera on the ground, or up / down. */
+export type MoveDirection = 'left' | 'right' | 'forward' | 'back' | 'up' | 'down';
+
 /**
  * Turns pointer input into edits of the grid, depending on the cursor mode:
  * - build: the left button places the hotbar part (drag to paint blocks), a right click removes;
- * - inspect: a left click selects the part under the cursor (outlined; listeners such as the inspector panel are told);
+ * - inspect: a left click selects the part under the cursor, a left drag draws a box and selects every part it touches on the screen
+ *   (Shift adds to the selection; a Shift click toggles a part), unless it starts on a selected part: then it moves the selection (Shift: up / down); selected parts are outlined and listeners such as the inspector panel are told;
  * - paint: the left button paints the part under the cursor with the chosen colour (drag to paint several; wheels are skipped);
  * - remove: the left button removes the part under the cursor (drag to erase), a right click removes too.
- * The camera buttons are configured in `main.ts` per mode (the left button only rotates the camera in inspect mode).
+ * The camera buttons are configured in `main.ts` (the left button never moves the camera).
  */
 export class BuildMode {
   readonly group = new THREE.Group();
@@ -66,9 +70,15 @@ export class BuildMode {
   private orientation: Orientation = { studs: [0, 1, 0], spin: 0 };
   private lastPointer: { clientX: number; clientY: number } | null = null;
   private hover: { part: Part; outline: THREE.Group } | null = null;
-  private selection: Part | null = null;
-  private selectionOutline: THREE.Group | null = null;
-  private selectionListeners: Array<(part: Part | null) => void> = [];
+  private selection: Part[] = [];
+  private selectionOutlines: THREE.Group[] = [];
+  private selectionListeners: Array<(parts: ReadonlyArray<Part>) => void> = [];
+  /** The selection box being dragged in inspect mode (client pixels), and the element that draws it. */
+  private marquee: { x: number; y: number; element: HTMLElement | null } | null = null;
+  /** True while the selection is being moved, so `rebuild` does not drop the parts that are no longer where they were. */
+  private moving = false;
+  /** A drag that moves the selection: the undo checkpoint, the plane the pointer slides on, where it started and how far the selection has gone (cells). */
+  private dragMove: { before: Checkpoint; plane: THREE.Plane; vertical: boolean; start: THREE.Vector3; applied: Vec3 } | null = null;
   private erase: Erase | null = null;
   /** Colour of the paint mode (null = the default colour, i.e. removes paint). */
   private paintColor: string | null = null;
@@ -253,26 +263,166 @@ export class BuildMode {
     }
   }
 
-  /** The inspected part (outlined), or null. */
+  /** The inspected part (outlined) when exactly one is selected, else null. */
   get selected(): Part | null {
+    return this.selection.length === 1 ? this.selection[0] : null;
+  }
+
+  /** Every selected part (outlined). */
+  get selectedParts(): ReadonlyArray<Part> {
     return this.selection;
   }
 
-  /** Called with the new selection (or null) whenever it changes or the selected part is updated by an edit. */
-  onSelectionChange(fn: (part: Part | null) => void): void {
+  /** Called with the new selection (empty when nothing is selected) whenever it changes or a selected part is updated by an edit. */
+  onSelectionChange(fn: (parts: ReadonlyArray<Part>) => void): void {
     this.selectionListeners.push(fn);
   }
 
   select(part: Part | null): void {
-    const unchanged = part === null ? this.selection === null : this.selection && cellKey(part.cell) === cellKey(this.selection.cell);
-    this.selection = part;
-    disposeOutline(this.selectionOutline);
-    this.selectionOutline = null;
-    if (part) {
-      this.selectionOutline = createOutline(partBounds(part), hexToNumber(COLORS.accent.highlight), outlineFill.selected);
-      this.scene.add(this.selectionOutline);
+    this.selectMany(part ? [part] : []);
+  }
+
+  selectMany(parts: ReadonlyArray<Part>): void {
+    const same =
+      parts.length === this.selection.length &&
+      parts.every((p) => this.selection.some((s) => cellKey(s.cell) === cellKey(p.cell) && s.type === p.type));
+    this.selection = [...parts];
+    this.selectionOutlines.forEach(disposeOutline);
+    this.selectionOutlines = this.selection.map((part) => {
+      const outline = createOutline(partBounds(part), hexToNumber(COLORS.accent.highlight), outlineFill.selected);
+      this.scene.add(outline);
+      return outline;
+    });
+    if (!same || parts.length > 0) this.selectionListeners.forEach((fn) => fn(this.selection));
+  }
+
+  private isSelected(part: Part): boolean {
+    return this.selection.some((s) => cellKey(s.cell) === cellKey(part.cell));
+  }
+
+  /** Shift click: adds the part to the selection, or takes it out when it is already in. */
+  private toggle(part: Part): void {
+    this.selectMany(this.isSelected(part) ? this.selection.filter((s) => cellKey(s.cell) !== cellKey(part.cell)) : [...this.selection, part]);
+  }
+
+  /** Moves the selection by `delta` cells (see `Grid.moveParts`); false, and nothing moves, when some part cannot go there. */
+  private moveSelection(delta: Vec3): boolean {
+    if (this.selection.length === 0) return false;
+    this.moving = true;
+    let moved: Part[] | null;
+    try {
+      moved = this.grid.moveParts(this.selection, delta);
+    } finally {
+      this.moving = false;
     }
-    if (!unchanged || part) this.selectionListeners.forEach((fn) => fn(part));
+    if (moved) this.selectMany(moved);
+    return moved !== null;
+  }
+
+  /**
+   * The world axes that the screen's right and forward (away from the camera, on the ground) are closest to, so the movement buttons
+   * follow the view like the rotation ones do.
+   */
+  private screenAxes(): { right: Vec3; forward: Vec3 } {
+    this.camera.updateMatrixWorld();
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion).setY(0);
+    const ahead = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion).setY(0);
+    const snap = (v: THREE.Vector3): Vec3 => (Math.abs(v.x) >= Math.abs(v.z) ? [Math.sign(v.x) || 1, 0, 0] : [0, 0, Math.sign(v.z) || 1]);
+    const r = snap(right);
+    const perpendicular: Vec3 = [r[2], 0, -r[0]];
+    const sign = ahead.x * perpendicular[0] + ahead.z * perpendicular[2] >= 0 ? 1 : -1;
+    return { right: r, forward: [perpendicular[0] * sign, 0, perpendicular[2] * sign] };
+  }
+
+  /** Moves the selection one step in a direction seen from the camera (the buttons of the inspector); one undo step. */
+  moveSelectionBy(direction: MoveDirection): void {
+    const { right, forward } = this.screenAxes();
+    const unit: Record<MoveDirection, Vec3> = {
+      left: [-right[0], 0, -right[2]],
+      right,
+      forward,
+      back: [-forward[0], 0, -forward[2]],
+      up: [0, 0, 0],
+      down: [0, 0, 0],
+    };
+    const step = direction === 'up' ? [0, MOVE.lift, 0] : direction === 'down' ? [0, -MOVE.lift, 0] : unit[direction].map((v) => v * MOVE.step);
+    this.history.run(() => void this.moveSelection(step as Vec3));
+  }
+
+  /** Slides the selection after the pointer while a move drag is on, as far as the parts can go (each axis on its own when both together are blocked). */
+  private dragSelection(e: PointerLike): void {
+    const drag = this.dragMove;
+    if (!drag) return;
+    this.setRay(e);
+    const point = this.raycaster.ray.intersectPlane(drag.plane, new THREE.Vector3());
+    if (!point) return;
+    const off = point.sub(drag.start);
+    const target: Vec3 = drag.vertical
+      ? [0, Math.round(off.y / MOVE.lift) * MOVE.lift, 0]
+      : [Math.round(off.x / MOVE.step) * MOVE.step, 0, Math.round(off.z / MOVE.step) * MOVE.step];
+    const need: Vec3 = [target[0] - drag.applied[0], target[1] - drag.applied[1], target[2] - drag.applied[2]];
+    if (need.every((v) => Math.abs(v) < EPS)) return;
+    const apply = (delta: Vec3): boolean => {
+      if (!this.moveSelection(delta)) return false;
+      drag.applied = [drag.applied[0] + delta[0], drag.applied[1] + delta[1], drag.applied[2] + delta[2]];
+      return true;
+    };
+    if (apply(need)) return;
+    for (let i = 0; i < 3; i++) {
+      if (Math.abs(need[i]) < EPS) continue;
+      const single: Vec3 = [0, 0, 0];
+      single[i] = need[i];
+      apply(single);
+    }
+  }
+
+  /** Ends a move drag as one undo step. */
+  private endMove(): void {
+    if (!this.dragMove) return;
+    this.history.commit(this.dragMove.before);
+    this.dragMove = null;
+  }
+
+  /** The parts whose box, seen from the camera, touches the screen rectangle (client pixels). */
+  private partsInRect(x0: number, y0: number, x1: number, y1: number): Part[] {
+    const rect = this.dom.getBoundingClientRect();
+    const [left, right] = [Math.min(x0, x1), Math.max(x0, x1)];
+    const [top, bottom] = [Math.min(y0, y1), Math.max(y0, y1)];
+    this.camera.updateMatrixWorld();
+    const corner = new THREE.Vector3();
+    return this.grid.all().filter((part) => {
+      const box = partBounds(part);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(this.camera);
+        if (corner.z > 1) continue; // behind the camera
+        const px = rect.left + ((corner.x + 1) / 2) * rect.width;
+        const py = rect.top + ((1 - corner.y) / 2) * rect.height;
+        minX = Math.min(minX, px);
+        maxX = Math.max(maxX, px);
+        minY = Math.min(minY, py);
+        maxY = Math.max(maxY, py);
+      }
+      return maxX >= left && minX <= right && maxY >= top && minY <= bottom;
+    });
+  }
+
+  /** Draws (creating it on first use) or removes the selection box. */
+  private drawMarquee(x: number, y: number): void {
+    const m = this.marquee;
+    if (!m) return;
+    m.element ??= document.body.appendChild(Object.assign(document.createElement('div'), { className: 'selection-marquee' }));
+    Object.assign(m.element.style, {
+      left: `${Math.min(m.x, x)}px`,
+      top: `${Math.min(m.y, y)}px`,
+      width: `${Math.abs(x - m.x)}px`,
+      height: `${Math.abs(y - m.y)}px`,
+    });
+  }
+
+  private endMarquee(): void {
+    this.marquee?.element?.remove();
+    this.marquee = null;
   }
 
   private rebuild(): void {
@@ -308,9 +458,13 @@ export class BuildMode {
       this.hover = null;
     }
     // An edit may have removed or changed the inspected part: keep the selection in sync (or drop it).
-    if (this.selection) {
-      const current = this.grid.get(this.selection.cell);
-      this.select(current && current.type === this.selection.type ? current : null);
+    if (this.selection.length > 0 && !this.moving) {
+      this.selectMany(
+        this.selection.flatMap((old) => {
+          const current = this.grid.get(old.cell);
+          return current && current.type === old.type ? [current] : [];
+        }),
+      );
     }
   }
 
@@ -409,7 +563,22 @@ export class BuildMode {
       this.eraseAt(e, true);
       return;
     }
-    if (this.mode !== 'build') return; // inspect: the click is handled on release (a drag rotates the camera)
+    if (this.mode === 'inspect') {
+      // A drag that starts on a selected part moves the selection (Shift: up and down); anywhere else it draws a selection box.
+      // Either way a click without movement is handled on release.
+      const hit = this.pick(e);
+      if (hit?.part && this.isSelected(hit.part)) {
+        const vertical = e.shiftKey;
+        const ahead = new THREE.Vector3();
+        this.camera.getWorldDirection(ahead).setY(0).normalize();
+        const plane = vertical ? new THREE.Plane().setFromNormalAndCoplanarPoint(ahead, hit.point) : new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y);
+        this.dragMove = { before: this.history.begin(), plane, vertical, start: hit.point.clone(), applied: [0, 0, 0] };
+      } else {
+        this.marquee = { x: e.clientX, y: e.clientY, element: null };
+      }
+      return;
+    }
+    if (this.mode !== 'build') return;
 
     // The brake is fitted to the wheel that is clicked (it is not placed in the grid).
     if (this.tool === 'brake') {
@@ -460,6 +629,8 @@ export class BuildMode {
   /** Ends a block-placing stroke or an erase / paint stroke, each as one undo step. */
   private endGestures(): void {
     this.endStroke();
+    this.endMarquee();
+    this.endMove();
     if (this.erase) {
       this.history.commit(this.erase.before);
       this.erase = null;
@@ -518,6 +689,23 @@ export class BuildMode {
       if (e.buttons & 1) return this.eraseAt(e);
       this.endGestures();
     }
+    if (this.dragMove) {
+      if (e.buttons & 1) {
+        if (Math.hypot(e.clientX - (this.down?.x ?? e.clientX), e.clientY - (this.down?.y ?? e.clientY)) > BUILD.clickMaxDistance) this.dragSelection(e);
+        return;
+      }
+      this.endMove();
+    }
+    if (this.marquee) {
+      if (e.buttons & 1) {
+        if (Math.hypot(e.clientX - this.marquee.x, e.clientY - this.marquee.y) > BUILD.clickMaxDistance || this.marquee.element) {
+          this.drawMarquee(e.clientX, e.clientY);
+          this.setHover(null);
+        }
+        return;
+      }
+      this.endMarquee();
+    }
     if (e.buttons !== 0) return this.clearHints();
     const p = this.pick(e);
     if (this.mode === 'build') {
@@ -540,7 +728,7 @@ export class BuildMode {
     if (this.hover && part && cellKey(this.hover.part.cell) === cellKey(part.cell) && this.hover.part.type === part.type) return;
     disposeOutline(this.hover?.outline ?? null);
     this.hover = null;
-    if (!part || (this.mode === 'paint' && !PART_INFO[part.type].paintable) || (this.mode === 'inspect' && this.selection && cellKey(part.cell) === cellKey(this.selection.cell))) return;
+    if (!part || (this.mode === 'paint' && !PART_INFO[part.type].paintable) || (this.mode === 'inspect' && this.isSelected(part))) return;
     const remove = this.mode === 'remove';
     const outline = createOutline(
       partBounds(part),
@@ -601,6 +789,7 @@ export class BuildMode {
   private onUp(e: PointerEvent): void {
     const down = this.down;
     this.down = null;
+    const wasMoving = this.dragMove !== null;
     if (e.button === 0) this.endGestures();
     if (!this.enabled || !down || down.button !== e.button) return;
     // Placing / removing with the left button happens on press (see `onDown`). Inspecting is a click on release, and
@@ -608,7 +797,22 @@ export class BuildMode {
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > BUILD.clickMaxDistance;
 
     if (this.mode === 'inspect') {
-      if (e.button === 0 && !moved) this.select(this.pick(e)?.part ?? null);
+      if (e.button === 0) {
+        const shift = e.shiftKey;
+        if (moved) {
+          if (wasMoving) {
+            this.clearHints();
+            return this.onMove(e);
+          }
+          const found = this.partsInRect(down.x, down.y, e.clientX, e.clientY);
+          this.selectMany(shift ? [...this.selection, ...found.filter((p) => !this.isSelected(p))] : found);
+        } else {
+          const part = this.pick(e)?.part ?? null;
+          if (shift) {
+            if (part) this.toggle(part);
+          } else this.select(part);
+        }
+      }
     } else if (e.button === 2 && !moved && this.mode !== 'paint') {
       const p = this.pick(e);
       if (p?.part) {

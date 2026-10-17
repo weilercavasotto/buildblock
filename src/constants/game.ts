@@ -224,6 +224,12 @@ export const STUD = {
   socketLift: 0.004,
 } as const;
 
+/** Moving a selection (inspect mode): the step of the buttons and of dragging, in cells, horizontally (the stud pitch) and vertically (a plate). */
+export const MOVE = {
+  step: STUD.pitch,
+  lift: PLATE.thickness,
+} as const;
+
 export const LIGHTS = {
   hemisphereIntensity: 1.1,
   sunIntensity: 2.2,

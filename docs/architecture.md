@@ -106,8 +106,8 @@ Saves made before (a wheel's `rotation` / `pitch`, a large wheel's `rotation`, a
   `paint`, `remove` (keys I = inspect, B = build, E = paint, R = remove). `main.ts` `setCursorMode` applies one mode everywhere: `BuildMode.setMode`, the highlighted
   button of the top bar (`Hud.setCursorMode`; the buttons are created from `CURSOR_MODES`: key cap + an SVG icon taken from
   the `icon` field, with the name in the tooltip and `aria-label`), `body[data-cursor-mode]`
-  (cursor shape in CSS) and `controls.mouseButtons` (`LEFT` is `ROTATE` only in inspect mode, `null` otherwise, so a left
-  drag never moves the camera while placing/erasing). Choosing a hotbar slot (`Hotbar.onUserSelect`) goes back to build.
+  (cursor shape in CSS) and `controls.mouseButtons` (`LEFT` is always `null`: a left
+  drag never moves the camera; in inspect mode it draws a selection box). Choosing a hotbar slot (`Hotbar.onUserSelect`) goes back to build.
 - **Rotation of the part to place** — `BuildMode.orientation` (the same for every part, see the data model) is given to the part placed
   (`canonicalOrientation` of it is stored) and to every block painted; `rotate(±1)` (keys `A`/`D`, the top-bar buttons, wired in
   `main.ts` / `Hud.setRotateEnabled`) turns it around the vertical axis and `tilt(±1)` (`W`/`S`, `↑`/`↓`) around the screen's left-right axis
@@ -126,7 +126,10 @@ Saves made before (a wheel's `rotation` / `pitch`, a large wheel's `rotation`, a
   ends on release (also outside the canvas or on window blur). In **remove** mode the left button removes the part under
   the pointer on press and keeps erasing while dragging (an `Erase`, committed to the history as one step; a new removal
   needs `BUILD.clickMaxDistance` px of pointer movement, so a stack is not drilled through). In **inspect** mode a left
-  *click* (no movement; a drag rotates the camera) calls `select(part)`: the part gets a yellow outline
+  *click* (no movement) calls `select(part)` and a left *drag* draws a selection box (`.selection-marquee`, a fixed `div`) and on
+  release `selectMany(partsInRect(...))` selects every part whose `partBounds`, projected to the screen, touches the box (x-ray: parts
+  hidden behind others count); Shift adds to the selection (a Shift click toggles a part). The selection is a list (`selectedParts`;
+  `selected` is the part when exactly one is selected), `Grid.moveParts(parts, delta)` moves the selection as a group (plus what is mounted on its blocks): the group is taken out of the grid and put back from the bottom up, each part through `canPlace(part, false)` (build area, overlap and host block, but no support needed, so a lifted group may hang), or nothing changes. `BuildMode.moveSelectionBy(direction)` (inspector buttons, `MOVE` steps, directions snapped to the world axes nearest to the camera's right / forward) and a drag that starts on a selected part (`dragMove`: the pointer slides on a horizontal plane, or a vertical one with Shift, and the selection follows in `MOVE` steps, one undo step) both use it, keeping the selection on the moved parts (`moving` stops `rebuild` from dropping them). Each selected part gets a yellow outline
   (`build/outline.ts`: wireframe + translucent fill around `partBounds(part)`), the listeners registered with
   `onSelectionChange` are told, and `rebuild()` (every grid change) re-validates the selection (dropped if the part is
   gone, refreshed otherwise). Outside build mode the part under the cursor gets a hover outline (white / red). A right

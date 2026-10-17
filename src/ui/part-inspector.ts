@@ -1,10 +1,15 @@
-import { BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MOVE_ICONS, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
 import { Part, Vec3, axleOf, frontOf, isStructural, partCells, studsOf, subVec } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
   onRemove(part: Part): void;
+  /** Removes every part of a multiple selection in one undo step. */
+  onRemoveMany(parts: ReadonlyArray<Part>): void;
+  /** Moves the whole selection one step in a direction seen from the camera. */
+  onMove(direction: MoveDirection): void;
   /** Sets the suspension strength (0-100) of a wheel. */
   onSuspension(part: Part, strength: number): void;
   /** Sets the tire (0 speed tires … 100 traction tires, see `TIRE`) of a wheel, or of all the wheels on its body with `wholeBody`. */
@@ -35,12 +40,14 @@ export class PartInspector {
     private handlers: InspectorHandlers,
   ) {}
 
-  /** Shows the panel for `part`, or hides it when null. */
-  show(part: Part | null): void {
+  /** Shows the panel for the selection: the details of a single part, a summary of several, or hides it when empty. */
+  show(parts: ReadonlyArray<Part>): void {
     this.stopSpin?.();
     this.stopSpin = null;
-    this.root.hidden = part === null;
-    if (!part) return;
+    this.root.hidden = parts.length === 0;
+    if (parts.length === 0) return;
+    if (parts.length > 1) return this.showMany(parts);
+    const part = parts[0];
 
     const info = PART_INFO[part.type];
     const header = el('div', 'help-header');
@@ -86,6 +93,73 @@ export class PartInspector {
       text('p', 'inspector-status', TEXT.inspector.removeHint),
     );
     this.root.replaceChildren(header, body);
+  }
+
+  /** A multiple selection: how many parts of each kind, and one button that removes them all. */
+  private showMany(parts: ReadonlyArray<Part>): void {
+    const header = el('div', 'help-header');
+    const close = text('button', 'help-close', '×') as HTMLButtonElement;
+    close.type = 'button';
+    close.title = TEXT.inspector.close;
+    close.setAttribute('aria-label', TEXT.inspector.close);
+    close.onclick = () => this.handlers.onClose();
+    header.append(text('h2', 'dialog-title', TEXT.inspector.title), close);
+
+    const counts = new Map<string, number>();
+    for (const part of parts) counts.set(part.type, (counts.get(part.type) ?? 0) + 1);
+    const remove = text('button', 'catalog-action danger', TEXT.inspector.removeMany(parts.length)) as HTMLButtonElement;
+    remove.type = 'button';
+    remove.onclick = () => this.handlers.onRemoveMany(parts);
+
+    const body = el('div', 'inspector-body');
+    body.append(
+      text('h3', 'inspector-name', TEXT.inspector.selectedCount(parts.length)),
+      remove,
+      text('h4', 'inspector-heading', TEXT.inspector.move),
+      this.movePad(),
+      text('p', 'inspector-status', TEXT.inspector.moveHint),
+      this.mouseMoves(),
+      this.rows([...counts].map(([type, n]) => [PART_INFO[type as keyof typeof PART_INFO].name, String(n)] as [string, string])),
+      text('p', 'inspector-status', TEXT.inspector.removeHint),
+      text('p', 'inspector-status', TEXT.inspector.multiHint),
+    );
+    this.root.replaceChildren(header, body);
+  }
+
+  /** How to move the selection with the mouse, as a highlighted box of key caps (Shift = up and down must be hard to miss). */
+  private mouseMoves(): HTMLElement {
+    const box = el('div', 'move-mouse');
+    box.append(text('h4', 'inspector-heading', TEXT.inspector.moveMouseHeading));
+    for (const row of TEXT.inspector.moveMouse) {
+      const line = el('div', 'move-mouse-row');
+      const keys = el('span', 'move-mouse-keys');
+      row.keys.forEach((key, i) => {
+        if (i > 0) keys.append(text('span', 'help-or', '+'));
+        keys.append(text('kbd', '', key));
+      });
+      line.append(keys, text('span', 'move-mouse-text', row.text));
+      box.append(line);
+    }
+    return box;
+  }
+
+  /** The buttons that move the selection: up / forward / down above left / back / right. */
+  private movePad(): HTMLElement {
+    const pad = el('div', 'move-pad');
+    for (const direction of ['up', 'forward', 'down', 'left', 'back', 'right'] as const) {
+      const button = el('button', 'catalog-action') as HTMLButtonElement;
+      button.type = 'button';
+      // An arrow instead of the name; the tooltip and aria-label still say it.
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) icon.setAttribute(name, value);
+      icon.innerHTML = MOVE_ICONS[direction]; // trusted constant (src/constants/cursor-modes.ts)
+      button.append(icon);
+      button.title = TEXT.inspector.moveLabels[direction];
+      button.setAttribute('aria-label', TEXT.inspector.moveLabels[direction]);
+      button.onclick = () => this.handlers.onMove(direction);
+      pad.append(button);
+    }
+    return pad;
   }
 
   /** Tire slider (wheels only): from speed tires to traction tires; also only changed here, the catalog lists the property. */
