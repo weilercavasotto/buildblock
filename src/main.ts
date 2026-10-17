@@ -381,6 +381,7 @@ async function main(): Promise<void> {
     } else if (physics) {
       vehicle?.update();
       physics.level = vehicle?.level ?? 0;
+      physics.throttle = vehicle?.throttle ?? 0;
       physics.boosting = vehicle?.boosting ?? false;
       physics.thrusting = vehicle?.thrusting ?? false;
       physics.steering = vehicle?.steering ?? false;

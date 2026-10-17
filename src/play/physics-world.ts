@@ -83,6 +83,8 @@ export class PhysicsWorld {
   boosting = false;
   /** Is the thrust key held (Space, see `VehicleController.thrusting`)? The thrusters push and fire while it is. */
   thrusting = false;
+  /** The throttle (W / S, -1 to 1, see `VehicleController.throttle`): the engines' push on the body follows it. */
+  throttle = 0;
 
   private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
@@ -93,6 +95,10 @@ export class PhysicsWorld {
   private thrusterFx: ThrusterFx[] = [];
   /** The thrusters: the body each pushes, where (in the body's frame), along which direction and with what force. */
   private thrusters: Array<{ body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number }> = [];
+  /** The engines: the body each is mounted on, where (in the body's frame), where it faces and its power (see `ENGINE.leverage`). */
+  private pushers: Array<{ body: RAPIER.RigidBody; point: Vec3; front: Vec3; power: number }> = [];
+  /** The direction the vehicle drives in (in the body's frame), the same one the vehicle controller uses. */
+  private forward = new THREE.Vector3(0, 0, -1);
   private effects: PlayEffects;
   /** The bodies that carry wheels: the ones the straightening assist acts on. */
   private chassis = new Set<RAPIER.RigidBody>();
@@ -119,10 +125,11 @@ export class PhysicsWorld {
     const q = new THREE.Quaternion();
     // A force applied at a point also adds a torque, and Rapier keeps both until they are reset: clear both, or the torque of a
     // thruster that is off the centre would go on spinning the body after the key is released.
-    for (const body of new Set(this.thrusters.map((t) => t.body))) {
+    for (const body of new Set([...this.thrusters, ...this.pushers].map((t) => t.body))) {
       body.resetForces(true);
       body.resetTorques(true);
     }
+    this.applyEngines(q);
     if (!this.thrusting) return;
     for (const t of this.thrusters) {
       const r = t.body.rotation();
@@ -131,6 +138,30 @@ export class PhysicsWorld {
       const position = t.body.translation();
       const point = new THREE.Vector3(...t.point).applyQuaternion(q).add(new THREE.Vector3(position.x, position.y, position.z));
       t.body.addForceAtPoint({ x: direction.x, y: direction.y, z: direction.z }, { x: point.x, y: point.y, z: point.z }, true);
+    }
+  }
+
+  /**
+   * Where an engine is matters: while the vehicle is driven on the ground, the push of each engine along its front (`ENGINE.leverage`,
+   * scaled by the mass of its body, its power and the throttle) is turned into a torque about the centre of mass of the body, so an
+   * engine high above it lifts the nose when accelerating, one far to a side pulls the vehicle that way, and one low and central does
+   * nothing. The wheels still do the driving (see `VehicleController`): this only adds the lever, so an engine facing sideways (it
+   * drives nothing) has none. Rapier keeps the torque until it is reset, which `applyThrust` does every step.
+   */
+  private applyEngines(q: THREE.Quaternion): void {
+    if (this.airborne || this.throttle === 0) return;
+    for (const e of this.pushers) {
+      if (!this.chassis.has(e.body)) continue;
+      const front = new THREE.Vector3(...e.front);
+      if (Math.abs(front.dot(this.forward)) < 0.5) continue;
+      const r = e.body.rotation();
+      q.set(r.x, r.y, r.z, r.w);
+      const com = e.body.worldCom();
+      const position = e.body.translation();
+      const arm = new THREE.Vector3(...e.point).applyQuaternion(q).add(new THREE.Vector3(position.x, position.y, position.z)).sub(new THREE.Vector3(com.x, com.y, com.z));
+      const push = front.applyQuaternion(q).multiplyScalar(ENGINE.leverage * e.body.mass() * (e.power / ENGINE.default) * this.throttle);
+      const torque = arm.cross(push);
+      e.body.addTorque({ x: torque.x, y: torque.y, z: torque.z }, true);
     }
   }
 
@@ -215,6 +246,7 @@ export class PhysicsWorld {
     for (const body of this.chassis) this.craft.add(body);
     const onX = this.wheels.filter((w) => w.axis[0] !== 0).length;
     const rolling = new THREE.Vector3(...(onX >= this.wheels.length - onX ? [0, 0, -1] : [1, 0, 0]));
+    this.forward.copy(rolling);
     for (const body of this.craft) {
       const nose = new THREE.Vector3();
       // Only the thrusters that push sideways count (a plane's engines, not the ones that lift it).
@@ -401,6 +433,7 @@ export class PhysicsWorld {
         this.turboFx.push({ object: obj });
         continue;
       }
+      this.pushers.push({ body: host.body, point: local, front: frontOf(engine), power: powerOf(engine) });
       this.engineFx.push({ body: host.body, object: obj, position: obj.position.clone(), quaternion: obj.quaternion.clone() });
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }

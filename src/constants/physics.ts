@@ -163,7 +163,9 @@ export const weightMass = (weight: number): number => clampWeight(weight) / WEIG
  * body's wheels are powered only by the engines mounted on that body, through the way each engine faces (`Part.front`): a
  * engine pushes the vehicle towards its front, so an engine turned around reverses the throttle. One engine of the `default`
  * power can drive `wheelsPerEngine` wheels at full torque; with more wheels the torque is shared, with fewer each wheel gets
- * up to `maxShare` times its normal torque. An engine weighs `mass` blocks of the default weight.
+ * up to `maxShare` times its normal torque. An engine weighs `mass` blocks of the default weight. Where it is mounted matters:
+ * its push (`leverage` m/s² per unit of the body's mass at the default power, along its front, while the throttle is held on the
+ * ground) is applied as a torque about the body's centre of mass, so a high or off-centre engine pitches or turns the vehicle.
  */
 export const ENGINE = {
   min: 1,
@@ -173,6 +175,7 @@ export const ENGINE = {
   wheelsPerEngine: 4,
   maxShare: 2,
   mass: 2,
+  leverage: 4,
 } as const;
 
 /**

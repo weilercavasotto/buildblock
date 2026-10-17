@@ -76,6 +76,7 @@ copies each body's translation/rotation to its mesh. Gravity is `-15`.
   engine turned around reverses W / S) and a zero push (no engine, or facing sideways / up, or two opposite engines) leaves the wheel
   free-rolling. The strength of each wheel is scaled by `min(ENGINE.maxShare, |push| * ENGINE.wheelsPerEngine / wheels on the body)`,
   so one default engine drives 4 wheels at full torque and the power is shared among more. `VehicleController.poweredWheels` lets the HUD warn when nothing is driven.
+  **Where the engine is mounted matters** (`ENGINE.leverage`, `PhysicsWorld.applyEngines`): while the vehicle is driven on the ground (not airborne) every engine whose front is along the travel line adds a torque `r × F` to its body, with `r` from the body's centre of mass to the engine and `F = front * leverage * body mass * power / default * throttle` (`VehicleController.throttle`, signed). The wheels still drive the vehicle; this only adds the lever: a high engine pitches the nose down when accelerating (and up when reversing), one far to a side pulls the vehicle that way, a low central one does almost nothing. The torque is cleared every step together with the thrusters' forces.
 - **Forward direction** is perpendicular to the axles of the majority of wheels (`-Z` for X-axle wheels,
   `+X` for Z-axle wheels). Wheels not parallel to that axle are left free-rolling.
 - **Roll sign** per wheel is `sign((axle × up) · forward)`, so `W` rolls every wheel forward regardless

@@ -100,6 +100,11 @@ export class VehicleController {
     return steer !== 0;
   }
 
+  /** The throttle, -1 (S) to 1 (W): the engines' push on the body (see `ENGINE.leverage`) follows it. */
+  get throttle(): number {
+    return this.autopilot?.throttle ?? Number(this.pressed.forward) - Number(this.pressed.back);
+  }
+
   /** How hard the vehicle is being driven, 0-1 (throttle or steering input): the engines' smoke and shaking follow it. */
   get level(): number {
     const throttle = this.autopilot?.throttle ?? Number(this.pressed.forward) - Number(this.pressed.back);

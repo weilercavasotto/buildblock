@@ -54,6 +54,7 @@ export class MenuScene {
     this.drive(dt, new THREE.Vector3(t.x, 0, t.z), rotation);
     this.vehicle.update();
     this.physics.level = this.vehicle.level;
+    this.physics.throttle = this.vehicle.throttle;
     this.physics.boosting = this.vehicle.boosting;
     this.physics.thrusting = this.vehicle.thrusting;
     this.physics.steering = this.vehicle.steering;
