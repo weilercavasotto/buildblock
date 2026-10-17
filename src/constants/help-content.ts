@@ -79,7 +79,7 @@ export const HELP_TABS: HelpTab[] = [
         heading: 'Camera',
         rows: [
           { keys: ['Middle drag'], text: 'Rotate the camera.' },
-          { keys: ['Right drag'], text: 'Move (pan) the camera.' },
+          { keys: ['Right drag'], text: 'Move (pan) the camera. While building you cannot pan farther than 10 cells from your creation (the whole grid when it is empty), so the zoom always works around what you are building.' },
           { keys: ['Scroll'], text: 'Zoom in and out.' },
           { text: 'The zoom panel (top left, under the home button) shows the zoom level and has + / − buttons and a slider. Zoom is limited so you cannot go too close or too far.' },
         ],

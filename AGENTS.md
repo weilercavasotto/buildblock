@@ -30,6 +30,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/build/history.ts`: undo/redo (`begin`/`commit`/`run`); wrap every user edit of the grid in one step (Ctrl/Cmd+Z / Y)
 - `src/ui/loading-screen.ts`: loading overlay (mark + name + progress bar + label) for scene changes; wrap such transitions in `loading.run([{ label, run }, …])` (`main.ts` does it for menu ⇄ build and at boot); timings in `LOADING`, strings in `TEXT.loading`
 - `src/ui/confirm-dialog.ts`: reusable modal confirmation (`confirmDialog`); use it instead of `window.confirm`
+- `src/camera-limits.ts`: `limitCamera` (limits the polar angle so the camera stays above the ground at its current distance, instead of pushing it up: the zoom distance stays exact; call before `controls.update()`, also used by `ZoomControl`) and `panArea` + the `area` of `limitCamera` (while building the orbit target stays within the creation widened by `CAMERA.panMargin`, so the zoom is always about the creation; not while playing), and `keepCameraAboveGround` (safety net after the update)
 - `src/ui/zoom-control.ts`: zoom buttons/slider synced with the wheel; limits in `CAMERA.minDistance/maxDistance`
 - `src/ui/fps-counter.ts`: FPS readout (F3 toggles)
 - `src/ui/help-dialog.ts` + `src/constants/help-content.ts`: help modal with tabs (info button top-left, `H`). **Update `help-content.ts` whenever you add or change a control or shortcut**

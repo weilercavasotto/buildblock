@@ -7,6 +7,7 @@ src/
   main.ts                      Bootstrap: renderer, scene, lights, mode switching, main loop
   types.ts                     Part, Vec3, cell helpers
   constants/                   Design tokens and tunables (colours, spacing, typography, physics, text); see constants.md
+  camera-limits.ts             Keeps the orbit camera above the ground without changing its distance (zoom)
   scene/sky.ts                 Sky dome: gradient + procedural clouds drifting with the wind (shader)
   styles/main.css              All CSS, using only the tokens published by constants/theme.ts
   frame-limiter.ts             Caps rendering at 60 FPS (decides, per animation callback, whether to render)
@@ -153,6 +154,7 @@ Saves made before (a wheel's `rotation` / `pitch`, a large wheel's `rotation`, a
   self-shadowing noise on faces that now touch.
 - **`PhysicsWorld`** — see [physics.md](physics.md).
 - **`VehicleController`** — see [physics.md](physics.md).
+- **Camera area** — `camera-limits.ts`: while building, `limitCamera(controls, camera, area)` keeps the orbit target inside `panArea(parts, cells)` (the box of the creation widened by `CAMERA.panMargin` cells; the whole build area when empty), moving the camera by the same shift so distance and angle do not change; `main.ts` recomputes the box when the grid changes and passes null while playing (the camera follows the vehicle). The zoom is thus always the distance to a point near the creation.
 - **`ZoomControl`** (`src/ui/zoom-control.ts`) — zoom is the camera's distance to the orbit target. The limits are
   applied to `OrbitControls.minDistance/maxDistance`, so the wheel, pinch and the control itself share them. The slider
   is logarithmic (equal steps = equal ratio; top = closest) and the label (inside the bar, above the slider) is the

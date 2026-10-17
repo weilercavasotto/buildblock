@@ -29,6 +29,8 @@ export const CAMERA = {
   /** Zoom limits: closest and farthest distance (world units) between the camera and its target. */
   minDistance: 3,
   maxDistance: 60,
+  /** While building, the camera's target stays within the creation widened by this many cells (room to build next to it). */
+  panMargin: 10,
 } as const;
 
 export const SCENE = {

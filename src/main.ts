@@ -23,6 +23,7 @@ import {
 } from './constants';
 import { PhysicsWorld } from './play/physics-world';
 import { Sky } from './scene/sky';
+import { keepCameraAboveGround, limitCamera, panArea } from './camera-limits';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
 import { FrameLimiter } from './frame-limiter';
@@ -69,17 +70,6 @@ async function main(): Promise<void> {
   controls.maxPolarAngle = Math.PI * CAMERA.maxPolarFactor;
   const zoom = new ZoomControl(controls, camera);
 
-  /**
-   * `maxPolarAngle` only keeps the camera above its target; panning (right drag) moves the target itself, which could
-   * take both below the terrain. Clamp the target to the ground and the camera to a minimum height above it.
-   */
-  const keepCameraAboveGround = () => {
-    const minCameraY = GROUND_Y + CAMERA.minHeight;
-    if (controls.target.y >= GROUND_Y && camera.position.y >= minCameraY) return;
-    controls.target.y = Math.max(controls.target.y, GROUND_Y);
-    camera.position.y = Math.max(camera.position.y, minCameraY);
-    camera.lookAt(controls.target);
-  };
   // Stop browsers from starting "autoscroll" on a middle press.
   renderer.domElement.addEventListener('mousedown', (e) => {
     if (e.button === 1) e.preventDefault();
@@ -120,7 +110,12 @@ async function main(): Promise<void> {
   scene.add(floor);
   // The lines of the floor grid, one square per cell; rebuilt when a game with another grid size is opened.
   let gridLines: THREE.GridHelper | undefined;
+  let gridCells = DEFAULT_GRID_CELLS;
+  /** Where the camera may be panned to while building (see `panArea`); null when it has to be computed again. */
+  let panBox: THREE.Box3 | null = null;
   const setGridSize = (cells: number) => {
+    gridCells = cells;
+    panBox = null;
     const visible = gridLines?.visible ?? false;
     if (gridLines) {
       scene.remove(gridLines);
@@ -143,6 +138,7 @@ async function main(): Promise<void> {
   setGridSize(DEFAULT_GRID_CELLS);
   let activeSave: string | null = null;
   grid.subscribe(() => {
+    panBox = null;
     if (activeSave) updateSave(activeSave, grid.all());
   });
   const history = new History(grid);
@@ -407,8 +403,11 @@ async function main(): Promise<void> {
       }
     }
     if (mode !== 'menu') {
+      // While building the camera cannot be panned away from the creation; while playing it follows the vehicle wherever it goes.
+      if (mode === 'build') panBox ??= panArea(grid.all(), gridCells);
+      limitCamera(controls, camera, mode === 'build' ? panBox : null);
       controls.update();
-      keepCameraAboveGround();
+      keepCameraAboveGround(controls, camera);
       build.update(dt);
     }
     sky.update(timer.getElapsed(), camera.position);

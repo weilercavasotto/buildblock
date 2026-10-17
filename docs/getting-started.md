@@ -117,7 +117,7 @@ controls and keyboard shortcuts, split into tabs (Basics, Mouse & camera, Build 
 ### Cursor modes (`I` / `B` / `E` / `R`)
 
 The left part of the top bar has three **cursor modes**; press the key or click the button. They decide what the left
-mouse button does (the middle button always rotates the camera, the right button pans, scroll zooms):
+mouse button does (the middle button always rotates the camera, the right button pans, scroll zooms; while building, panning stops 10 cells beyond your creation, or anywhere in the grid when it is empty, so the zoom always works around what you are building, and the camera follows the vehicle freely while playing):
 
 | Mode | Key | Left button |
 |---|---|---|

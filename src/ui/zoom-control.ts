@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { limitCamera } from '../camera-limits';
 import { CAMERA, TEXT, ZOOM } from '../constants';
 
 /**
@@ -62,6 +63,7 @@ export class ZoomControl {
     const clamped = THREE.MathUtils.clamp(distance, CAMERA.minDistance, CAMERA.maxDistance);
     const direction = this.camera.position.clone().sub(this.controls.target).normalize();
     this.camera.position.copy(this.controls.target).addScaledVector(direction, clamped);
+    limitCamera(this.controls, this.camera);
     this.controls.update();
     this.sync();
   }
