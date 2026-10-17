@@ -11,7 +11,7 @@ Example: a new part type `'thruster'`.
    for a given pick.
 5. **Rotation** — every part is oriented the same way (`Part.studs` + `Part.spin`, see architecture.md): set `rotatable` in its `PART_INFO` entry (`false` if its orientation must not be chosen by the player), build its visual in its own frame (`createPartObject` turns the root by the orientation), say in `symmetryOf` (`parts/orientation.ts`) which turns look the same, and read the orientation in its physics (like `axleOf` / `frontOf`).
 6. **Catalog and hotbar** — add its entry to `PART_INFO` (and `PART_ORDER`) in `src/constants/part-catalog.ts`: name,
-   category (add one to `PART_CATEGORIES` if needed), description, properties, tips and `previewAngle`. It then appears
+   category (add one to `PART_CATEGORIES` if needed), description, properties, tips (every preview uses the same resting angle, `PREVIEW.angle`). It then appears
    in the catalog with a 3D preview (built from `createPartObject`) and can be dragged onto the hotbar; nothing else
    to register. Keep the text in English.
 7. **Physics** — in `PhysicsWorld.buildCreation` create its collider/body/joint and push a `SyncPair`
@@ -24,6 +24,8 @@ Example: a new part type `'thruster'`.
 11. **Docs** — update [architecture.md](architecture.md) and [getting-started.md](getting-started.md).
 
 ## Parts that connect with studs
+
+**Naming:** structural parts are called `<studs wide>x<studs long> <Kind>` (e.g. `2x2 Block`, `1x2 Plate`, `4x4 L bracket`: the studs on the top face, narrow side first, no height; an L bracket counts its flat plate); other parts keep a plain name. Use the same pattern for any new size, in `PART_INFO`, the help and the docs. Internal `PartType` keys stay as they are (`blockHalf`, …) because saves use them.
 
 Structural parts (`isStructural`: `STRUCTURAL_TYPES` in `types.ts`: blocks, plates and L brackets in several sizes) weld through studs and are described by one entry of `SHAPES` (`constants/part-shapes.ts`): a list of boxes (size, offset from the first, "anchor" box, and the direction of each box's studs) and `spins` (how many quarter turns around the studs look different: 1 square, 2 rectangle, 4 L). A new size needs only a `StructuralType`, its `SHAPES` and `PART_INFO` entries (the `structural()` helper in `part-catalog.ts`) and a place in `PART_ORDER`; geometry (`partBoxes`), visuals (`createPartObject`), physics colliders and placement (`BuildMode.structuralTarget`) follow from the shape. Keep box sizes multiples of `STUD.pitch` (thin plates aside) so edges stay on the stud lattice. A part that hangs off a host (wheels) uses `face` instead.
 

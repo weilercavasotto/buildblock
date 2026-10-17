@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, PART_INFO, PART_ORDER, PREVIEW, hexToNumber } from '../constants';
+import { COLORS, PART_ORDER, PREVIEW, hexToNumber } from '../constants';
 import { createPartObject } from '../parts/part-defs';
 import { PartType, Vec3 } from '../types';
 
@@ -87,7 +87,7 @@ export function createPreviewCanvas(cssSize: number): HTMLCanvasElement {
 export function renderPartPreview(
   type: PartType,
   canvas: HTMLCanvasElement,
-  angle: number = PART_INFO[type].previewAngle,
+  angle: number = PREVIEW.angle,
   { color, common }: PreviewOptions = {},
 ): void {
   const s = setup();
@@ -116,7 +116,7 @@ export function startSpin(type: PartType, canvas: HTMLCanvasElement, speed: numb
   let frame = 0;
   const start = performance.now();
   const tick = (now: number) => {
-    renderPartPreview(type, canvas, PART_INFO[type].previewAngle + ((now - start) / 1000) * speed, options);
+    renderPartPreview(type, canvas, PREVIEW.angle + ((now - start) / 1000) * speed, options);
     frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);

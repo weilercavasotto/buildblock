@@ -29,8 +29,6 @@ export interface PartInfo {
   hasBrake: boolean;
   /** Does it have an adjustable power (an engine; set in the part inspector)? */
   hasPower: boolean;
-  /** Resting angle (rad) of the 3D preview around the vertical axis, chosen to show the part nicely. */
-  previewAngle: number;
   /** One line shown under the name. */
   tagline: string;
   description: string;
@@ -64,7 +62,6 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     hasWeight: true,
     hasBrake: false,
     hasPower: false,
-    previewAngle: 0.6,
     tagline: t.tagline,
     description: t.description,
     properties: [
@@ -86,7 +83,7 @@ const STRUCTURE_TIP = 'Move the pointer over the part below to choose how much o
 export const PART_INFO: Record<PartType, PartInfo> = {
   block: {
     ...structural('block', {
-      name: 'Block',
+      name: '2x2 Block',
       tagline: 'The basic building cube.',
       description:
         'A solid 1×1×1 cube with 4 studs on top, like a toy brick. A block is welded to the blocks, plates and brackets it is stacked with (at least one stud engaged), so they make the frame of a vehicle or any structure. It can rest on half of another block (2 studs) or on a corner (1 stud). Wheels are mounted on its sides.',
@@ -96,8 +93,16 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       extraProperties: [{ label: 'Friction', value: String(CHASSIS.friction) }],
     }),
   },
+  blockQuarter: structural('blockQuarter', {
+    name: '1x1 Block',
+    tagline: 'The smallest block, with a single stud.',
+    description: 'A 0.5 × 0.5 footprint and a full block tall, with a single stud on top: the 1x2 block cut in half again. It fills the smallest gaps and gives a single point of connection. Wheels cannot be mounted on it.',
+    size: '0.5 × 1 × 0.5 cell',
+    studs: '1 on top',
+    tips: [STRUCTURE_TIP, 'With a single stud it holds on one point only: pair it with another part to make a firm joint.'],
+  }),
   blockHalf: structural('blockHalf', {
-    name: 'Half block',
+    name: '1x2 Block',
     tagline: 'A block cut in half.',
     description: 'Half a block: a 0.5 × 1 footprint and a full block tall, with 2 studs on top. Use it to fill narrow gaps and to build in half-cell steps. Wheels cannot be mounted on it.',
     size: '0.5 × 1 × 1 cell',
@@ -105,7 +110,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     tips: [STRUCTURE_TIP, 'A / D turn it so the narrow side faces the other way.'],
   }),
   blockLarge: structural('blockLarge', {
-    name: 'Large block',
+    name: '4x4 Block',
     tagline: 'Four blocks in one.',
     description: 'A solid 2×1×2 block with 16 studs on top: the same as four blocks side by side, but welded in one piece. Good for the base of a heavy vehicle. Wheels cannot be mounted on it.',
     size: '2 × 1 × 2 cells',
@@ -113,7 +118,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     tips: [STRUCTURE_TIP, 'It is one part: a single click places the whole thing.'],
   }),
   plate: structural('plate', {
-    name: 'Plate',
+    name: '2x2 Plate',
     tagline: 'A thin square panel with studs.',
     description:
       'A flat square plate, a fifth of a block thick, with 4 studs on top like a block. Use it for floors, roofs and body panels, and to tie blocks together: a plate resting on two blocks side by side welds them into one body. Place it on the ground or on top of (or under) another part; it must engage at least one stud.',
@@ -121,16 +126,24 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     studs: '4 on its top face (2 × 2)',
     tips: [STRUCTURE_TIP, 'Two plates, offset by half a cell, make a strong deck for blocks side by side.', 'Stood on its edge (W / S) it is a wall.'],
   }),
+  plateQuarter: structural('plateQuarter', {
+    name: '1x1 Plate',
+    tagline: 'The smallest plate, with a single stud.',
+    description: 'A plate 0.5 × 0.5 with a single stud: the 1x2 plate cut in half again. Use it for the finest trim and as a single point of connection between two parts.',
+    size: `0.5 x 0.5 x ${PLATE.thickness} cell`,
+    studs: '1 on its top face',
+    tips: [STRUCTURE_TIP, 'With a single stud it holds on one point only: a joint needs more than one.'],
+  }),
   plateHalf: structural('plateHalf', {
-    name: 'Half plate',
+    name: '1x2 Plate',
     tagline: 'A narrow plate, half as wide.',
-    description: 'A plate half as wide as the normal one: 0.5 × 1 with 2 studs. Use it for trim, rails and to tie parts together in a small space.',
+    description: 'A plate half as wide as the 2x2 one: 0.5 × 1 with 2 studs. Use it for trim, rails and to tie parts together in a small space.',
     size: `0.5 x 1 x ${PLATE.thickness} cell`,
     studs: '2 on its top face',
     tips: [STRUCTURE_TIP, 'A / D turn it a quarter turn.'],
   }),
   plateLarge: structural('plateLarge', {
-    name: 'Large plate',
+    name: '4x4 Plate',
     tagline: 'Four plates in one.',
     description: 'A flat plate 2 × 2 cells with 16 studs: the same as four plates side by side, in one piece. Use it for wide decks that tie a whole layer of blocks together.',
     size: `2 x 2 x ${PLATE.thickness} cells`,
@@ -138,15 +151,15 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     tips: [STRUCTURE_TIP, 'A single large plate across a row of blocks welds the whole row.'],
   }),
   plateLargeHalf: structural('plateLargeHalf', {
-    name: 'Large half plate',
+    name: '2x4 Plate',
     tagline: 'A long, narrow plate.',
-    description: 'A large plate half as wide: 1 × 2 cells with 8 studs. A long strip for chassis rails and side panels.',
+    description: 'A 4x4 plate half as wide: 1 × 2 cells with 8 studs. A long strip for chassis rails and side panels.',
     size: `1 x 2 x ${PLATE.thickness} cells`,
     studs: '8 on its top face (2 × 4)',
     tips: [STRUCTURE_TIP, 'A / D turn it a quarter turn.'],
   }),
   bracket: structural('bracket', {
-    name: 'L bracket',
+    name: '2x2 L bracket',
     tagline: 'Two plates at a right angle.',
     description:
       'A flat plate with a wall plate standing on its back edge, like a Lego angle: 4 studs on top of the flat plate and 4 on the outside of the wall, 8 in all. It joins a floor to a wall in one piece. The wall is as tall as a block.',
@@ -154,10 +167,18 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     studs: '4 on the flat plate (top) + 4 on the outside of the wall',
     tips: [STRUCTURE_TIP, 'Parts engage the studs of the wall by lying with their own studs pointing the same way (tilt them with W / S).', 'A / D turn the wall to the side you need.'],
   }),
+  bracketLarge: structural('bracketLarge', {
+    name: '4x4 L bracket',
+    tagline: 'Twice the 2x2 L bracket, in both ways.',
+    description: 'The 2x2 L bracket twice as big: a 2 × 2 flat plate (16 studs) with a wall 2 wide and 2 tall (16 studs) standing on its back edge, 32 in all. The same as four 2x2 L brackets in one piece, for big machines.',
+    size: `2 x 2 x ${PLATE.thickness} flat plate + 2 x 2 x ${PLATE.thickness} wall`,
+    studs: '16 on the flat plate (top) + 16 on the outside of the wall',
+    tips: [STRUCTURE_TIP, 'A / D turn the wall to the side you need.'],
+  }),
   bracketSmall: structural('bracketSmall', {
-    name: 'Small L bracket',
-    tagline: 'A narrow L bracket.',
-    description: 'The L bracket half as wide: a 0.5 wide flat plate (2 studs) with a wall (2 studs), 4 in all. For corners and braces where the full bracket does not fit.',
+    name: '1x2 L bracket',
+    tagline: 'A narrow L bracket, half as wide.',
+    description: 'The 2x2 L bracket half as wide: a 0.5 wide flat plate (2 studs) with a wall (2 studs), 4 in all. For corners and braces where the 2x2 bracket does not fit.',
     size: `0.5 x 1 x ${PLATE.thickness} flat plate + 0.5 x 1 x ${PLATE.thickness} wall`,
     studs: '2 on the flat plate (top) + 2 on the outside of the wall',
     tips: [STRUCTURE_TIP, 'A / D turn the wall to the side you need.'],
@@ -173,7 +194,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasWeight: false,
     hasBrake: false,
     hasPower: true,
-    previewAngle: 0.6,
     tagline: 'Drives the wheels of its body.',
     description:
       'The engine of a vehicle, a separate unit you mount on a face of a block (like a wheel). Wheels only get acceleration when an engine is mounted on their body. The engine pushes the vehicle towards its front, the side with the fan: turn it around and W / S are reversed. A body\'s engines add their power, and it is shared among the wheels of that body: one engine of the default power drives up to 4 wheels at full torque. Wheels on a body with no engine roll freely.',
@@ -202,7 +222,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasWeight: false,
     hasBrake: false,
     hasPower: true,
-    previewAngle: 0.6,
     tagline: 'Pushes its body, no wheels needed.',
     description:
       'A small jet that you mount on a face of a block, like the engine. Hold Space while playing and it pushes the body it is mounted on towards its front, from where it sits, with an orange flame out of the bell at the back, on the ground or in the air, with or without an engine. A thruster far from the centre of the body also turns it. The thrusts of a body\'s thrusters add up.',
@@ -232,7 +251,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasWeight: false,
     hasBrake: false,
     hasPower: true,
-    previewAngle: 0.6,
     tagline: 'A nitro boost for the driven wheels.',
     description:
       'A nitrous bottle that you mount on a face of a block, like the engine. Hold Shift while playing and the wheels that an engine drives, on the same body, turn faster and push harder, with a blue flame out of the nozzle. It only boosts: without an engine on the body it does nothing. The boosts of a body\'s turbos add up.',
@@ -263,7 +281,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasWeight: false,
     hasBrake: false,
     hasPower: false,
-    previewAngle: 0.6,
     tagline: 'Fits to a wheel to stop it.',
     description:
       'A drilled steel disc with a caliper that you fit to a wheel: pick the brake and click a wheel, and the disc appears behind its rim. Hold Space while playing and every wheel with a brake is held back, whether it is driven or not; a wheel without one rolls on. Each wheel has its own brake, with a strength you set in the part inspector.',
@@ -291,7 +308,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasWeight: false,
     hasBrake: true,
     hasPower: false,
-    previewAngle: -0.45,
     tagline: 'Makes your creation roll.',
     description:
       'A motorised wheel mounted on a side face of a block. Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face instead. In Play it is driven with W/S, and A/D steer by slowing down one side.',
@@ -323,7 +339,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasWeight: false,
     hasBrake: true,
     hasPower: false,
-    previewAngle: -0.45,
     tagline: 'A wheel twice the size, for big machines.',
     description:
       'A wheel twice the size of the normal one: it covers 2 x 2 cells beside a block. Mount it on a side face; it fills 2 x 2 cells starting at the cell you point at, extending toward where it is turned (A / D, W / S). It turns more slowly but covers more ground and clears bigger bumps.',
@@ -347,15 +362,18 @@ export const PART_INFO: Record<PartType, PartInfo> = {
 
 /** Parts in catalog order. */
 export const PART_ORDER: ReadonlyArray<PartType> = [
+  'blockQuarter',
   'blockHalf',
   'block',
   'blockLarge',
+  'plateQuarter',
   'plateHalf',
   'plate',
   'plateLargeHalf',
   'plateLarge',
   'bracketSmall',
   'bracket',
+  'bracketLarge',
   'engine',
   'thruster',
   'turbo',

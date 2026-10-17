@@ -369,6 +369,8 @@ export const PREVIEW = {
   inspectSpinSpeed: 0.8,
   /** Camera field of view (degrees) and direction from the part towards the camera. */
   fov: 30,
+  /** Resting turn (rad) around the vertical axis of every preview: the angle that frames the wheel well. */
+  angle: -0.45,
   cameraDirection: [1, 0.8, 1.3] as Vec3,
   /** Extra room around the part, as a multiple of its bounding radius. */
   margin: 1.12,

@@ -26,25 +26,30 @@ const flat = (width: number, depth: number): ShapeBox => ({ size: [width, PLATE.
 const solid = (width: number, height: number, depth: number): ShapeBox => ({ size: [width, height, depth], offset: [0, 0, 0], studs: [0, 1, 0] });
 
 /**
- * An L bracket: a flat plate plus a wall plate standing on its back edge (outside the flat plate's footprint, studs facing
- * back), as tall as a block. Each plate has the studs of its width x depth, so a bracket 1 wide has 4 + 4 studs.
+ * An L bracket: a flat plate (`width` x `size` footprint) plus a wall plate (`width` wide, `size` tall) standing on its back
+ * edge (outside the flat plate's footprint, studs facing back). Each plate has the studs of its width x depth, so the normal
+ * bracket (1 wide, size 1) has 4 + 4 studs and the large one (2 wide, size 2) 16 + 16.
  */
-const bracket = (width: number): ReadonlyArray<ShapeBox> => [
-  flat(width, CELL_SIZE),
+const bracket = (width: number, size: number = CELL_SIZE): ReadonlyArray<ShapeBox> => [
+  flat(width, size),
   {
-    size: [width, CELL_SIZE, PLATE.thickness],
-    offset: [0, (CELL_SIZE - PLATE.thickness) / 2, (CELL_SIZE + PLATE.thickness) / 2],
+    size: [width, size, PLATE.thickness],
+    offset: [0, (size - PLATE.thickness) / 2, (size + PLATE.thickness) / 2],
     studs: [0, 0, 1],
   },
 ];
 
 export const SHAPES: Record<StructuralType, Shape> = {
   block: { boxes: [solid(1, 1, 1)], spins: 1 },
+  /** The smallest block: a 0.5 x 0.5 footprint, full height (1 stud). */
+  blockQuarter: { boxes: [solid(0.5, 1, 0.5)], spins: 1 },
   /** Half a block: 1 x 1 footprint cut in two (2 studs). */
   blockHalf: { boxes: [solid(0.5, 1, 1)], spins: 2 },
   /** Four blocks in one: 2 x 2 footprint (16 studs). */
   blockLarge: { boxes: [solid(2, 1, 2)], spins: 1 },
   plate: { boxes: [flat(1, 1)], spins: 1 },
+  /** The smallest plate: 0.5 x 0.5 (a single stud). */
+  plateQuarter: { boxes: [flat(0.5, 0.5)], spins: 1 },
   /** A plate half as wide (2 studs). */
   plateHalf: { boxes: [flat(0.5, 1)], spins: 2 },
   /** Four plates in one: 2 x 2 (16 studs). */
@@ -55,6 +60,8 @@ export const SHAPES: Record<StructuralType, Shape> = {
   bracket: { boxes: bracket(1), spins: 4 },
   /** The same L, half as wide (4 studs). */
   bracketSmall: { boxes: bracket(0.5), spins: 4 },
+  /** Twice the bracket in both ways: a 2 x 2 flat plate and a wall 2 wide and 2 tall (32 studs). */
+  bracketLarge: { boxes: bracket(2, 2 * CELL_SIZE), spins: 4 },
 };
 
 /** Volume of a structural part relative to a block (what makes a plate light at the same weight setting). */

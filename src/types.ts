@@ -3,14 +3,17 @@ export type Vec3 = [number, number, number];
 /** Parts that make up the body of a creation: blocks, plates and L brackets in several sizes (see `SHAPES`). */
 export const STRUCTURAL_TYPES = [
   'block',
+  'blockQuarter',
   'blockHalf',
   'blockLarge',
   'plate',
+  'plateQuarter',
   'plateHalf',
   'plateLarge',
   'plateLargeHalf',
   'bracket',
   'bracketSmall',
+  'bracketLarge',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /**
