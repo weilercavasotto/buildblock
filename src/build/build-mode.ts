@@ -5,8 +5,8 @@ import { disposeOutline, createOutline, outlineFill } from './outline';
 import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber } from '../constants';
 import { brakePose, createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
-import { EPS, StudBox, partBoxes, relativeBoxes } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, partCentre, roundCoord } from '../types';
+import { EPS, StudBox, partBoxes, relativeBoxes, rotorHead } from '../parts/part-geometry';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, isWheelType, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -501,7 +501,7 @@ export class BuildMode {
     if (isStructural(this.tool)) return this.structuralTarget(this.tool, p);
     // Wheels and engines are mounted on a face of a block (`face` says which), turned as the user chose, like any part.
     if (!p.part || p.part.type !== 'block') return null;
-    if (this.tool !== 'engine' && p.normal[1] !== 0) return null; // wheels go on the sides
+    if (isWheelType(this.tool) && p.normal[1] !== 0) return null; // wheels go on the sides (the rest on any face)
     return { type: this.tool, cell: addVec(p.part.cell, p.normal), face: p.normal, ...orientationFields(canonicalOrientation(this.tool, this.orientation)) };
   }
 
@@ -533,11 +533,14 @@ export class BuildMode {
     if (!p.part) return shape([along(0, p.point.x), GROUND_Y - low, along(2, p.point.z)]);
 
     const base = p.part;
-    if (!isStructural(base.type)) return null; // nothing is built on a wheel
+    // Parts are built on blocks, plates and brackets, and on the head of a rotor (nothing is built on a wheel or the rest of an engine).
+    const head = rotorHead(base);
+    const boxes = isStructural(base.type) ? partBoxes(base) : head ? [head] : null;
+    if (!boxes) return null;
     // The box of the part that was pointed at: where the point lies on its face.
     const axis = p.normal.findIndex((v) => v !== 0);
     const sign = p.normal[axis];
-    const target = pointedBox(partBoxes(base), p.point, axis, sign);
+    const target = pointedBox(boxes, p.point, axis, sign);
     const cell: Vec3 = [0, 0, 0];
     for (let i = 0; i < 3; i++) {
       if (i === axis) {

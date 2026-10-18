@@ -9,6 +9,9 @@ import {
   BRAKE,
   ENGINE,
   FLIGHT,
+  ROTOR,
+  ROTOR_BODY,
+  ROTOR_VISUAL,
   THRUSTER,
   TURBO,
   VEHICLE,
@@ -23,6 +26,7 @@ import {
   GROUND_Y,
   hexToNumber,
   powerOf,
+  rotorSpeedOf,
   suspensionOf,
   suspensionStiffness,
   tireOf,
@@ -30,8 +34,8 @@ import {
   weightOf,
   wheelSizeOf,
 } from '../constants';
-import { createCaliperObject, createPartObject, faceQuaternion } from '../parts/part-defs';
-import { partBox, relativeBoxes } from '../parts/part-geometry';
+import { createCaliperObject, createPartObject, createRotorBaseObject, createRotorHeadObject, faceQuaternion, rotorCentres } from '../parts/part-defs';
+import { partBox, relativeBoxes, studsEngaged } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
 import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isStructural, isWheelType, partCentre, subVec } from '../types';
 
@@ -85,6 +89,8 @@ export class PhysicsWorld {
   thrusting = false;
   /** The throttle (W / S, -1 to 1, see `VehicleController.throttle`): the engines' push on the body follows it. */
   throttle = 0;
+  /** Are the rotors switched on (F, see `VehicleController.rotating`)? */
+  rotating = false;
 
   private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
@@ -99,6 +105,8 @@ export class PhysicsWorld {
   private pushers: Array<{ body: RAPIER.RigidBody; point: Vec3; front: Vec3; power: number }> = [];
   /** The direction the vehicle drives in (in the body's frame), the same one the vehicle controller uses. */
   private forward = new THREE.Vector3(0, 0, -1);
+  /** The rotors: the hinge between the body of the block and the head (with what it holds) and the signed speed it is driven to (rad/s). */
+  private rotors: Array<{ joint: RAPIER.RevoluteImpulseJoint; target: number }> = [];
   private effects: PlayEffects;
   /** The bodies that carry wheels: the ones the straightening assist acts on. */
   private chassis = new Set<RAPIER.RigidBody>();
@@ -206,8 +214,17 @@ export class PhysicsWorld {
     }
   }
 
+  /** Drives the rotors: towards their speed while they are switched on, else almost free (a light damping). */
+  private driveRotors(): void {
+    for (const rotor of this.rotors) {
+      if (this.rotating) rotor.joint.configureMotorVelocity(rotor.target, ROTOR.strength);
+      else rotor.joint.configureMotorVelocity(0, ROTOR.idleDamping);
+    }
+  }
+
   step(dt: number): void {
     this.applyThrust();
+    this.driveRotors();
     this.accumulator = Math.min(this.accumulator + dt, WORLD.maxFrameTime);
     this.airborne = this.craft.size > 0 && !this.touchingGround();
     while (this.accumulator >= WORLD.step) {
@@ -335,6 +352,98 @@ export class PhysicsWorld {
     }
   }
 
+  /**
+   * The rotors (see `ROTOR`): the base is a compact collider on the body of its block; the head is a plate collider on the body of the
+   * parts welded to its studs (their component, or a small body of its own when nothing is on it), and a hinge along the axis of the
+   * face joins that body to the block's, with the contacts between the two off (the head sits on the base and a blade may sweep past
+   * the block). When the head's parts are welded to the block's too, they are one body and the rotor is just rigid.
+   */
+  private buildRotors(
+    parts: Part[],
+    bodyOfBlock: Map<string, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>,
+    lift: number,
+  ): void {
+    const blocks = parts.filter((p) => isStructural(p.type));
+    for (const rotor of parts.filter((p) => p.type === 'rotor' && p.face)) {
+      const host = bodyOfBlock.get(cellKey(subVec(rotor.cell, rotor.face!)));
+      if (!host) continue;
+      const face = rotor.face!;
+      const axisIndex = face.findIndex((v) => v !== 0);
+      const centres = rotorCentres(rotor);
+      /** Half sizes of a slab `depth` thick along the axis and `width` across it. */
+      const halves = (depth: number, width: number): Vec3 => [0, 1, 2].map((i) => (i === axisIndex ? depth : width) / 2) as Vec3;
+
+      // The base stays with the block.
+      const baseHalf = halves(ROTOR_VISUAL.baseDepth, ROTOR_VISUAL.flangeRadius * 2);
+      const baseLocal = subVec(centres.base, host.origin);
+      this.world.createCollider(
+        RAPIER.ColliderDesc.cuboid(...baseHalf)
+          .setTranslation(...baseLocal)
+          .setDensity((CHASSIS.density * ROTOR.mass) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
+          .setFriction(CHASSIS.friction)
+          .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+        host.body,
+      );
+      const baseObject = createRotorBaseObject(rotor);
+      baseObject.position.set(...baseLocal);
+      host.visual.add(baseObject);
+
+      // The head goes with the parts on its studs.
+      const held = new Map<RAPIER.RigidBody, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>();
+      for (const block of blocks) {
+        if (studsEngaged(rotor, block) === 0) continue;
+        const holder = bodyOfBlock.get(cellKey(block.cell));
+        if (holder) held.set(holder.body, holder);
+      }
+      let head = [...held.values()][0];
+      if (!head) {
+        const body = this.world.createRigidBody(
+          RAPIER.RigidBodyDesc.dynamic().setTranslation(centres.head[0], centres.head[1] + lift, centres.head[2]).setCanSleep(false),
+        );
+        const visual = new THREE.Group();
+        this.group.add(visual);
+        this.pairs.push({ body, object: visual });
+        head = { body, origin: centres.head, visual };
+      }
+      const headLocal = subVec(centres.head, head.origin);
+      const turned = faceQuaternion(face); // the cylinder's axis (Y) along the rotor's axis
+      this.world.createCollider(
+        RAPIER.ColliderDesc.cylinder(ROTOR_VISUAL.headDepth / 2, ROTOR_VISUAL.headRadius)
+          .setRotation({ x: turned.x, y: turned.y, z: turned.z, w: turned.w })
+          .setTranslation(...headLocal)
+          .setDensity(CHASSIS.density)
+          .setFriction(CHASSIS.friction)
+          .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+        head.body,
+      );
+      const headObject = createRotorHeadObject(rotor);
+      headObject.position.set(...headLocal);
+      head.visual.add(headObject);
+      // Parts on the head that are not in the same body as the first one (it is rare: two stacks on one head) are fixed to it.
+      for (const other of held.values()) {
+        if (other.body === head.body) continue;
+        const offset = subVec(other.origin, head.origin);
+        this.world.createImpulseJoint(RAPIER.JointData.fixed({ x: offset[0], y: offset[1], z: offset[2] }, { x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0, w: 1 }), head.body, other.body, true);
+      }
+
+      if (head.body === host.body) continue; // welded to the block: it cannot turn
+      const pivot = subVec(centres.head, host.origin);
+      const joint = this.world.createImpulseJoint(
+        RAPIER.JointData.revolute(
+          { x: pivot[0], y: pivot[1], z: pivot[2] },
+          { x: headLocal[0], y: headLocal[1], z: headLocal[2] },
+          { x: face[0], y: face[1], z: face[2] },
+        ),
+        host.body,
+        head.body,
+        true,
+      ) as RAPIER.RevoluteImpulseJoint;
+      joint.setContactsEnabled(false);
+      // Positive speed is clockwise seen from the head: the other way round about the axis (right-handed), which points out of the block.
+      this.rotors.push({ joint, target: (-rotorSpeedOf(rotor) / ROTOR.max) * ROTOR.maxSpeed });
+    }
+  }
+
   private buildCreation(grid: Grid): void {
     const parts = grid.all();
     const blocks = parts.filter((p) => isStructural(p.type)); // blocks and plates
@@ -406,7 +515,7 @@ export class PhysicsWorld {
 
     // Engines and turbos are mounted on a block: a compact collider on its body (an engine weighs `ENGINE.mass` blocks, a turbo
     // `TURBO.mass`), its visual and what it does (the engine's drive, the turbo's boost).
-    for (const engine of parts.filter((p) => isCompactMounted(p.type) && p.face)) {
+    for (const engine of parts.filter((p) => isCompactMounted(p.type) && p.type !== 'rotor' && p.face)) {
       const host = bodyOfBlock.get(cellKey(subVec(engine.cell, engine.face!)));
       if (!host) continue;
       const box = partBox(engine);
@@ -437,6 +546,8 @@ export class PhysicsWorld {
       this.engineFx.push({ body: host.body, object: obj, position: obj.position.clone(), quaternion: obj.quaternion.clone() });
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }
+
+    this.buildRotors(parts, bodyOfBlock, lift);
 
     // Each wheel is its own body, spinning on a motorised hinge. The hinge is carried by a light "hub" body that hangs from
     // the block the wheel is mounted on by a vertical spring (the suspension): chassis -spring- hub -hinge- wheel.

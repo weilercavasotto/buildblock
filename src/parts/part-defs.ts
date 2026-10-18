@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, ROTOR_BODY, ROTOR_VISUAL, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, Vec3, axleOf, isCompactMounted, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc, createBrakeModel } from './brake-model';
@@ -213,6 +213,83 @@ export function createCaliperObject(wheel: Pick<Part, 'type' | 'studs' | 'spin' 
   return holder;
 }
 
+const rotorBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.rotor), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
+const rotorRingMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.rotorRing), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
+
+const rotorHeadMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.rotorHead), roughness: ROUGHNESS.block, metalness: METALNESS.rim * 0.5 });
+
+/** A cylinder along +Y whose bottom is at `y` (the rotor is built along its axis, from the block outwards). */
+function disc(radius: number, height: number, y: number, material: THREE.Material): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, ROTOR_VISUAL.segments), material);
+  mesh.position.y = y + height / 2;
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+
+/**
+ * The base of a rotor in its own frame (axis +Y, centred on the base, the block at the bottom): a wide dark flange with a ring of bolts,
+ * the body and a light bearing ring on top, where the head turns.
+ */
+function rotorBaseGroup(): THREE.Group {
+  const V = ROTOR_VISUAL;
+  const group = new THREE.Group();
+  const bottom = -V.baseDepth / 2;
+  const bodyHeight = V.baseDepth - V.flangeHeight - V.bearingHeight;
+  group.add(
+    disc(V.flangeRadius, V.flangeHeight, bottom, rotorBaseMat),
+    disc(V.bodyRadius, bodyHeight, bottom + V.flangeHeight, rotorBaseMat),
+    disc(V.bearingRadius, V.bearingHeight, bottom + V.flangeHeight + bodyHeight, rotorRingMat),
+  );
+  for (let i = 0; i < V.bolts; i++) {
+    const angle = (i / V.bolts) * Math.PI * 2;
+    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(V.boltRadius, V.boltRadius, V.boltHeight, 10), rotorRingMat);
+    bolt.position.set(Math.cos(angle) * V.boltDistance, bottom + V.flangeHeight + V.boltHeight / 2, Math.sin(angle) * V.boltDistance);
+    bolt.raycast = () => {};
+    group.add(bolt);
+  }
+  return group;
+}
+
+/**
+ * The head of a rotor in its own frame (axis +Y, centred on the head): a round orange disc with a ring of studs on top (the same 2 x 2
+ * studs of a plate: they are what the parts built on it engage), or painted in a colour.
+ */
+function rotorHeadGroup(paint?: string): THREE.Group {
+  const material = isHexColor(paint) ? blockMaterials(paint).face : rotorHeadMat;
+  const group = new THREE.Group();
+  group.add(disc(ROTOR_VISUAL.headRadius, ROTOR_VISUAL.headDepth, -ROTOR_VISUAL.headDepth / 2, material));
+  group.add(studsMesh(material, [ROTOR_BODY.width, ROTOR_VISUAL.headDepth, ROTOR_BODY.width], [0, 1, 0]));
+  return group;
+}
+
+/** Where, along its axis, the centres of the base and of the head are from the centre of a rotor (cells; the head is on the +Y side). */
+const rotorBaseOffset = -(ROTOR_BODY.depth - ROTOR_VISUAL.baseDepth) / 2;
+const rotorHeadOffset = (ROTOR_BODY.depth - ROTOR_VISUAL.headDepth) / 2;
+
+/** The world centres of the base and of the head of a placed rotor (the head is the side the rotor's face points to). */
+export function rotorCentres(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): { base: Vec3; head: Vec3 } {
+  const centre = partCentre(part);
+  const face = part.face ?? [0, 1, 0];
+  const at = (offset: number): Vec3 => [centre[0] + face[0] * offset, centre[1] + face[1] * offset, centre[2] + face[2] * offset];
+  return { base: at(rotorBaseOffset), head: at(rotorHeadOffset) };
+}
+
+/** The base of a placed rotor as an object of its own, centred on the base (in Play it stays with the block). */
+export function createRotorBaseObject(part: Pick<Part, 'studs' | 'spin'>): THREE.Group {
+  const holder = new THREE.Group();
+  holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
+  holder.add(rotorBaseGroup());
+  return holder;
+}
+
+/** The head of a placed rotor as an object of its own, centred on the head (in Play it turns with the body that holds it). */
+export function createRotorHeadObject(part: Pick<Part, 'studs' | 'spin' | 'color'>): THREE.Group {
+  const holder = new THREE.Group();
+  holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
+  holder.add(rotorHeadGroup(part.color));
+  return holder;
+}
+
 /** Builds the visual for a part, centred on its own origin (cell centre). */
 export function createPartObject(
   part: Pick<Part, 'type' | 'color' | 'studs' | 'spin' | 'face' | 'brake'>,
@@ -241,6 +318,13 @@ export function createPartObject(
       group.add(socketsMesh(box.size, box.studs));
       root.add(group);
     }
+  } else if (part.type === 'rotor') {
+    // The rotor in its own frame: the base against the block (-y) and the head with its studs on the outside (+y).
+    const base = rotorBaseGroup();
+    base.position.y = rotorBaseOffset;
+    const head = rotorHeadGroup(part.color);
+    head.position.y = rotorHeadOffset;
+    root.add(base, head);
   } else if (part.type === 'brake') {
     // The brake part itself (what the catalog and the placement preview show): the whole brake, in its own frame.
     root.add(createBrakeModel());

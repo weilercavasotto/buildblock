@@ -88,6 +88,37 @@ export const ENGINE_BODY = {
 } as const;
 
 /**
+ * The rotor body (a spinning part mounted on a face of a block): a fixed base against the block and, on top of it, the head, a
+ * thin square plate with studs (a `PLATE` thick) that turns on the axis along the face. Everything welded to the studs of the head
+ * turns with it. The whole thing is `width` across the face and `depth` out of it (`baseDepth` + the head), in cells; its centre sits
+ * like the engine's.
+ */
+export const ROTOR_VISUAL = {
+  baseDepth: 0.35,
+  headDepth: PLATE.thickness,
+  /**
+   * The base, from the block out: a wide flange (radius, height), the body (radius; it takes the rest of `baseDepth`) and a bearing
+   * ring (radius, height) that the round head turns on. The head is a disc (radius), a bit narrower than the cell.
+   */
+  flangeRadius: 0.46,
+  flangeHeight: 0.07,
+  bodyRadius: 0.36,
+  bearingRadius: 0.42,
+  bearingHeight: 0.05,
+  headRadius: 0.48,
+  /** The bolts round the flange: how many, their radius and height, and how far from the axis they sit. */
+  bolts: 8,
+  boltRadius: 0.025,
+  boltHeight: 0.02,
+  boltDistance: 0.4,
+  segments: 32,
+} as const;
+export const ROTOR_BODY = {
+  width: 1,
+  depth: ROTOR_VISUAL.baseDepth + ROTOR_VISUAL.headDepth,
+} as const;
+
+/**
  * The turbo body: a cube mounted against a face of a block, like the engine's (`width` across the face, `depth` out of it), in cells.
  */
 export const TURBO_BODY = {
@@ -121,7 +152,7 @@ export const THRUSTER_VISUAL = {
 } as const;
 
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, rotor: ROTOR_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

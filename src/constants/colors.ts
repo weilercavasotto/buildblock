@@ -80,6 +80,10 @@ export const COLORS = {
     turboBand: '#e8edf5',
     turboValve: '#d6a23a',
     turboNozzle: '#2c323a',
+    /** The rotor: a dark steel base with a light bearing ring; its round head (the part with studs) is orange unless painted. */
+    rotor: '#4b525a',
+    rotorRing: '#c3ccd6',
+    rotorHead: '#e8892b',
     /** The thruster: a steel tube with a dark bell nozzle and a glowing orange ring. */
     thruster: '#7b858f',
     thrusterBell: '#2c323a',

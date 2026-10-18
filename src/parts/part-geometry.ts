@@ -1,5 +1,5 @@
-import { CELL_SIZE, MOUNTED_BODY, SHAPES, STUD } from '../constants';
-import { Part, Vec3, addVec, applyMatrix, isCompactMounted, isStructural, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
+import { CELL_SIZE, MOUNTED_BODY, ROTOR_VISUAL, SHAPES, STUD } from '../constants';
+import { Part, Vec3, addVec, applyMatrix, isCompactMounted, isRotor, isStructural, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
 
 /** Axis-aligned box, in world units. */
 export interface Box {
@@ -48,6 +48,28 @@ export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): Stud
 /** The boxes (with the direction of their studs) a structural part occupies in the world. */
 export function partBoxes(part: Shape): StudBox[] {
   return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs }));
+}
+
+/**
+ * The head of a rotor in the world: a thin square plate on the outside of the rotor (the side its `face` points to), with its studs
+ * pointing that way (the part welded to them turns with the head). `null` for any other part. The base is the rest of `partBox`.
+ */
+export function rotorHead(part: Shape): StudBox | null {
+  if (!isRotor(part.type) || !part.face) return null;
+  const whole = partBox(part);
+  const axis = part.face.findIndex((v) => v !== 0);
+  const sign = part.face[axis];
+  const head: StudBox = { min: [...whole.min] as Vec3, max: [...whole.max] as Vec3, studs: part.face.map((v) => (v === 0 ? 0 : v)) as Vec3 };
+  if (sign > 0) head.min[axis] = whole.max[axis] - ROTOR_VISUAL.headDepth;
+  else head.max[axis] = whole.min[axis] + ROTOR_VISUAL.headDepth;
+  return head;
+}
+
+/** The boxes whose studs engage the studs of other parts: those of a structural part, or the head of a rotor. */
+function studBoxesOf(part: Shape): StudBox[] {
+  if (isStructural(part.type)) return partBoxes(part);
+  const head = rotorHead(part);
+  return head ? [head] : [];
 }
 
 /** The smallest box that holds all of `boxes`. */
@@ -100,14 +122,16 @@ export function partsOverlap(a: Shape, b: Shape): boolean {
  * and fit into the underside (the face looking along `-d`) of a box whose own studs also point along `d`, which is why a
  * part turned upside down does not connect to one that is not. The boxes must touch on those faces and their faces overlap;
  * each `STUD.pitch` x `STUD.pitch` square of the overlap is one stud. Summed over every pair of boxes; 0 when the parts do
- * not connect (or are not structural).
+ * not connect (a part that is neither structural nor a rotor has no studs). The head of a rotor counts like a plate with its studs
+ * along the rotor's face, so a part placed on it is held by it (and turns with it in Play).
  */
 export function studsEngaged(a: Shape, b: Shape): number {
-  if (!isStructural(a.type) || !isStructural(b.type)) return 0;
+  const [boxesA, boxesB] = [studBoxesOf(a), studBoxesOf(b)];
+  if (boxesA.length === 0 || boxesB.length === 0) return 0;
   if (!boxesOverlapOrTouch(partBox(a), partBox(b))) return 0;
   let count = 0;
-  for (const boxA of partBoxes(a)) {
-    for (const boxB of partBoxes(b)) {
+  for (const boxA of boxesA) {
+    for (const boxB of boxesB) {
       if (boxA.studs.some((v, i) => v !== boxB.studs[i])) continue;
       const axis = boxA.studs.findIndex((v) => v !== 0);
       const [u, w] = [0, 1, 2].filter((i) => i !== axis);

@@ -1,6 +1,7 @@
 /** User-facing strings built in code (static HTML text lives in index.html). All English. */
 export const TEXT = {
   hud: {
+    controlsTitle: 'Controls',
     noEngine: 'No engine drives the wheels: mount an engine on a block of the body and point its fan where the vehicle should go.',
     fps: (value: number) => `${value} FPS`,
     /** Zoom level as a percentage of the zoom slider: 0% = farthest, 100% = closest. */
@@ -88,6 +89,11 @@ export const TEXT = {
     boostHint: 'Hold Shift while playing: the wheels that an engine drives, on the same body, turn faster and push harder. The boosts of all the turbos on a body add up (up to three times one default turbo).',
     boostApplyAll: (count: number) => `Apply to the ${count} turbos on this body`,
     bodyTurbos: 'Turbos on body',
+    speed: 'Speed',
+    speedLow: 'Counter-clockwise',
+    speedHigh: 'Clockwise',
+    speedHint: 'Press F while playing to switch the rotors on and off. The sign of the speed is the direction (clockwise seen from the head), 0 holds the head still. What is built on the head turns with it.',
+    speedValue: (speed: number) => (speed === 0 ? 'Holds' : `${Math.abs(speed)} ${speed > 0 ? 'clockwise' : 'counter-clockwise'}`),
     weight: 'Weight',
     weightLight: 'Light',
     weightHeavy: 'Heavy',

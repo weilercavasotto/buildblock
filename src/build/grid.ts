@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, weightOf, ENGINE, THRUSTER, TURBO } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, weightOf, ENGINE, ROTOR, THRUSTER, TURBO } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -64,8 +64,10 @@ export class Grid {
       if (part.type === 'engine') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
         if (studsOf(part)[1] === -1) return false;
+      } else if (part.type === 'rotor') {
+        if (studsOf(part).some((v, i) => v !== part.face![i])) return false; // the head (its studs, local up) must point away from the block: the part is never turned for the player
       } else if (part.type !== 'turbo' && part.type !== 'thruster' && part.face[1] !== 0) {
-        return false; // a turbo and a thruster go on any face, like the engine; the wheels only on the sides
+        return false; // a turbo, a thruster and a rotor go on any face, like the engine; the wheels only on the sides
       }
       return this.get(subVec(part.cell, part.face))?.type === 'block';
     }
@@ -78,9 +80,9 @@ export class Grid {
     return this.all().reduce((sum, other) => sum + studsEngaged(part, other), 0);
   }
 
-  /** The blocks and plates connected to `part` by studs (one rests on the other with at least one stud engaged). */
+  /** The blocks and plates connected to `part` by studs (one rests on the other with at least one stud engaged); a rotor's head is not one: what it holds turns on it. */
   linkedParts(part: Part): Part[] {
-    return this.all().filter((other) => cellKey(other.cell) !== cellKey(part.cell) && studsEngaged(part, other) > 0);
+    return this.all().filter((other) => isStructural(other.type) && cellKey(other.cell) !== cellKey(part.cell) && studsEngaged(part, other) > 0);
   }
 
   add(part: Part): boolean {
@@ -184,6 +186,21 @@ export class Grid {
     }
     if (changed) this.emit();
     return changed;
+  }
+
+  /**
+   * Sets the speed (an integer from `-ROTOR.max` to `ROTOR.max`, the sign is the direction) of the rotor at `cell`; the default
+   * speed is stored as "not set". Returns false, changing nothing, when there is no such part or nothing changes.
+   */
+  setSpeed(cell: Vec3, speed: number): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasSpeed || !Number.isFinite(speed)) return false;
+    const value = clampRotorSpeed(speed);
+    if (rotorSpeedOf(part) === value) return false;
+    const { speed: _old, ...rest } = part;
+    this.parts.set(cellKey(part.cell), value === ROTOR.default ? rest : { ...rest, speed: value });
+    this.emit();
+    return true;
   }
 
   /** The parts of `type` mounted on the same rigid body as the block or mounted part at `cell` (itself included); [] when there is none. */
@@ -363,7 +380,7 @@ export class Grid {
  * converts older shapes. Returns null for a part that cannot be kept.
  */
 function sanitize(part: Part, legacyFormat: boolean): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, brake, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+  const { color, suspension, tire: savedTire, weight, power, speed, brake, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
     layers?: number;
     rotation?: number;
     pitch?: number;
@@ -386,6 +403,7 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   if (suspension !== undefined && typeof suspension === 'number' && info.hasSuspension) out.suspension = clampSuspension(suspension);
   if (typeof tire === 'number' && info.hasTire) out.tire = clampTire(tire);
   if (power !== undefined && typeof power === 'number' && info.hasPower) out.power = clampPower(power);
+  if (speed !== undefined && typeof speed === 'number' && info.hasSpeed) out.speed = clampRotorSpeed(speed);
   if (brake !== undefined && typeof brake === 'number' && info.hasBrake) out.brake = clampBrake(brake);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   if (isMountedType(part.type) && !part.face) return null; // wheels and engines are always mounted on a block

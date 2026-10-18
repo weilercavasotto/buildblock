@@ -33,6 +33,7 @@ interface DrivenWheel {
 export class VehicleController {
   private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false, yawLeft: false, yawRight: false };
   private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean } | null = null;
+  private rotorsOn = false;
   private driven: DrivenWheel[];
   private listening: boolean;
 
@@ -100,6 +101,11 @@ export class VehicleController {
     return steer !== 0;
   }
 
+  /** Are the rotors switched on (F toggles them; they start off)? */
+  get rotating(): boolean {
+    return this.rotorsOn;
+  }
+
   /** The throttle, -1 (S) to 1 (W): the engines' push on the body (see `ENGINE.leverage`) follows it. */
   get throttle(): number {
     return this.autopilot?.throttle ?? Number(this.pressed.forward) - Number(this.pressed.back);
@@ -129,6 +135,12 @@ export class VehicleController {
   }
 
   private onKey = (e: KeyboardEvent): void => {
+    // F switches the rotors on and off (one press each; not Ctrl / Cmd + F, the browser's search).
+    if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.type === 'keydown' && !e.repeat) this.rotorsOn = !this.rotorsOn;
+      e.preventDefault();
+      return;
+    }
     const action = KEY_MAP[e.code];
     if (!action) return;
     this.pressed[action] = e.type === 'keydown';

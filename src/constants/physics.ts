@@ -209,6 +209,29 @@ export const clampPower = (value: number): number =>
 /** The power of an engine: its own, or the default; always an integer in `[min, max]`. */
 export const powerOf = (part: { power?: number }): number => clampPower(part.power ?? ENGINE.default);
 
+/**
+ * The rotor (`Part.speed`, a slider in the part inspector from `-max` to `max`; the sign is the direction, positive is clockwise seen
+ * from the head looking at the block): a part mounted on a face of a block whose head, with everything welded to its studs, turns on
+ * the axis of the face when it is switched on (the `F` key toggles all of them). The motor drives the head towards `maxSpeed`
+ * rad/s times `speed / max`, with an acceleration-based `strength` (so it does not depend on what the head carries); switched off it
+ * only brakes lightly (`idleDamping`) and coasts. A rotor's base weighs `mass` blocks of the default weight, its head a plate.
+ */
+export const ROTOR = {
+  max: 10,
+  step: 1,
+  default: 5,
+  maxSpeed: 25,
+  strength: 40,
+  idleDamping: 0.3,
+  mass: 1,
+} as const;
+
+export const clampRotorSpeed = (value: number): number =>
+  Math.min(ROTOR.max, Math.max(-ROTOR.max, Math.round(Number.isFinite(value) ? value : ROTOR.default)));
+
+/** The speed of a rotor: its own, or the default; an integer in `[-max, max]`. */
+export const rotorSpeedOf = (part: { speed?: number }): number => clampRotorSpeed(part.speed ?? ROTOR.default);
+
 export const CHASSIS = {
   friction: 0.6,
   density: 1,
