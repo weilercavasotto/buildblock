@@ -1,3 +1,4 @@
+import { BLOCK_HEIGHT } from './part-shapes';
 import { ENGINE_BODY, PISTON_BODY, PLATE, ROTOR_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
 import { CHASSIS, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
@@ -107,6 +108,22 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     studs: '1 on top',
     tips: [STRUCTURE_TIP, 'With a single stud it holds on one point only: pair it with another part to make a firm joint.'],
   }),
+  blockLowQuarter: structural('blockLowQuarter', {
+    name: '1x1 Low Block',
+    tagline: 'A tiny connector, three plates tall.',
+    description: 'A 0.5 × 0.5 footprint, only three plates tall (0.6), with a single stud on top: a spacer and a point of connection that adds little height. Wheels, engines and the other mounted parts can be mounted on it.',
+    size: `0.5 × ${BLOCK_HEIGHT.low} × 0.5 cell`,
+    studs: '1 on top',
+    tips: [STRUCTURE_TIP, 'Three plates tall: a full block is five plates.'],
+  }),
+  blockTallQuarter: structural('blockTallQuarter', {
+    name: '1x1 Tall Block',
+    tagline: 'A thin pillar, two blocks tall.',
+    description: 'A 0.5 × 0.5 footprint and two blocks tall (2 cells), with a single stud on top: a slim post, a mast or the arm of a crane. Wheels, engines and the other mounted parts can be mounted on it.',
+    size: `0.5 × ${BLOCK_HEIGHT.tall} × 0.5 cell`,
+    studs: '1 on top',
+    tips: [STRUCTURE_TIP, 'A single stud holds on one point only: brace it with a plate across the top.'],
+  }),
   blockHalf: structural('blockHalf', {
     name: '1x2 Block',
     tagline: 'A block cut in half.',
@@ -122,6 +139,30 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     size: '0.5 × 1 × 2 cells',
     studs: '4 on top (in a row)',
     tips: [STRUCTURE_TIP, 'A / D turn it so it runs along the other axis.', 'Stood on its end (W / S) it is a tall pillar.'],
+  }),
+  blockLow: structural('blockLow', {
+    name: '2x2 Low Block',
+    tagline: 'The block, but three plates tall.',
+    description: 'The 2x2 Block cut down to three plates (0.6 tall), with 4 studs on top: for floors that need some body, cabins and low frames. Wheels, engines and the other mounted parts can be mounted on it.',
+    size: `1 × ${BLOCK_HEIGHT.low} × 1 cell`,
+    studs: '4 on top (2 × 2)',
+    tips: [STRUCTURE_TIP, 'Three plates tall: a full block is five plates, so this one is in between a plate and a block.'],
+  }),
+  blockTall: structural('blockTall', {
+    name: '2x2 Tall Block',
+    tagline: 'Two blocks in one piece, standing up.',
+    description: 'The 2x2 Block twice as tall (2 cells), with 4 studs on top: a tower, a pillar for a cabin or a stiff column. Wheels, engines and the other mounted parts can be mounted on it, at any height of its sides.',
+    size: `1 × ${BLOCK_HEIGHT.tall} × 1 cells`,
+    studs: '4 on top (2 × 2)',
+    tips: [STRUCTURE_TIP, 'On a side face the part you mount follows the pointer up and down in half-cell steps.'],
+  }),
+  blockBeamLow: structural('blockBeamLow', {
+    name: '2x4 Low Block',
+    tagline: 'The 2x4 beam, three plates tall.',
+    description: 'The 2x4 Block cut down to three plates (0.6 tall), with 8 studs on top: a low, stiff deck for a flat vehicle. Wheels, engines and the other mounted parts can be mounted on it.',
+    size: `1 × ${BLOCK_HEIGHT.low} × 2 cells`,
+    studs: '8 on top (2 × 4)',
+    tips: [STRUCTURE_TIP, 'A / D turn it so it runs along the other axis.'],
   }),
   blockBeam: structural('blockBeam', {
     name: '2x4 Block',
@@ -487,10 +528,15 @@ export const PART_INFO: Record<PartType, PartInfo> = {
 
 /** Parts in catalog order. */
 export const PART_ORDER: ReadonlyArray<PartType> = [
+  'blockLowQuarter',
   'blockQuarter',
+  'blockTallQuarter',
   'blockHalf',
   'blockLong',
+  'blockLow',
   'block',
+  'blockTall',
+  'blockBeamLow',
   'blockBeam',
   'blockLarge',
   'plateQuarter',

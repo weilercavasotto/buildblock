@@ -39,14 +39,27 @@ const bracket = (width: number, size: number = CELL_SIZE): ReadonlyArray<ShapeBo
   },
 ];
 
+/** The heights (cells) of the low blocks (three plates) and the tall ones (two blocks), besides the full block. */
+export const BLOCK_HEIGHT = { low: 3 * PLATE.thickness, tall: 2 * CELL_SIZE } as const;
+
 export const SHAPES: Record<StructuralType, Shape> = {
   block: { boxes: [solid(1, 1, 1)], spins: 1 },
   /** The smallest block: a 0.5 x 0.5 footprint, full height (1 stud). */
   blockQuarter: { boxes: [solid(0.5, 1, 0.5)], spins: 1 },
+  /** A single-stud connector, low (3 plates tall). */
+  blockLowQuarter: { boxes: [solid(0.5, BLOCK_HEIGHT.low, 0.5)], spins: 1 },
+  /** A single-stud pillar, two blocks tall. */
+  blockTallQuarter: { boxes: [solid(0.5, BLOCK_HEIGHT.tall, 0.5)], spins: 1 },
   /** Half a block: 1 x 1 footprint cut in two (2 studs). */
   blockHalf: { boxes: [solid(0.5, 1, 1)], spins: 2 },
   /** A long thin beam: 0.5 x 2 footprint, full height (4 studs in a row). */
   blockLong: { boxes: [solid(0.5, 1, 2)], spins: 2 },
+  /** The block, low: 3 plates tall (4 studs). */
+  blockLow: { boxes: [solid(1, BLOCK_HEIGHT.low, 1)], spins: 1 },
+  /** The block, tall: two blocks high (4 studs). */
+  blockTall: { boxes: [solid(1, BLOCK_HEIGHT.tall, 1)], spins: 1 },
+  /** The 2 x 4 beam, low (8 studs). */
+  blockBeamLow: { boxes: [solid(1, BLOCK_HEIGHT.low, 2)], spins: 2 },
   /** Two blocks in a row: 1 x 2 footprint, full height (8 studs). */
   blockBeam: { boxes: [solid(1, 1, 2)], spins: 2 },
   /** Four blocks in one: 2 x 2 footprint (16 studs). */

@@ -4,9 +4,14 @@ export type Vec3 = [number, number, number];
 export const STRUCTURAL_TYPES = [
   'block',
   'blockQuarter',
+  'blockLowQuarter',
+  'blockTallQuarter',
   'blockHalf',
   'blockLong',
+  'blockLow',
+  'blockTall',
   'blockBeam',
+  'blockBeamLow',
   'blockLarge',
   'plate',
   'plateQuarter',
@@ -31,7 +36,7 @@ export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
 
 /** The blocks that wheels, engines, turbos, thrusters, rotors and pistons can be mounted on (not plates and brackets, which are thin). */
-export const HOST_TYPES = ['block', 'blockQuarter', 'blockHalf', 'blockLong', 'blockBeam', 'blockLarge'] as const;
+export const HOST_TYPES = ['block', 'blockQuarter', 'blockLowQuarter', 'blockTallQuarter', 'blockHalf', 'blockLong', 'blockLow', 'blockTall', 'blockBeam', 'blockBeamLow', 'blockLarge'] as const;
 export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly string[]).includes(type);
 
 /** The engine: mounted on a face of a block like a wheel, it drives the wheels of the body. */
