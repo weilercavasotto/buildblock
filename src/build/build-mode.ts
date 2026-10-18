@@ -5,8 +5,8 @@ import { disposeOutline, createOutline, outlineFill } from './outline';
 import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber } from '../constants';
 import { brakePose, createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
-import { EPS, StudBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, isWheelType, partCentre, roundCoord } from '../types';
+import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isHostType, isStructural, isWheelType, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -500,9 +500,24 @@ export class BuildMode {
     if (this.tool === null) return null;
     if (isStructural(this.tool)) return this.structuralTarget(this.tool, p);
     // Wheels and engines are mounted on a face of a block (`face` says which), turned as the user chose, like any part.
-    if (!p.part || p.part.type !== 'block') return null;
+    if (!p.part || !isHostType(p.part.type)) return null;
     if (isWheelType(this.tool) && p.normal[1] !== 0) return null; // wheels go on the sides (the rest on any face)
-    return { type: this.tool, cell: addVec(p.part.cell, p.normal), face: p.normal, ...orientationFields(canonicalOrientation(this.tool, this.orientation)) };
+    // The part's cell is the unit cell against the face. Across the face it is centred on a face that is not wider than a cell (a plain
+    // block: its middle), else it follows the pointer in half-cell steps, kept inside the face.
+    const box = partBox(p.part);
+    const axis = p.normal.findIndex((v) => v !== 0);
+    const cell: Vec3 = [0, 0, 0];
+    for (let i = 0; i < 3; i++) {
+      if (i === axis) {
+        cell[i] = roundCoord((p.normal[axis] > 0 ? box.max[i] : box.min[i]) + p.normal[axis] / 2);
+      } else if (box.max[i] - box.min[i] <= 1 + EPS) {
+        cell[i] = roundCoord((box.min[i] + box.max[i]) / 2);
+      } else {
+        const stepped = Math.round(p.point.getComponent(i) / STUD.pitch) * STUD.pitch;
+        cell[i] = roundCoord(Math.min(box.max[i] - 0.5, Math.max(box.min[i] + 0.5, stepped)));
+      }
+    }
+    return { type: this.tool, cell, face: p.normal, ...orientationFields(canonicalOrientation(this.tool, this.orientation)) };
   }
 
   /**

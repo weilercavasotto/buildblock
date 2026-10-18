@@ -1,7 +1,7 @@
 import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, ROTOR, THRUSTER, TURBO } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, frontOf, studsOf, subVec, StructuralType } from '../types';
+import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, frontOf, studsOf, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -69,7 +69,7 @@ export class Grid {
       } else if (part.type !== 'turbo' && part.type !== 'thruster' && part.face[1] !== 0) {
         return false; // a turbo, a thruster, a rotor and a piston go on any face, like the engine; the wheels only on the sides
       }
-      return this.get(subVec(part.cell, part.face))?.type === 'block';
+      return this.hostOf(part) !== null;
     }
     // Blocks and plates: on the ground, or at least one stud engaged with a part above or below.
     return !needsSupport || box.min[1] <= GROUND_Y + EPS || this.engagedStuds(part) > 0;
@@ -104,7 +104,7 @@ export class Grid {
       const current = this.get(part.cell);
       if (!current) return null;
       moving.set(cellKey(current.cell), current);
-      if (current.type === 'block') for (const mounted of this.mountedOn(current.cell)) moving.set(cellKey(mounted.cell), mounted);
+      if (isHostType(current.type)) for (const mounted of this.mountedOn(current.cell)) moving.set(cellKey(mounted.cell), mounted);
     }
     const before = new Map(this.parts);
     for (const key of moving.keys()) this.parts.delete(key);
@@ -222,7 +222,8 @@ export class Grid {
   mountedOfTypeOnBody(cell: Vec3, type: Part['type']): Part[] {
     const part = this.get(cell);
     if (!part) return [];
-    const host = isMountedType(part.type) && part.face ? subVec(part.cell, part.face) : part.cell;
+    const host = isMountedType(part.type) && part.face ? this.hostOf(part)?.cell : part.cell;
+    if (!host) return [];
     return this.connectedBlockParts(host).flatMap((block) => this.mountedOn(block.cell).filter((p) => p.type === type));
   }
 
@@ -308,10 +309,10 @@ export class Grid {
   remove(cell: Vec3): void {
     const part = this.get(cell);
     if (!part) return;
+    // What is mounted on it is found through the block, so it is listed before the block goes.
+    const mounted = isHostType(part.type) ? this.mountedOn(part.cell) : [];
     this.parts.delete(cellKey(part.cell));
-    if (part.type === 'block') {
-      for (const mounted of this.mountedOn(part.cell)) this.parts.delete(cellKey(mounted.cell));
-    }
+    for (const m of mounted) this.parts.delete(cellKey(m.cell));
     this.emit();
   }
 
@@ -374,8 +375,9 @@ export class Grid {
   wheelsOnBody(cell: Vec3): Part[] {
     const wheel = this.get(cell);
     if (!wheel || !isWheelType(wheel.type) || !wheel.face) return [];
-    const hostCell = subVec(wheel.cell, wheel.face);
-    return this.connectedBlockParts(hostCell).flatMap((block) => this.wheelsOn(block.cell));
+    const host = this.hostOf(wheel);
+    if (!host) return [];
+    return this.connectedBlockParts(host.cell).flatMap((block) => this.wheelsOn(block.cell));
   }
 
   /** Wheels (of any size) mounted on the block at `cell`. */
@@ -383,9 +385,29 @@ export class Grid {
     return this.mountedOn(cell).filter((p) => isWheelType(p.type));
   }
 
-  /** The parts mounted on a face of the block at `cell`: its wheels and engines. */
+  /** The parts mounted on a face of the block at `cell`: its wheels, engines and the rest (see `hostOf`). */
   mountedOn(cell: Vec3): Part[] {
-    return this.all().filter((p) => isMountedType(p.type) && p.face && cellKey(subVec(p.cell, p.face)) === cellKey(cell));
+    const key = cellKey(cell);
+    return this.all().filter((p) => isMountedType(p.type) && p.face && p.face && cellKey(this.hostOf(p)?.cell ?? [NaN, NaN, NaN]) === key);
+  }
+
+  /**
+   * The block a mounted part sits on: the one (of `HOST_TYPES`) whose face, the one the part's `face` points away from, contains the
+   * middle of the part's back, the point half a cell behind its `cell`. For a plain block that is the block next to it, as it always
+   * was; a bigger block has many places on each face. Null for a part that is not mounted or has no host.
+   */
+  hostOf(part: Pick<Part, 'type' | 'cell' | 'face'>): Part | null {
+    if (!isMountedType(part.type) || !part.face) return null;
+    const face = part.face;
+    const axis = face.findIndex((v) => v !== 0);
+    const point = [0, 1, 2].map((i) => part.cell[i] - face[i] / 2);
+    for (const host of this.parts.values()) {
+      if (!isHostType(host.type)) continue;
+      const box = partBox(host);
+      if (Math.abs((face[axis] > 0 ? box.max[axis] : box.min[axis]) - point[axis]) > EPS) continue;
+      if ([0, 1, 2].every((i) => i === axis || (point[i] >= box.min[i] - EPS && point[i] <= box.max[i] + EPS))) return host;
+    }
+    return null;
   }
 
 }

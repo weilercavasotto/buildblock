@@ -5,14 +5,19 @@ export const STRUCTURAL_TYPES = [
   'block',
   'blockQuarter',
   'blockHalf',
+  'blockLong',
+  'blockBeam',
   'blockLarge',
   'plate',
   'plateQuarter',
   'plateHalf',
+  'plateLong',
   'plateLarge',
+  'plateHuge',
   'plateLargeHalf',
   'bracket',
   'bracketSmall',
+  'bracketLong',
   'bracketLarge',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
@@ -24,6 +29,10 @@ export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
+
+/** The blocks that wheels, engines, turbos, thrusters, rotors and pistons can be mounted on (not plates and brackets, which are thin). */
+export const HOST_TYPES = ['block', 'blockQuarter', 'blockHalf', 'blockLong', 'blockBeam', 'blockLarge'] as const;
+export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly string[]).includes(type);
 
 /** The engine: mounted on a face of a block like a wheel, it drives the wheels of the body. */
 export const isEngine = (type: PartType): boolean => type === 'engine';
@@ -58,8 +67,10 @@ export interface Part {
    */
   cell: Vec3;
   /**
-   * Outward normal of the block face a wheel or engine is mounted on: its host block is at `cell - face`. Not used by blocks
-   * and plates, and independent of how the part is turned (see `studs` / `spin`).
+   * Outward normal of the block face a wheel or engine is mounted on. Its `cell` is the unit cell against that face (one cell
+   * out from it, centred where the part sits on the face, on the stud lattice), so the host block is the one whose face contains
+   * the point `cell - face / 2` (`Grid.hostOf`). Not used by blocks and plates, and independent of how the part is turned (see
+   * `studs` / `spin`).
    */
   face?: Vec3;
   /**

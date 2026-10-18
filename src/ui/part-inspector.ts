@@ -1,7 +1,7 @@
 import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
-import { Part, Vec3, axleOf, frontOf, isStructural, partCells, studsOf, subVec } from '../types';
+import { Part, Vec3, axleOf, frontOf, isHostType, isStructural, partCells, studsOf, subVec } from '../types';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
@@ -366,9 +366,10 @@ export class PartInspector {
       rows.push([TEXT.inspector.weight, String(weightOf(part))]);
       rows.push([TEXT.inspector.rigidBody, TEXT.inspector.blocks(this.grid.connectedBlocks(part.cell))]);
       rows.push([TEXT.inspector.bodyWeight, String(this.grid.connectedWeight(part.cell))]);
-      if (part.type === 'block') rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
+      if (isHostType(part.type)) rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
-      rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
+      const host = this.grid.hostOf(part);
+      rows.push([TEXT.inspector.mountedOn, host ? `${PART_INFO[host.type].name} at ${coords(host.cell)}` : '-']);
       if (part.type === 'piston') {
         rows.push([TEXT.inspector.stroke, TEXT.inspector.strokeValue(strokeOf(part))]);
       } else if (part.type === 'rotor') {

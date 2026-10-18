@@ -398,11 +398,12 @@ export class PhysicsWorld {
   private buildHeaded(
     parts: Part[],
     bodyOfBlock: Map<string, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>,
+    hostBody: (part: Part) => { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group } | undefined,
     lift: number,
   ): void {
     const blocks = parts.filter((p) => isStructural(p.type));
     for (const part of parts.filter((p) => isHeaded(p.type) && p.face)) {
-      const host = bodyOfBlock.get(cellKey(subVec(part.cell, part.face!)));
+      const host = hostBody(part);
       if (!host) continue;
       const piston = part.type === 'piston';
       const look = piston ? PISTON_VISUAL : ROTOR_VISUAL;
@@ -505,6 +506,11 @@ export class PhysicsWorld {
     );
     const seen = new Set<string>();
     const bodyOfBlock = new Map<string, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>();
+    /** The body (and its frame) of the block that a mounted part sits on. */
+    const hostBody = (part: Part) => {
+      const host = grid.hostOf(part);
+      return host ? bodyOfBlock.get(cellKey(host.cell)) : undefined;
+    };
     const enginesOfBody = new Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number }>>();
     /** The boost of the turbos of each body, in units of one turbo of the default strength. */
     const boostOfBody = new Map<RAPIER.RigidBody, number>();
@@ -566,7 +572,7 @@ export class PhysicsWorld {
     // Engines and turbos are mounted on a block: a compact collider on its body (an engine weighs `ENGINE.mass` blocks, a turbo
     // `TURBO.mass`), its visual and what it does (the engine's drive, the turbo's boost).
     for (const engine of parts.filter((p) => isCompactMounted(p.type) && !isHeaded(p.type) && p.face)) {
-      const host = bodyOfBlock.get(cellKey(subVec(engine.cell, engine.face!)));
+      const host = hostBody(engine);
       if (!host) continue;
       const box = partBox(engine);
       const half = box.max.map((v, i) => (v - box.min[i]) / 2);
@@ -597,7 +603,7 @@ export class PhysicsWorld {
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }
 
-    this.buildHeaded(parts, bodyOfBlock, lift);
+    this.buildHeaded(parts, bodyOfBlock, hostBody, lift);
 
     // Each wheel is its own body, spinning on a motorised hinge. The hinge is carried by a light "hub" body that hangs from
     // the block the wheel is mounted on by a vertical spring (the suspension): chassis -spring- hub -hinge- wheel.
@@ -605,7 +611,7 @@ export class PhysicsWorld {
     // The spring must carry the chassis: its force is scaled by the mass each wheel of that body supports.
     const wheelsOn = new Map<RAPIER.RigidBody, number>();
     for (const wheel of wheelParts) {
-      const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
+      const host = hostBody(wheel);
       if (host) {
         wheelsOn.set(host.body, (wheelsOn.get(host.body) ?? 0) + 1);
         this.chassis.add(host.body);
@@ -613,7 +619,7 @@ export class PhysicsWorld {
     }
     for (const wheel of wheelParts) {
       // `face` is where the wheel is mounted (its host block); the axle comes from its rotation (or is the face normal).
-      const host = bodyOfBlock.get(cellKey(subVec(wheel.cell, wheel.face!)));
+      const host = hostBody(wheel);
       const axle = axleOf(wheel);
       if (!host) continue;
 
