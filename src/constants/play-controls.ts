@@ -23,6 +23,7 @@ export const PLAY_CONTROLS: ReadonlyArray<PlayControl> = [
   { keys: ['Space'], label: 'Thrust', when: (parts) => has(parts, 'thruster') },
   { keys: ['Shift'], label: 'Turbo boost', when: (parts) => has(parts, 'turbo') },
   { keys: ['F'], label: 'Rotors on / off', when: (parts) => has(parts, 'rotor') },
+  { keys: ['G'], label: 'Pistons out / back', when: (parts) => has(parts, 'piston') },
   // A vehicle with thrusters flies: the keys that steer it in the air.
   { keys: ['W', 'S'], label: 'Pitch in the air', when: (parts) => has(parts, 'thruster') },
   { keys: ['A', 'D'], label: 'Roll in the air', when: (parts) => has(parts, 'thruster') },

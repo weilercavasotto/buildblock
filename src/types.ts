@@ -20,7 +20,7 @@ export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
  * Every kind of part in the catalog. `'brake'` is the odd one out: it is never placed in the grid, it is fitted to a wheel (it sets
  * `Part.brake`), so no grid part has that type.
  */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'rotor' | 'brake';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'rotor' | 'piston' | 'brake';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -29,13 +29,19 @@ export const isStructural = (type: PartType): type is StructuralType => (STRUCTU
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'rotor';
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'rotor' || type === 'piston';
 
 /** The parts with a compact body against their host block (`MOUNTED_BODY`): the engine, the turbo, the thruster and the rotor. */
-export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'rotor' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'rotor';
+export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'rotor' | 'piston' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'rotor' || type === 'piston';
 
 /** The rotor: mounted on a block face, its head (with the parts welded to its studs) turns on the axis of the face. */
 export const isRotor = (type: PartType): boolean => type === 'rotor';
+
+/** The piston: mounted on a block face, its head (with the parts welded to its studs) slides out along the face. */
+export const isPiston = (type: PartType): boolean => type === 'piston';
+
+/** Parts with a head that moves on a joint (the rotor turns it, the piston slides it): the parts built on the studs of the head move with it. */
+export const isHeaded = (type: PartType): boolean => type === 'rotor' || type === 'piston';
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
@@ -83,6 +89,8 @@ export interface Part {
   power?: number;
   /** Rotors only (`PART_INFO[type].hasSpeed`): speed, an integer from `-ROTOR.max` to `ROTOR.max` (the sign is the direction). Missing = `ROTOR.default`. Read it through `rotorSpeedOf()`. */
   speed?: number;
+  /** Pistons only (`PART_INFO[type].hasStroke`): how far the head goes out, in steps of `PISTON.strokeStep` cells (an integer, `PISTON.min` to `PISTON.max`). Missing = `PISTON.default`. Read it through `strokeOf()`. */
+  stroke?: number;
   /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
   weight?: number;
 }

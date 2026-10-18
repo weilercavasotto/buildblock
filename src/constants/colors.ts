@@ -84,6 +84,11 @@ export const COLORS = {
     rotor: '#4b525a',
     rotorRing: '#c3ccd6',
     rotorHead: '#e8892b',
+    /** The piston: a dark barrel with a light collar, a polished rod and a silver head (unless painted). */
+    piston: '#3f4650',
+    pistonCollar: '#c3ccd6',
+    pistonRod: '#d5dbe2',
+    pistonHead: '#9fb0c0',
     /** The thruster: a steel tube with a dark bell nozzle and a glowing orange ring. */
     thruster: '#7b858f',
     thrusterBell: '#2c323a',

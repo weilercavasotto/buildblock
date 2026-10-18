@@ -1,5 +1,5 @@
-import { ENGINE_BODY, PLATE, ROTOR_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { CHASSIS, ENGINE, ROTOR, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, PISTON_BODY, PLATE, ROTOR_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { CHASSIS, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -31,6 +31,8 @@ export interface PartInfo {
   hasPower: boolean;
   /** Does it have an adjustable speed and direction (a rotor; set in the part inspector)? */
   hasSpeed: boolean;
+  /** Does it have an adjustable stroke (a piston; set in the part inspector)? */
+  hasStroke: boolean;
   /** One line shown under the name. */
   tagline: string;
   description: string;
@@ -65,6 +67,7 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     hasBrake: false,
     hasPower: false,
     hasSpeed: false,
+    hasStroke: false,
     tagline: t.tagline,
     description: t.description,
     properties: [
@@ -198,6 +201,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: false,
     hasPower: true,
     hasSpeed: false,
+    hasStroke: false,
     tagline: 'Drives the wheels of its body.',
     description:
       'The engine of a vehicle, a separate unit you mount on a face of a block (like a wheel). Wheels only get acceleration when an engine is mounted on their body. The engine pushes the vehicle towards its front, the side with the fan: turn it around and W / S are reversed. A body\'s engines add their power, and it is shared among the wheels of that body: one engine of the default power drives up to 4 wheels at full torque. Wheels on a body with no engine roll freely.',
@@ -227,6 +231,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: false,
     hasPower: true,
     hasSpeed: false,
+    hasStroke: false,
     tagline: 'Pushes its body, no wheels needed.',
     description:
       'A small jet that you mount on a face of a block, like the engine. Hold Space while playing and it pushes the body it is mounted on towards its front, from where it sits, with an orange flame out of the bell at the back, on the ground or in the air, with or without an engine. A thruster far from the centre of the body also turns it. The thrusts of a body\'s thrusters add up.',
@@ -245,6 +250,39 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'A thruster at the edge of the body spins it: put pairs on both sides to push straight.',
     ],
   },
+  piston: {
+    type: 'piston',
+    name: 'Piston',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasBrake: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: true,
+    tagline: 'Pushes up everything built on its head, and holds it there.',
+    description:
+      'A barrel that you mount on a face of a block, with a round silver head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play, press G and the head slides out along the face, carrying it all, and stays out until you press G again, and then it slides back. Use it for lifts, doors, hatches and launchers.',
+    properties: [
+      { label: 'Size', value: `${PISTON_BODY.width} × ${PISTON_BODY.width} × ${PISTON_BODY.depth} cells folded, against the block` },
+      { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red' },
+      { label: 'Stroke', value: 'Adjustable in the inspector (0.5 to 3 cells, default 1 cell)' },
+      { label: 'Control', value: 'Press G while playing: out, and G again: back (all the pistons together)' },
+      { label: 'Mass', value: `${PISTON.mass} block of the default weight (the barrel); the head and what it holds weigh what they are` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the head takes the colour (silver by default)' },
+    ],
+    tips: [
+      'It is never turned for you: if the preview is red, turn it (W / S, A / D) until the head points away from the block.',
+      'Build a lift by placing a plate on the head and your load on it, or a hatch by standing a plate on it.',
+      'What is on the head must not touch the studs of the rest of the creation, or it is welded to it and cannot move.',
+      'The head can lift as much as you can stack on it, but a very heavy load makes the block it is mounted on sink: weigh it down.',
+    ],
+  },
   rotor: {
     type: 'rotor',
     name: 'Rotor',
@@ -257,6 +295,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: false,
     hasPower: false,
     hasSpeed: true,
+    hasStroke: false,
     tagline: 'A spinning head: build propellers, fans and cranes.',
     description:
       'A round base that you mount on a face of a block, with a round orange head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play it turns with the head on the axis of the face. Press F while playing to switch every rotor on or off. Use it for propellers, fans, cranes and doors.',
@@ -290,6 +329,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: false,
     hasPower: true,
     hasSpeed: false,
+    hasStroke: false,
     tagline: 'A nitro boost for the driven wheels.',
     description:
       'A nitrous bottle that you mount on a face of a block, like the engine. Hold Shift while playing and the wheels that an engine drives, on the same body, turn faster and push harder, with a blue flame out of the nozzle. It only boosts: without an engine on the body it does nothing. The boosts of a body\'s turbos add up.',
@@ -321,6 +361,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: false,
     hasPower: false,
     hasSpeed: false,
+    hasStroke: false,
     tagline: 'Fits to a wheel to stop it.',
     description:
       'A drilled steel disc with a caliper that you fit to a wheel: pick the brake and click a wheel, and the disc appears behind its rim. Hold Space while playing and every wheel with a brake is held back, whether it is driven or not; a wheel without one rolls on. Each wheel has its own brake, with a strength you set in the part inspector.',
@@ -349,6 +390,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: true,
     hasPower: false,
     hasSpeed: false,
+    hasStroke: false,
     tagline: 'Makes your creation roll.',
     description:
       'A motorised wheel mounted on a side face of a block. Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face instead. In Play it is driven with W/S, and A/D steer by slowing down one side.',
@@ -381,6 +423,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasBrake: true,
     hasPower: false,
     hasSpeed: false,
+    hasStroke: false,
     tagline: 'A wheel twice the size, for big machines.',
     description:
       'A wheel twice the size of the normal one: it covers 2 x 2 cells beside a block. Mount it on a side face; it fills 2 x 2 cells starting at the cell you point at, extending toward where it is turned (A / D, W / S). It turns more slowly but covers more ground and clears bigger bumps.',
@@ -421,6 +464,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'turbo',
   'brake',
   'rotor',
+  'piston',
   'wheel',
   'bigWheel',
 ];

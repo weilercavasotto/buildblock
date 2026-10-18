@@ -306,6 +306,7 @@ async function main(): Promise<void> {
     onRemove: (part) => history.run(() => build.removeAnimated(() => grid.remove(part.cell))),
     onWeight: (part, weight, connected) => history.run(() => grid.setWeight(part.cell, weight, connected)),
     onTire: (part, tire, wholeBody) => history.run(() => grid.setTire(part.cell, tire, wholeBody)),
+    onStroke: (part, stroke) => history.run(() => grid.setStroke(part.cell, stroke)),
     onSpeed: (part, speed) => history.run(() => grid.setSpeed(part.cell, speed)),
     onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
     onBrake: (part, strength, wholeBody) => history.run(() => grid.setBrake(part.cell, strength, wholeBody)),
@@ -396,6 +397,7 @@ async function main(): Promise<void> {
       physics.level = vehicle?.level ?? 0;
       physics.throttle = vehicle?.throttle ?? 0;
       physics.rotating = vehicle?.rotating ?? false;
+      physics.extended = vehicle?.extended ?? false;
       physics.boosting = vehicle?.boosting ?? false;
       physics.thrusting = vehicle?.thrusting ?? false;
       physics.steering = vehicle?.steering ?? false;

@@ -34,6 +34,7 @@ export class VehicleController {
   private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false, yawLeft: false, yawRight: false };
   private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean } | null = null;
   private rotorsOn = false;
+  private pistonsOut = false;
   private driven: DrivenWheel[];
   private listening: boolean;
 
@@ -101,6 +102,11 @@ export class VehicleController {
     return steer !== 0;
   }
 
+  /** Are the pistons pushed out (G toggles them; they start folded)? */
+  get extended(): boolean {
+    return this.pistonsOut;
+  }
+
   /** Are the rotors switched on (F toggles them; they start off)? */
   get rotating(): boolean {
     return this.rotorsOn;
@@ -135,6 +141,12 @@ export class VehicleController {
   }
 
   private onKey = (e: KeyboardEvent): void => {
+    // G pushes the pistons out and, pressed again, back (one press each; not Ctrl / Cmd + G).
+    if (e.code === 'KeyG' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.type === 'keydown' && !e.repeat) this.pistonsOut = !this.pistonsOut;
+      e.preventDefault();
+      return;
+    }
     // F switches the rotors on and off (one press each; not Ctrl / Cmd + F, the browser's search).
     if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (e.type === 'keydown' && !e.repeat) this.rotorsOn = !this.rotorsOn;

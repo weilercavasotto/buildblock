@@ -119,6 +119,35 @@ export const ROTOR_BODY = {
 } as const;
 
 /**
+ * The piston (a part mounted on a face of a block that pushes its head out along the face and back): the same shape as the rotor
+ * (a base against the block with a round head, a plate thick, with studs on top; `width` across, `depth` = base + head, folded), with a
+ * thick rod that shows between them while it is extended. In cells.
+ */
+export const PISTON_VISUAL = {
+  baseDepth: 0.55,
+  headDepth: PLATE.thickness,
+  /** The base: a wide flange (radius, height) under the barrel (radius) with a light collar ring at its mouth (radius, height); the rod and the head. */
+  flangeRadius: 0.46,
+  flangeHeight: 0.07,
+  barrelRadius: 0.38,
+  collarRadius: 0.3,
+  collarHeight: 0.05,
+  rodRadius: 0.16,
+  headRadius: 0.48,
+  segments: 32,
+} as const;
+export const PISTON_BODY = {
+  width: 1,
+  depth: PISTON_VISUAL.baseDepth + PISTON_VISUAL.headDepth,
+} as const;
+
+/** The parts with a head that moves (turns or slides) on a joint: how deep their base and their head are (cells). */
+export const HEADED_PARTS = {
+  rotor: { baseDepth: ROTOR_VISUAL.baseDepth, headDepth: ROTOR_VISUAL.headDepth, width: ROTOR_BODY.width },
+  piston: { baseDepth: PISTON_VISUAL.baseDepth, headDepth: PISTON_VISUAL.headDepth, width: PISTON_BODY.width },
+} as const;
+
+/**
  * The turbo body: a cube mounted against a face of a block, like the engine's (`width` across the face, `depth` out of it), in cells.
  */
 export const TURBO_BODY = {
@@ -152,7 +181,7 @@ export const THRUSTER_VISUAL = {
 } as const;
 
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, rotor: ROTOR_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

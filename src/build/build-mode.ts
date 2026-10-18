@@ -5,7 +5,7 @@ import { disposeOutline, createOutline, outlineFill } from './outline';
 import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber } from '../constants';
 import { brakePose, createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
-import { EPS, StudBox, partBoxes, relativeBoxes, rotorHead } from '../parts/part-geometry';
+import { EPS, StudBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
 import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isStructural, isWheelType, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
@@ -533,8 +533,8 @@ export class BuildMode {
     if (!p.part) return shape([along(0, p.point.x), GROUND_Y - low, along(2, p.point.z)]);
 
     const base = p.part;
-    // Parts are built on blocks, plates and brackets, and on the head of a rotor (nothing is built on a wheel or the rest of an engine).
-    const head = rotorHead(base);
+    // Parts are built on blocks, plates and brackets, and on the head of a rotor or a piston (nothing is built on a wheel or the rest of an engine).
+    const head = headOf(base);
     const boxes = isStructural(base.type) ? partBoxes(base) : head ? [head] : null;
     if (!boxes) return null;
     // The box of the part that was pointed at: where the point lies on its face.

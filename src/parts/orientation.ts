@@ -21,7 +21,7 @@ function symmetryOf(type: PartType): Matrix[] {
     return quarterTurns([0, 1, 0], spins === 1 ? [0, 1, 2, 3] : spins === 2 ? [0, 2] : [0]);
   }
   if (type === 'wheel') return quarterTurns([1, 0, 0], [0, 1, 2, 3]); // around its axle
-  if (type === 'rotor') return quarterTurns([0, 1, 0], [0, 1, 2, 3]); // a round base and a square head: around its axis
+  if (type === 'rotor' || type === 'piston') return quarterTurns([0, 1, 0], [0, 1, 2, 3]); // a round base and a square head: around its axis
   return [identity];
 }
 

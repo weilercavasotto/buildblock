@@ -1,4 +1,4 @@
-import { MOVE_ICONS, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, rotorSpeedOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
 import { Part, Vec3, axleOf, frontOf, isStructural, partCells, studsOf, subVec } from '../types';
@@ -18,6 +18,8 @@ export interface InspectorHandlers {
   onWeight(part: Part, weight: number, connected: boolean): void;
   /** Sets the speed (an integer, the sign is the direction, see `ROTOR`) of a rotor. */
   onSpeed(part: Part, speed: number): void;
+  /** Sets how far a piston goes out (steps of half a cell, see `PISTON`). */
+  onStroke(part: Part, stroke: number): void;
   /** Sets the power (an integer, see `ENGINE`) of an engine, or of all the engines on its body with `connected`. */
   onPower(part: Part, power: number, connected: boolean): void;
   /** Fits a brake of the given strength to a wheel (or takes it off with null), or to every braked wheel on its body with `wholeBody`. */
@@ -87,6 +89,7 @@ export class PartInspector {
       ...this.brakeSection(part),
       ...this.powerSection(part),
       ...this.speedSection(part),
+      ...this.strokeSection(part),
       ...this.weightSection(part),
       ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
@@ -267,6 +270,24 @@ export class PartInspector {
     });
   }
 
+  /** Stroke slider of a piston: how far its head goes out, in half cells. */
+  private strokeSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasStroke) return [];
+    const t = TEXT.inspector;
+    return this.sliderSection({
+      heading: t.stroke,
+      min: PISTON.min,
+      max: PISTON.max,
+      step: PISTON.step,
+      value: strokeOf(part),
+      defaultValue: PISTON.default,
+      low: t.strokeLow,
+      high: t.strokeHigh,
+      hint: t.strokeHint,
+      onCommit: (value) => this.handlers.onStroke(part, value),
+    });
+  }
+
   /** Weight slider (blocks only), with a shortcut to give the same weight to every block welded to this one. */
   private weightSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasWeight) return [];
@@ -348,7 +369,9 @@ export class PartInspector {
       if (part.type === 'block') rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       rows.push([TEXT.inspector.mountedOn, `block at ${coords(subVec(part.cell, part.face))}`]);
-      if (part.type === 'rotor') {
+      if (part.type === 'piston') {
+        rows.push([TEXT.inspector.stroke, TEXT.inspector.strokeValue(strokeOf(part))]);
+      } else if (part.type === 'rotor') {
         rows.push([TEXT.inspector.speed, TEXT.inspector.speedValue(rotorSpeedOf(part))]);
       } else if (part.type === 'engine') {
         rows.push([TEXT.inspector.front, TEXT.inspector.frontValue(frontOf(part))]);

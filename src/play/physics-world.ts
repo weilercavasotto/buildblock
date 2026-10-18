@@ -9,8 +9,9 @@ import {
   BRAKE,
   ENGINE,
   FLIGHT,
+  PISTON,
+  PISTON_VISUAL,
   ROTOR,
-  ROTOR_BODY,
   ROTOR_VISUAL,
   THRUSTER,
   TURBO,
@@ -27,6 +28,7 @@ import {
   hexToNumber,
   powerOf,
   rotorSpeedOf,
+  strokeLength,
   suspensionOf,
   suspensionStiffness,
   tireOf,
@@ -34,10 +36,11 @@ import {
   weightOf,
   wheelSizeOf,
 } from '../constants';
-import { createCaliperObject, createPartObject, createRotorBaseObject, createRotorHeadObject, faceQuaternion, rotorCentres } from '../parts/part-defs';
+import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, faceQuaternion, headedCentres, orientationQuaternion } from '../parts/part-defs';
+import { orientationOfPart } from '../parts/orientation';
 import { partBox, relativeBoxes, studsEngaged } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
-import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isStructural, isWheelType, partCentre, subVec } from '../types';
+import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isStructural, isWheelType, partCentre, subVec } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -91,6 +94,8 @@ export class PhysicsWorld {
   throttle = 0;
   /** Are the rotors switched on (F, see `VehicleController.rotating`)? */
   rotating = false;
+  /** Are the pistons pushed out (G, see `VehicleController.extended`)? They slide out while it is on and back when it is off. */
+  extended = false;
 
   private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
@@ -107,6 +112,8 @@ export class PhysicsWorld {
   private forward = new THREE.Vector3(0, 0, -1);
   /** The rotors: the hinge between the body of the block and the head (with what it holds) and the signed speed it is driven to (rad/s). */
   private rotors: Array<{ joint: RAPIER.RevoluteImpulseJoint; target: number }> = [];
+  /** The pistons: the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
+  private pistons: Array<{ joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh }> = [];
   private effects: PlayEffects;
   /** The bodies that carry wheels: the ones the straightening assist acts on. */
   private chassis = new Set<RAPIER.RigidBody>();
@@ -222,9 +229,20 @@ export class PhysicsWorld {
     }
   }
 
+  /** Slides the pistons: the target of each spring moves towards out (the stroke) or back (0) at `PISTON.speed` and the spring follows it. */
+  private drivePistons(dt: number): void {
+    for (const piston of this.pistons) {
+      const goal = this.extended ? piston.stroke : 0;
+      const step = PISTON.speed * dt;
+      piston.target += Math.max(-step, Math.min(step, goal - piston.target));
+      piston.joint.configureMotorPosition(piston.target, PISTON.stiffness, PISTON.damping);
+    }
+  }
+
   step(dt: number): void {
     this.applyThrust();
     this.driveRotors();
+    this.drivePistons(dt);
     this.accumulator = Math.min(this.accumulator + dt, WORLD.maxFrameTime);
     this.airborne = this.craft.size > 0 && !this.touchingGround();
     while (this.accumulator >= WORLD.step) {
@@ -244,7 +262,25 @@ export class PhysicsWorld {
     this.group.clear();
   }
 
+  /** Scales the rod of every piston to the distance the head has gone from the mouth of the barrel (measured along the axis, in the world). */
+  private syncPistons(): void {
+    const qHost = new THREE.Quaternion();
+    const qHead = new THREE.Quaternion();
+    for (const p of this.pistons) {
+      const hr = p.host.rotation();
+      const br = p.head.rotation();
+      qHost.set(hr.x, hr.y, hr.z, hr.w);
+      qHead.set(br.x, br.y, br.z, br.w);
+      const hostAt = new THREE.Vector3(...p.pivot).applyQuaternion(qHost).add(p.host.translation() as THREE.Vector3);
+      const headAt = new THREE.Vector3(...p.headLocal).applyQuaternion(qHead).add(p.head.translation() as THREE.Vector3);
+      const out = headAt.sub(hostAt).dot(new THREE.Vector3(...p.face).applyQuaternion(qHost));
+      p.rod.visible = out > 0.01;
+      p.rod.scale.y = Math.max(out, 0.001);
+    }
+  }
+
   private sync(): void {
+    this.syncPistons();
     for (const { body, object } of this.pairs) {
       const t = body.translation();
       const r = body.rotation();
@@ -353,45 +389,48 @@ export class PhysicsWorld {
   }
 
   /**
-   * The rotors (see `ROTOR`): the base is a compact collider on the body of its block; the head is a plate collider on the body of the
-   * parts welded to its studs (their component, or a small body of its own when nothing is on it), and a hinge along the axis of the
-   * face joins that body to the block's, with the contacts between the two off (the head sits on the base and a blade may sweep past
-   * the block). When the head's parts are welded to the block's too, they are one body and the rotor is just rigid.
+   * The rotors and the pistons (see `ROTOR`, `PISTON`): the base is a compact collider on the body of its block; the head is a disc
+   * collider on the body of the parts welded to its studs (their component, or a small body of its own when nothing is on it), and a
+   * joint along the axis of the face (a hinge for the rotor, a slider with limits for the piston) joins that body to the block's,
+   * with the contacts between the two off (the head sits on the base and a blade may sweep past the block). When the head's parts are
+   * welded to the block's too, they are one body and the part is just rigid.
    */
-  private buildRotors(
+  private buildHeaded(
     parts: Part[],
     bodyOfBlock: Map<string, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>,
     lift: number,
   ): void {
     const blocks = parts.filter((p) => isStructural(p.type));
-    for (const rotor of parts.filter((p) => p.type === 'rotor' && p.face)) {
-      const host = bodyOfBlock.get(cellKey(subVec(rotor.cell, rotor.face!)));
+    for (const part of parts.filter((p) => isHeaded(p.type) && p.face)) {
+      const host = bodyOfBlock.get(cellKey(subVec(part.cell, part.face!)));
       if (!host) continue;
-      const face = rotor.face!;
+      const piston = part.type === 'piston';
+      const look = piston ? PISTON_VISUAL : ROTOR_VISUAL;
+      const face = part.face!;
       const axisIndex = face.findIndex((v) => v !== 0);
-      const centres = rotorCentres(rotor);
+      const centres = headedCentres(part);
       /** Half sizes of a slab `depth` thick along the axis and `width` across it. */
       const halves = (depth: number, width: number): Vec3 => [0, 1, 2].map((i) => (i === axisIndex ? depth : width) / 2) as Vec3;
 
       // The base stays with the block.
-      const baseHalf = halves(ROTOR_VISUAL.baseDepth, ROTOR_VISUAL.flangeRadius * 2);
+      const baseHalf = halves(look.baseDepth, look.flangeRadius * 2);
       const baseLocal = subVec(centres.base, host.origin);
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(...baseHalf)
           .setTranslation(...baseLocal)
-          .setDensity((CHASSIS.density * ROTOR.mass) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
+          .setDensity((CHASSIS.density * (piston ? PISTON.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
       );
-      const baseObject = createRotorBaseObject(rotor);
+      const baseObject = createHeadedBaseObject(part);
       baseObject.position.set(...baseLocal);
       host.visual.add(baseObject);
 
       // The head goes with the parts on its studs.
       const held = new Map<RAPIER.RigidBody, { body: RAPIER.RigidBody; origin: Vec3; visual: THREE.Group }>();
       for (const block of blocks) {
-        if (studsEngaged(rotor, block) === 0) continue;
+        if (studsEngaged(part, block) === 0) continue;
         const holder = bodyOfBlock.get(cellKey(block.cell));
         if (holder) held.set(holder.body, holder);
       }
@@ -406,9 +445,9 @@ export class PhysicsWorld {
         head = { body, origin: centres.head, visual };
       }
       const headLocal = subVec(centres.head, head.origin);
-      const turned = faceQuaternion(face); // the cylinder's axis (Y) along the rotor's axis
+      const turned = faceQuaternion(face); // the cylinder's axis (Y) along the part's axis
       this.world.createCollider(
-        RAPIER.ColliderDesc.cylinder(ROTOR_VISUAL.headDepth / 2, ROTOR_VISUAL.headRadius)
+        RAPIER.ColliderDesc.cylinder(look.headDepth / 2, look.headRadius)
           .setRotation({ x: turned.x, y: turned.y, z: turned.z, w: turned.w })
           .setTranslation(...headLocal)
           .setDensity(CHASSIS.density)
@@ -416,7 +455,7 @@ export class PhysicsWorld {
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         head.body,
       );
-      const headObject = createRotorHeadObject(rotor);
+      const headObject = createHeadedHeadObject(part);
       headObject.position.set(...headLocal);
       head.visual.add(headObject);
       // Parts on the head that are not in the same body as the first one (it is rare: two stacks on one head) are fixed to it.
@@ -426,21 +465,32 @@ export class PhysicsWorld {
         this.world.createImpulseJoint(RAPIER.JointData.fixed({ x: offset[0], y: offset[1], z: offset[2] }, { x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0, w: 1 }), head.body, other.body, true);
       }
 
-      if (head.body === host.body) continue; // welded to the block: it cannot turn
+      if (head.body === host.body) continue; // welded to the block: it cannot move
       const pivot = subVec(centres.head, host.origin);
-      const joint = this.world.createImpulseJoint(
-        RAPIER.JointData.revolute(
-          { x: pivot[0], y: pivot[1], z: pivot[2] },
-          { x: headLocal[0], y: headLocal[1], z: headLocal[2] },
-          { x: face[0], y: face[1], z: face[2] },
-        ),
-        host.body,
-        head.body,
-        true,
-      ) as RAPIER.RevoluteImpulseJoint;
+      const axis = { x: face[0], y: face[1], z: face[2] };
+      const anchors = [{ x: pivot[0], y: pivot[1], z: pivot[2] }, { x: headLocal[0], y: headLocal[1], z: headLocal[2] }] as const;
+      if (piston) {
+        const stroke = strokeLength(part);
+        const data = RAPIER.JointData.prismatic(anchors[0], anchors[1], axis);
+        data.limitsEnabled = true;
+        data.limits = [0, stroke];
+        const joint = this.world.createImpulseJoint(data, host.body, head.body, true) as RAPIER.PrismaticImpulseJoint;
+        joint.setContactsEnabled(false);
+        joint.configureMotorModel(RAPIER.MotorModel.AccelerationBased);
+        joint.configureMotorPosition(0, PISTON.stiffness, PISTON.damping);
+        // The rod shows between the barrel and the head while it is out: a cylinder on the barrel's mouth, as long as the head is away (see `sync`).
+        const rod = createPistonRod();
+        rod.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
+        rod.position.set(...baseLocal).addScaledVector(new THREE.Vector3(...face), PISTON_VISUAL.baseDepth / 2);
+        rod.visible = false;
+        host.visual.add(rod);
+        this.pistons.push({ joint, stroke, target: 0, host: host.body, head: head.body, pivot, headLocal, face, rod });
+        continue;
+      }
+      const joint = this.world.createImpulseJoint(RAPIER.JointData.revolute(anchors[0], anchors[1], axis), host.body, head.body, true) as RAPIER.RevoluteImpulseJoint;
       joint.setContactsEnabled(false);
       // Positive speed is clockwise seen from the head: the other way round about the axis (right-handed), which points out of the block.
-      this.rotors.push({ joint, target: (-rotorSpeedOf(rotor) / ROTOR.max) * ROTOR.maxSpeed });
+      this.rotors.push({ joint, target: (-rotorSpeedOf(part) / ROTOR.max) * ROTOR.maxSpeed });
     }
   }
 
@@ -515,7 +565,7 @@ export class PhysicsWorld {
 
     // Engines and turbos are mounted on a block: a compact collider on its body (an engine weighs `ENGINE.mass` blocks, a turbo
     // `TURBO.mass`), its visual and what it does (the engine's drive, the turbo's boost).
-    for (const engine of parts.filter((p) => isCompactMounted(p.type) && p.type !== 'rotor' && p.face)) {
+    for (const engine of parts.filter((p) => isCompactMounted(p.type) && !isHeaded(p.type) && p.face)) {
       const host = bodyOfBlock.get(cellKey(subVec(engine.cell, engine.face!)));
       if (!host) continue;
       const box = partBox(engine);
@@ -547,7 +597,7 @@ export class PhysicsWorld {
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
     }
 
-    this.buildRotors(parts, bodyOfBlock, lift);
+    this.buildHeaded(parts, bodyOfBlock, lift);
 
     // Each wheel is its own body, spinning on a motorised hinge. The hinge is carried by a light "hub" body that hangs from
     // the block the wheel is mounted on by a vertical spring (the suspension): chassis -spring- hub -hinge- wheel.

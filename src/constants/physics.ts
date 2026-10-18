@@ -232,6 +232,34 @@ export const clampRotorSpeed = (value: number): number =>
 /** The speed of a rotor: its own, or the default; an integer in `[-max, max]`. */
 export const rotorSpeedOf = (part: { speed?: number }): number => clampRotorSpeed(part.speed ?? ROTOR.default);
 
+/**
+ * The piston (`Part.stroke`, a slider in the part inspector): a part mounted on a face of a block whose head, with everything welded
+ * to its studs, slides out along the face when it is switched on (the `G` key toggles all the pistons: out, then back) and stays there
+ * until the key is pressed again. `stroke` is how far it goes, `strokeStep` cells per slider step (`min` to `max` steps, `default`
+ * 2 = one cell). The target moves at `speed` cells per second and a spring-damper (`stiffness`, `damping`, acceleration based, so it
+ * does not depend on what the head carries) holds the head there. A piston's base weighs `mass` blocks of the default weight.
+ */
+export const PISTON = {
+  min: 1,
+  max: 6,
+  step: 1,
+  default: 2,
+  strokeStep: 0.5,
+  speed: 1.5,
+  stiffness: 400,
+  damping: 40,
+  mass: 1,
+} as const;
+
+export const clampStroke = (value: number): number =>
+  Math.min(PISTON.max, Math.max(PISTON.min, Math.round(Number.isFinite(value) ? value : PISTON.default)));
+
+/** The stroke of a piston in slider steps: its own, or the default; an integer in `[min, max]`. */
+export const strokeOf = (part: { stroke?: number }): number => clampStroke(part.stroke ?? PISTON.default);
+
+/** How far a piston goes out, in cells. */
+export const strokeLength = (part: { stroke?: number }): number => strokeOf(part) * PISTON.strokeStep;
+
 export const CHASSIS = {
   friction: 0.6,
   density: 1,
