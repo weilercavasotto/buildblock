@@ -24,6 +24,11 @@ export const STRUCTURAL_TYPES = [
   'bracketSmall',
   'bracketLong',
   'bracketLarge',
+  'slope',
+  'slopeHalf',
+  'slopeLong',
+  'slopePlate',
+  'slopePlateLong',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /**

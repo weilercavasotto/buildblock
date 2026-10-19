@@ -14,6 +14,12 @@ export class MenuScene {
   private driveTimer = 0;
   private throttle = 1;
   private steer = 0;
+  /** What the build has, for the autopilot to use (see `drive`): rotors spin all the time, pistons go out and back, thrusters and turbos fire in bursts. */
+  private features = { rotors: false, pistons: false, jets: false };
+  private pistonOut = false;
+  private pistonTimer = 0;
+  private burstTimer = 0;
+  private bursting = false;
   private angle = Math.random() * Math.PI * 2;
   private focus = new THREE.Vector3(...CAMERA.startTarget);
 
@@ -58,6 +64,8 @@ export class MenuScene {
     this.physics.boosting = this.vehicle.boosting;
     this.physics.thrusting = this.vehicle.thrusting;
     this.physics.steering = this.vehicle.steering;
+    this.physics.rotating = this.vehicle.rotating;
+    this.physics.extended = this.vehicle.extended;
     this.physics.step(dt);
 
     this.focus.lerp(new THREE.Vector3(t.x, t.y + MENU_SCENE.focusYOffset, t.z), 1 - Math.exp(-dt * MENU_SCENE.focusSmoothing));
@@ -88,12 +96,37 @@ export class MenuScene {
       this.steer = toOrigin.dot(right) > 0 ? 1 : -1;
       this.driveTimer = MENU_SCENE.returnInterval;
     }
-    this.vehicle?.setAutopilot({ throttle: this.throttle, steer: this.steer });
+    this.pistonTimer -= dt;
+    if (this.pistonTimer <= 0) {
+      this.pistonTimer = MENU_SCENE.pistonInterval;
+      this.pistonOut = !this.pistonOut;
+    }
+    this.burstTimer -= dt;
+    if (this.burstTimer <= 0) {
+      this.bursting = !this.bursting;
+      this.burstTimer = this.bursting ? MENU_SCENE.burstLength : MENU_SCENE.burstPauseMin + Math.random() * MENU_SCENE.burstPauseJitter;
+    }
+    const fire = this.features.jets && this.bursting;
+    this.vehicle?.setAutopilot({
+      throttle: this.throttle,
+      steer: fire ? 0 : this.steer,
+      thrust: fire,
+      boost: fire,
+      rotors: this.features.rotors,
+      pistons: this.features.pistons && this.pistonOut,
+    });
   }
 
   private spawn(): void {
     this.despawn();
-    this.physics = new PhysicsWorld(generateRandomBuild());
+    const { grid } = generateRandomBuild();
+    const has = (...types: string[]) => grid.all().some((p) => types.includes(p.type));
+    this.features = { rotors: has('rotor'), pistons: has('piston'), jets: has('thruster', 'turbo') };
+    this.pistonOut = false;
+    this.pistonTimer = MENU_SCENE.pistonInterval;
+    this.bursting = false;
+    this.burstTimer = MENU_SCENE.burstPauseMin;
+    this.physics = new PhysicsWorld(grid);
     this.vehicle = new VehicleController(this.physics.wheels, { keyboard: false });
     this.scene.add(this.physics.group);
     this.age = 0;

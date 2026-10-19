@@ -14,6 +14,32 @@ const color = (hex: string): number => hexToNumber(hex);
 
 const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
 const edgeGeo = new THREE.EdgesGeometry(blockGeo);
+/**
+ * The wedge: a triangular prism that fits the unit cube like `blockGeo` (scaled to the box of the shape), its slope rising towards -z:
+ * the front foot (+z, bottom), the back foot (-z, bottom) and the back top. Flat shaded.
+ */
+const wedgeGeo = (() => {
+  const h = BLOCK_VISUAL_SIZE / 2;
+  const front: [number, number] = [h, -h]; // z, y
+  const back: [number, number] = [-h, -h];
+  const top: [number, number] = [-h, h];
+  const at = (x: number, [z, y]: [number, number]): number[] => [x, y, z];
+  const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
+  const l = at(-h, front), l2 = at(-h, back), l3 = at(-h, top);
+  const r = at(h, front), r2 = at(h, back), r3 = at(h, top);
+  const positions = [
+    ...l, ...l3, ...l2, // the left triangle (outside: -x)
+    ...r, ...r2, ...r3, // the right triangle (outside: +x)
+    ...quad(l2, r2, r, l), // the bottom
+    ...quad(l2, l3, r3, r2), // the back
+    ...quad(l, r, r3, l3), // the slope
+  ];
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  return geometry;
+})();
+const wedgeEdgeGeo = new THREE.EdgesGeometry(wedgeGeo, 20);
 // The connectors: round studs on a face, `STUD.pitch` apart, merged into one mesh per box (one draw call). They are built for
 // the top of a box (a grid of `across` x `along` studs around its centre, pointing up) and cached by that size.
 const studsCache = new Map<string, THREE.BufferGeometry>();
@@ -346,15 +372,15 @@ export function createPartObject(
     for (const box of SHAPES[part.type].boxes) {
       const group = new THREE.Group();
       group.position.set(...box.offset);
-      const mesh = new THREE.Mesh(blockGeo, mats.face);
+      const mesh = new THREE.Mesh(box.wedge ? wedgeGeo : blockGeo, mats.face);
       mesh.castShadow = mesh.receiveShadow = true;
       mesh.scale.set(...box.size);
       group.add(mesh);
-      const edges = new THREE.LineSegments(edgeGeo, mats.edge);
+      const edges = new THREE.LineSegments(box.wedge ? wedgeEdgeGeo : edgeGeo, mats.edge);
       Object.assign(edges, noRaycast);
       edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
       group.add(edges);
-      group.add(studsMesh(mats.face, box.size, box.studs));
+      if (!box.wedge) group.add(studsMesh(mats.face, box.size, box.studs)); // a slope has no studs on it, only sockets underneath
       group.add(socketsMesh(box.size, box.studs));
       root.add(group);
     }

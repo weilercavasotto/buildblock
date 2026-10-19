@@ -13,6 +13,12 @@ export interface ShapeBox {
   offset: Vec3;
   /** Direction its studs point (an axis vector); the opposite face is its underside, which takes the studs of another part. */
   studs: Vec3;
+  /**
+   * A wedge: a triangular prism instead of a box. Its slope rises towards -z (in its own frame, studs up) from the front edge (+z, at the
+   * bottom) to the back edge (-z, the full height), so it is half the volume of the box. It has no studs on top (the slope is not a flat
+   * face) but its underside has sockets, like any box: parts below it hold it, nothing is built on it.
+   */
+  wedge?: true;
 }
 
 export interface Shape {
@@ -24,6 +30,7 @@ export interface Shape {
 
 const flat = (width: number, depth: number): ShapeBox => ({ size: [width, PLATE.thickness, depth], offset: [0, 0, 0], studs: [0, 1, 0] });
 const solid = (width: number, height: number, depth: number): ShapeBox => ({ size: [width, height, depth], offset: [0, 0, 0], studs: [0, 1, 0] });
+const wedge = (width: number, height: number, depth: number): ShapeBox => ({ ...solid(width, height, depth), wedge: true });
 
 /**
  * An L bracket: a flat plate (`width` x `size` footprint) plus a wall plate (`width` wide, `size` tall) standing on its back
@@ -77,6 +84,16 @@ export const SHAPES: Record<StructuralType, Shape> = {
   plateHuge: { boxes: [flat(2, 4)], spins: 2 },
   /** A large plate half as wide: 1 x 2 (8 studs). */
   plateLargeHalf: { boxes: [flat(1, 2)], spins: 2 },
+  /** A 45 degree slope: 1 x 1 footprint, 1 tall, rising towards the back. */
+  slope: { boxes: [wedge(1, 1, 1)], spins: 4 },
+  /** The slope half as wide (0.5 x 1). */
+  slopeHalf: { boxes: [wedge(0.5, 1, 1)], spins: 4 },
+  /** A gentle slope: 1 x 2 footprint, 1 tall (about 27 degrees). */
+  slopeLong: { boxes: [wedge(1, 1, 2)], spins: 4 },
+  /** A thin wedge, a plate thick at the back and tapering to nothing: a wing or a fairing (1 x 1). */
+  slopePlate: { boxes: [wedge(1, PLATE.thickness, 1)], spins: 4 },
+  /** The same, 1 x 2 (a longer, gentler taper). */
+  slopePlateLong: { boxes: [wedge(1, PLATE.thickness, 2)], spins: 4 },
   /** Two plates at a right angle (8 studs). */
   bracket: { boxes: bracket(1), spins: 4 },
   /** The same L, half as wide (4 studs). */
@@ -89,4 +106,4 @@ export const SHAPES: Record<StructuralType, Shape> = {
 
 /** Volume of a structural part relative to a block (what makes a plate light at the same weight setting). */
 export const partVolume = (part: { type: StructuralType }): number =>
-  SHAPES[part.type].boxes.reduce((sum, box) => sum + box.size[0] * box.size[1] * box.size[2], 0);
+  SHAPES[part.type].boxes.reduce((sum, box) => sum + (box.size[0] * box.size[1] * box.size[2]) / (box.wedge ? 2 : 1), 0);

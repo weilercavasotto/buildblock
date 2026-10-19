@@ -1,5 +1,5 @@
 import { CELL_SIZE, HEADED_PARTS, MOUNTED_BODY, SHAPES, STUD } from '../constants';
-import { Part, Vec3, addVec, applyMatrix, isCompactMounted, isHeaded, isStructural, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
+import { Part, Vec3, addVec, roundCoord, applyMatrix, isCompactMounted, isHeaded, isStructural, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
 
 /** Axis-aligned box, in world units. */
 export interface Box {
@@ -10,6 +10,8 @@ export interface Box {
 /** A box of a structural part and the direction its studs point (a world axis vector). */
 export interface StudBox extends Box {
   studs: Vec3;
+  /** A wedge (see `ShapeBox.wedge`): the box is its bounding box, and it has no studs on top. */
+  wedge?: true;
 }
 
 /** Tolerance for comparing heights and edges made of halves and fifths. */
@@ -38,6 +40,7 @@ export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): Stud
         min: centre.map((v, i) => v - half[i]) as Vec3,
         max: centre.map((v, i) => v + half[i]) as Vec3,
         studs: applyMatrix(m, box.studs).map((n) => (n === 0 ? 0 : n)) as Vec3,
+        ...(box.wedge ? { wedge: true as const } : {}),
       };
     });
     relativeCache.set(key, boxes);
@@ -45,9 +48,24 @@ export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): Stud
   return boxes;
 }
 
+/**
+ * The corners of each wedge of a structural part, relative to its `cell` (turned by its orientation): the six points of the
+ * triangular prism, three at each end of its width. One entry per box of the shape: `null` for a box that is not a wedge.
+ */
+export function wedgePoints(part: Pick<Part, 'type' | 'studs' | 'spin'>): Array<Vec3[] | null> {
+  if (!isStructural(part.type)) return [];
+  const m = matrixOf(orientationOfPart(part));
+  return SHAPES[part.type].boxes.map((box) => {
+    if (!box.wedge) return null;
+    const [w, h, d] = box.size.map((v) => v / 2);
+    const profile: Array<[number, number]> = [[-d, -h], [d, -h], [-d, h]]; // z, y: the back foot, the front foot and the back top
+    return [-w, w].flatMap((x) => profile.map(([z, y]) => applyMatrix(m, [box.offset[0] + x, box.offset[1] + y, box.offset[2] + z]).map((v) => roundCoord(v)) as Vec3));
+  });
+}
+
 /** The boxes (with the direction of their studs) a structural part occupies in the world. */
 export function partBoxes(part: Shape): StudBox[] {
-  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs }));
+  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs, ...(box.wedge ? { wedge: true as const } : {}) }));
 }
 
 /**
@@ -137,7 +155,13 @@ export function studsEngaged(a: Shape, b: Shape): number {
       if (boxA.studs.some((v, i) => v !== boxB.studs[i])) continue;
       const axis = boxA.studs.findIndex((v) => v !== 0);
       const [u, w] = [0, 1, 2].filter((i) => i !== axis);
-      if (Math.abs(boxA.max[axis] - boxB.min[axis]) > EPS && Math.abs(boxB.max[axis] - boxA.min[axis]) > EPS) continue;
+      // The studs of one box fit the underside of the other: its stud face touches the other's socket face (`studs` is the same for both).
+      // A wedge has no studs, so it can only be the one that is held (its underside on the studs of the other).
+      const stud = (box: StudBox) => (box.studs[axis] > 0 ? box.max[axis] : box.min[axis]);
+      const socket = (box: StudBox) => (box.studs[axis] > 0 ? box.min[axis] : box.max[axis]);
+      const aOnB = !boxA.wedge && Math.abs(stud(boxA) - socket(boxB)) <= EPS;
+      const bOnA = !boxB.wedge && Math.abs(stud(boxB) - socket(boxA)) <= EPS;
+      if (!aOnB && !bOnA) continue;
       const overlapU = Math.min(boxA.max[u], boxB.max[u]) - Math.max(boxA.min[u], boxB.min[u]);
       const overlapW = Math.min(boxA.max[w], boxB.max[w]) - Math.max(boxA.min[w], boxB.min[w]);
       if (overlapU <= EPS || overlapW <= EPS) continue;

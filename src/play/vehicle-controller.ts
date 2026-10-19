@@ -32,7 +32,7 @@ interface DrivenWheel {
 
 export class VehicleController {
   private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false, yawLeft: false, yawRight: false };
-  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean } | null = null;
+  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean } | null = null;
   private rotorsOn = false;
   private pistonsOut = false;
   private driven: DrivenWheel[];
@@ -104,12 +104,12 @@ export class VehicleController {
 
   /** Are the pistons pushed out (G toggles them; they start folded)? */
   get extended(): boolean {
-    return this.pistonsOut;
+    return this.autopilot?.pistons ?? this.pistonsOut;
   }
 
   /** Are the rotors switched on (F toggles them; they start off)? */
   get rotating(): boolean {
-    return this.rotorsOn;
+    return this.autopilot?.rotors ?? this.rotorsOn;
   }
 
   /** The throttle, -1 (S) to 1 (W): the engines' push on the body (see `ENGINE.leverage`) follows it. */
@@ -136,7 +136,7 @@ export class VehicleController {
   }
 
   /** Drives the vehicle with the given throttle/steer in [-1, 1]; `null` hands control back to the keyboard. */
-  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean } | null): void {
+  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean } | null): void {
     this.autopilot = input;
   }
 

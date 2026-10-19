@@ -38,7 +38,7 @@ import {
 } from '../constants';
 import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, faceQuaternion, headedCentres, orientationQuaternion } from '../parts/part-defs';
 import { orientationOfPart } from '../parts/orientation';
-import { partBox, relativeBoxes, studsEngaged } from '../parts/part-geometry';
+import { partBox, relativeBoxes, studsEngaged, wedgePoints } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
 import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isStructural, isWheelType, partCentre, subVec } from '../types';
 
@@ -545,17 +545,22 @@ export class PhysicsWorld {
       for (const p of comp) {
         const local = subVec(p.cell, origin);
         // One collider per box of the part (a block is one cube, a plate a slab, an L bracket two slabs), around its centre.
-        for (const box of relativeBoxes(p)) {
-          const half = box.max.map((v, i) => (v - box.min[i]) / 2);
+        const wedges = wedgePoints(p);
+        relativeBoxes(p).forEach((box, i) => {
+          const half = box.max.map((v, k) => (v - box.min[k]) / 2);
+          const corners = wedges[i];
+          // A wedge is a convex hull of its six corners (relative to the body), any other box a cuboid around its centre.
+          const shape = corners
+            ? RAPIER.ColliderDesc.convexHull(new Float32Array(corners.flatMap((c) => [local[0] + c[0], local[1] + c[1], local[2] + c[2]])))
+            : null;
           this.world.createCollider(
-            RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
-              .setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2)
+            (shape ?? RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2]).setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2))
               .setDensity(CHASSIS.density * weightMass(weightOf(p)))
               .setFriction(CHASSIS.friction)
               .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
             body,
           );
-        }
+        });
         const obj = createPartObject(p);
         obj.position.set(...local);
         visual.add(obj);

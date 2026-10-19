@@ -546,12 +546,27 @@ export const MENU_SCENE = {
   forwardChance: 0.85,
   reverseThrottle: -0.6,
   straightChance: 0.4,
+  /** Pistons: seconds between a push out and a pull back. Thrusters and turbos: the length of a burst and the pause between two (s). */
+  pistonInterval: 3.5,
+  burstLength: 1.2,
+  burstPauseMin: 4,
+  burstPauseJitter: 4,
 } as const;
 
 /** Random car generator for the menu. */
 export const RANDOM_BUILD = {
+  /** The kinds of vehicle, repeated in proportion to how often they appear. */
+  archetypes: ['coupe', 'coupe', 'coupe', 'pickup', 'pickup', 'propeller', 'rocket', 'rocket'] as const,
   widths: [2, 3],
   lengths: [3, 4, 5],
+  pickupLengths: [4, 5],
+  propellerLengths: [3, 4],
+  /** A sloping hood, a sloping tail, a lifting bed on a pickup. */
+  hoodChance: 0.75,
+  tailChance: 0.5,
+  liftChance: 0.5,
+  /** The speeds a propeller can have (see `ROTOR`). */
+  rotorSpeeds: [4, 6, 8, -5, -7] as const,
   cabinChance: 0.75,
   cabinShortChance: 0.5,
   roofBlockChance: 0.4,
