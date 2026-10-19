@@ -91,6 +91,11 @@ export class VehicleController {
     return this.autopilot?.thrust ?? this.pressed.brake;
   }
 
+  /** Is the brake key (Space) held? */
+  get braking(): boolean {
+    return this.autopilot?.brake ?? this.pressed.brake;
+  }
+
   /** Is the boost key (Shift) held? The turbos' flames follow it. */
   get boosting(): boolean {
     return this.autopilot?.boost ?? this.pressed.boost;

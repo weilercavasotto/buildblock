@@ -50,6 +50,9 @@ export class PlayEffects {
   private turboDebt: number[];
   private thrusterDebt: number[];
   private time = 0;
+  /** How hard each wheel is throwing earth (0-1) and how much it slips (0-1), this frame: what the wheel sounds follow. */
+  private rumbles: number[];
+  private slips: number[];
   private ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 });
 
   constructor(
@@ -60,10 +63,22 @@ export class PlayEffects {
     private thrusters: ThrusterFx[],
   ) {
     this.wheelDebt = wheels.map(() => 0);
+    this.rumbles = wheels.map(() => 0);
+    this.slips = wheels.map(() => 0);
     this.engineDebt = engines.map(() => 0);
     this.turboDebt = turbos.map(() => 0);
     this.thrusterDebt = thrusters.map(() => 0);
     this.group.add(this.dust.mesh, this.smoke.mesh, this.flame.mesh);
+  }
+
+  /** The mean strength of the earth the wheels throw (0-1): the rumble of the wheels on the ground. */
+  get rumble(): number {
+    return this.rumbles.length ? this.rumbles.reduce((sum, v) => sum + v, 0) / this.rumbles.length : 0;
+  }
+
+  /** How much the most slipping wheel slips (0-1): the hiss of a skid. */
+  get slip(): number {
+    return Math.max(0, ...this.slips);
   }
 
   update(dt: number, level: number, boosting: boolean, thrusting: boolean): void {
@@ -93,6 +108,8 @@ export class PlayEffects {
     const axleWorld = wheel.axle.clone().applyQuaternion(new THREE.Quaternion(r.x, r.y, r.z, r.w));
     const w = wheel.body.angvel();
     const spin = Math.abs(w.x * axleWorld.x + w.y * axleWorld.y + w.z * axleWorld.z) * wheel.radius;
+    this.rumbles[index] = 0;
+    this.slips[index] = 0;
     if (speed < FX.dust.minSpeed && spin < FX.dust.minSpeed) return;
     // Only a wheel on the ground (anything of the scenery below it, within a wheel radius).
     this.ray.origin = { x: t.x, y: t.y, z: t.z };
@@ -101,6 +118,8 @@ export class PlayEffects {
 
     // How strong the effect is, 0-1.5 (1 = the configured values, at `FX.dust.maxSpeed`): the rate, and how big and lively each clod is.
     const intensity = Math.min(1.5, (speed + Math.max(0, spin - speed) * FX.dust.slip) / FX.dust.maxSpeed);
+    this.rumbles[index] = Math.min(1, intensity);
+    this.slips[index] = Math.min(1, Math.max(0, spin - speed) / FX.dust.maxSpeed);
     const scale = THREE.MathUtils.lerp(FX.dust.scaleMin, 1, Math.min(1, intensity));
     this.wheelDebt[index] += FX.dust.rate * intensity * dt;
     const moving = speed > 0.3 ? new THREE.Vector3(v.x / speed, 0, v.z / speed) : null;

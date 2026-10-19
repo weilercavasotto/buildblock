@@ -46,6 +46,24 @@ const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION
 const groups = (member: number, filter: number): number => (member << 16) | filter;
 
 
+/** What `PhysicsWorld.audioState` reports for the vehicle's sounds. */
+export interface AudioState {
+  speed: number;
+  rumble: number;
+  slip: number;
+  wheels: number;
+  engines: number;
+  thrusters: number;
+  turbos: number;
+  /** False for an old save, where every wheel is driven without engines. */
+  engineDrive: boolean;
+  /** How fast each rotor turns relative to its block (rad/s). */
+  rotors: number[];
+  pistonsMoving: number;
+  /** The strongest sudden change of velocity (m/s) since the last read. */
+  impact: number;
+}
+
 export interface WheelDrive {
   joint: RAPIER.RevoluteImpulseJoint;
   axis: Vec3;
@@ -111,7 +129,7 @@ export class PhysicsWorld {
   /** The direction the vehicle drives in (in the body's frame), the same one the vehicle controller uses. */
   private forward = new THREE.Vector3(0, 0, -1);
   /** The rotors: the hinge between the body of the block and the head (with what it holds) and the signed speed it is driven to (rad/s). */
-  private rotors: Array<{ joint: RAPIER.RevoluteImpulseJoint; target: number }> = [];
+  private rotors: Array<{ joint: RAPIER.RevoluteImpulseJoint; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
   /** The pistons: the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
   private pistons: Array<{ joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh }> = [];
   private effects: PlayEffects;
@@ -229,6 +247,38 @@ export class PhysicsWorld {
     }
   }
 
+  /** The biggest sudden change of the vehicle's velocity (m/s) since `audioState` last read it: a bump or a crash. */
+  private impactChange = 0;
+  /** Does the game need engines to drive the wheels (see `Grid.engineDrive`)? */
+  private engineDrive = false;
+
+  /**
+   * What the vehicle sounds like right now, for `VehicleSound`: its speed, how hard the wheels grip and slip, how many engines, jets
+   * and turbos it has, how fast each rotor turns, how many pistons are moving and the strongest bump since the last call.
+   */
+  audioState(): AudioState {
+    const v = this.focus?.linvel() ?? { x: 0, y: 0, z: 0 };
+    const impact = this.impactChange;
+    this.impactChange = 0;
+    return {
+      speed: Math.hypot(v.x, v.y, v.z),
+      rumble: this.effects.rumble,
+      slip: this.effects.slip,
+      wheels: this.wheels.length,
+      engines: this.engineFx.length,
+      thrusters: this.thrusterFx.length,
+      turbos: this.turboFx.length,
+      engineDrive: this.engineDrive,
+      rotors: this.rotors.map((r) => {
+        const a = r.head.angvel();
+        const b = r.host.angvel();
+        return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+      }),
+      pistonsMoving: this.pistons.filter((p) => Math.abs((this.extended ? p.stroke : 0) - p.target) > 1e-3).length,
+      impact,
+    };
+  }
+
   /** Slides the pistons: the target of each spring moves towards out (the stroke) or back (0) at `PISTON.speed` and the spring follows it. */
   private drivePistons(dt: number): void {
     for (const piston of this.pistons) {
@@ -249,7 +299,12 @@ export class PhysicsWorld {
       this.fly(WORLD.step);
       this.straighten();
       this.drag(WORLD.step);
+      const before = this.focus?.linvel();
       this.world.step();
+      if (before && this.focus) {
+        const after = this.focus.linvel();
+        this.impactChange = Math.max(this.impactChange, Math.hypot(after.x - before.x, after.y - before.y, after.z - before.z));
+      }
       this.accumulator -= WORLD.step;
     }
     this.sync();
@@ -498,11 +553,12 @@ export class PhysicsWorld {
       const joint = this.world.createImpulseJoint(RAPIER.JointData.revolute(anchors[0], anchors[1], axis), host.body, head.body, true) as RAPIER.RevoluteImpulseJoint;
       joint.setContactsEnabled(false);
       // Positive speed is clockwise seen from the head: the other way round about the axis (right-handed), which points out of the block.
-      this.rotors.push({ joint, target: (-rotorSpeedOf(part) / ROTOR.max) * ROTOR.maxSpeed });
+      this.rotors.push({ joint, target: (-rotorSpeedOf(part) / ROTOR.max) * ROTOR.maxSpeed, host: host.body, head: head.body });
     }
   }
 
   private buildCreation(grid: Grid): void {
+    this.engineDrive = grid.engineDrive;
     const parts = grid.all();
     const blocks = parts.filter((p) => isStructural(p.type)); // blocks and plates
     const wheelParts = parts.filter((p) => isWheelType(p.type) && p.face);

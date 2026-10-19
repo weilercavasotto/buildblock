@@ -1,3 +1,4 @@
+import { sound } from '../audio/sound';
 import { Grid } from './grid';
 import { HISTORY } from '../constants';
 import { Part } from '../types';
@@ -61,6 +62,7 @@ export class History {
     if (!previous) return;
     this.redoStack.push(this.grid.all());
     this.grid.load(previous);
+    sound.play('undo');
     this.notify();
   }
 
@@ -69,6 +71,7 @@ export class History {
     if (!next) return;
     this.undoStack.push(this.grid.all());
     this.grid.load(next);
+    sound.play('redo');
     this.notify();
   }
 

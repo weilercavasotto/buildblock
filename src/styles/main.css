@@ -786,7 +786,7 @@ body[data-cursor-mode='remove'] > canvas {
 /* ---- FPS counter: top right ---- */
 #fps {
   position: fixed;
-  top: var(--space-lg);
+  top: calc(var(--space-lg) * 2 + var(--size-icon-button));
   right: var(--space-lg);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
@@ -1314,4 +1314,37 @@ body[data-cursor-mode='remove'] > canvas {
 }
 #controls-panel kbd + kbd {
   margin-left: var(--space-xs);
+}
+
+/* The sound button, top right (always visible, also in the menu): the speaker, or the crossed speaker while muted. */
+#btn-sound {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: var(--z-index-dialog);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+#btn-sound:hover {
+  background: var(--overlay-panel-hover);
+}
+#btn-sound svg {
+  width: var(--size-icon);
+  height: var(--size-icon);
+}
+#btn-sound .sound-off,
+#btn-sound.muted .sound-on {
+  display: none;
+}
+#btn-sound.muted .sound-off {
+  display: block;
 }

@@ -10,6 +10,7 @@ import {
   CELL_SIZE,
   COLORS,
   CURSOR_MODES,
+  UI_CLICK_SELECTOR,
   GROUND_Y,
   LIGHTS,
   ROUGHNESS,
@@ -34,6 +35,8 @@ import { FpsCounter } from './ui/fps-counter';
 import { openCatalog } from './ui/catalog-dialog';
 import { confirmDialog } from './ui/confirm-dialog';
 import { ControlsPanel } from './ui/controls-panel';
+import { sound } from './audio/sound';
+import { VehicleSound } from './audio/vehicle-sound';
 import { Hud } from './ui/hud';
 import { Hotbar } from './ui/hotbar';
 import { PaintPalette } from './ui/paint-palette';
@@ -150,6 +153,7 @@ async function main(): Promise<void> {
   const menuScene = new MenuScene(scene, camera);
   let physics: PhysicsWorld | null = null;
   let vehicle: VehicleController | null = null;
+  let vehicleSound: VehicleSound | null = null;
 
   const startPlay = () => {
     stopPlay();
@@ -158,6 +162,8 @@ async function main(): Promise<void> {
     hud.setNotice(grid.engineDrive && physics.wheels.length > 0 && vehicle.poweredWheels === 0 ? TEXT.hud.noEngine : null);
     scene.add(physics.group);
     controlsPanel.show(grid.all());
+    vehicleSound = new VehicleSound();
+    sound.play('click'); // the standard button sound (Play, Reset and the P / R keys)
     mode = 'play';
     build.setEnabled(false);
     gridLines!.visible = false;
@@ -166,6 +172,9 @@ async function main(): Promise<void> {
 
   const stopPlay = () => {
     controlsPanel.hide();
+    if (vehicleSound) sound.play('click'); // the same sound for Stop (and Esc / P)
+    vehicleSound?.dispose();
+    vehicleSound = null;
     vehicle?.dispose();
     if (physics) {
       scene.remove(physics.group);
@@ -211,6 +220,7 @@ async function main(): Promise<void> {
     onLoad: (id) => {
       const save = getSave(id);
       if (!save) return;
+      sound.play('confirm');
       void loading.run([
         {
           label: TEXT.loading.loadGame,
@@ -227,6 +237,7 @@ async function main(): Promise<void> {
       ]);
     },
     onNew: (name, gridCells) => {
+      sound.play('confirm');
       void loading.run([
         {
           label: TEXT.loading.newGame,
@@ -283,6 +294,7 @@ async function main(): Promise<void> {
   // selection box).
   const palette = new PaintPalette((color) => build.setPaintColor(color));
   const setCursorMode = (mode: CursorMode) => {
+    if (mode !== build.cursorMode) sound.play('mode', { pitch: 0.9 + 0.1 * CURSOR_MODES.findIndex((m) => m.id === mode) });
     build.setMode(mode);
     hud.setCursorMode(mode);
     palette.show(mode === 'paint');
@@ -300,7 +312,10 @@ async function main(): Promise<void> {
     hud.setRotateEnabled(build.canRotate); // after build.setTool(...) so canRotate is up to date
     hud.setTiltEnabled(build.canTilt);
   });
-  hotbar.onUserSelect(() => setCursorMode('build')); // choosing a part to place means building
+  hotbar.onUserSelect(() => {
+    sound.play('tick');
+    setCursorMode('build'); // choosing a part to place means building
+  });
 
   const inspector = new PartInspector(grid, {
     onRemove: (part) => history.run(() => build.removeAnimated(() => grid.remove(part.cell))),
@@ -325,7 +340,36 @@ async function main(): Promise<void> {
   enterMenu();
   void loading.hide();
 
+  // The sound button (and M): mute / unmute, saved with the settings.
+  const soundButton = document.getElementById('btn-sound')!;
+  const showSound = () => {
+    soundButton.classList.toggle('muted', sound.muted);
+    soundButton.title = sound.muted ? TEXT.hud.soundOff : TEXT.hud.soundOn;
+    soundButton.setAttribute('aria-label', soundButton.title);
+  };
+  soundButton.onclick = () => {
+    sound.toggleMuted();
+    soundButton.blur();
+    sound.play('click');
+  };
+  sound.onMuteChange(showSound);
+  showSound();
+  // The buttons of the menus, dialogs and panels click when pressed (the other sounds belong to what the button does).
+  document.addEventListener(
+    'click',
+    (e) => {
+      const button = (e.target as Element).closest?.('button');
+      if (button && !button.disabled && button.matches(UI_CLICK_SELECTOR)) sound.play('click');
+    },
+    true,
+  );
+
   addEventListener('keydown', (e) => {
+    if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      sound.toggleMuted();
+      if (!sound.muted) sound.play('click');
+      return;
+    }
     if (menu.overGame) return; // the saved-games panel is open over the game: typing a name must not trigger shortcuts
     if (e.code === 'F3') {
       e.preventDefault();
@@ -403,6 +447,13 @@ async function main(): Promise<void> {
       physics.steering = vehicle?.steering ?? false;
       physics.pilot = vehicle?.pilot ?? { pitch: 0, roll: 0, yaw: 0 };
       physics.step(dt);
+      if (vehicle) {
+        vehicleSound?.update(
+          physics.audioState(),
+          { level: vehicle.level, braking: vehicle.braking, boosting: vehicle.boosting, thrusting: vehicle.thrusting, rotors: vehicle.rotating },
+          dt,
+        );
+      }
       if (physics.focus) {
         const t = physics.focus.translation();
         const next = new THREE.Vector3(t.x, t.y, t.z);

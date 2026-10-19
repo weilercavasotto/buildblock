@@ -2,6 +2,8 @@
 export const TEXT = {
   hud: {
     controlsTitle: 'Controls',
+    soundOn: 'Sound on (M mutes)',
+    soundOff: 'Sound off (M unmutes)',
     noEngine: 'No engine drives the wheels: mount an engine on a block of the body and point its fan where the vehicle should go.',
     fps: (value: number) => `${value} FPS`,
     /** Zoom level as a percentage of the zoom slider: 0% = farthest, 100% = closest. */

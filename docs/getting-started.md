@@ -42,6 +42,10 @@ wheel: scrolling moves the slider, and dragging the slider or pressing the butto
 to a camera distance of **3 to 60 units** (`CAMERA.minDistance` / `CAMERA.maxDistance`, which are the `100%` and `0%` ends), for
 the wheel, the buttons and the slider alike. It is shown while building and playing, not in the main menu.
 
+## Sound
+
+The game has **sound effects**, all **synthesised** by the Web Audio API (no audio files): a small tick or click on the buttons of the menus, dialogs and panels, a pop when you **place** a part (lower for a bigger one, a jelly wobble after it) and a bump when a placement is refused, a pop-down when you **remove** one, ticks for **rotate / tilt**, a splash for **paint**, a rising and a falling note for **undo / redo**, a chime when a game is opened or created, a sweep when the catalog and the other panels open and close, and the standard button click when **Play** starts, restarts (Reset / `R`) and stops. While **playing** the vehicle has its own voices: the **engine** (its pitch follows the speed and the throttle), the **earth** thrown up by the wheels, a **skid** hiss, the **brakes** squealing, the **thrusters** roaring, the **turbos** whistling up while Shift is held, the **rotors** whirring (the pitch follows the speed, chopped as the blades pass), the **pistons** hissing out and thudding home, and a **thud** for every bump or crash (louder the harder). The **speaker button** at the top right (always visible, also in the menu) or the **`M`** key mutes and unmutes everything; the choice is saved. Browsers keep sound off until you click or press a key once, so nothing plays before that. The tunables are in `src/constants/sound.ts`.
+
 ## FPS counter and frame limit
 
 Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also shows 60). The target is

@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { Grid } from './grid';
+import { sound } from '../audio/sound';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber } from '../constants';
+import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber, partVolume } from '../constants';
 import { brakePose, createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
@@ -154,6 +155,7 @@ export class BuildMode {
   rotate(direction: 1 | -1): void {
     if (!this.canRotate || this.tool === null) return;
     this.orientation = turnOrientation(this.tool, this.orientation, [0, 1, 0], -direction, false);
+    sound.play('rotate');
     // Re-aim the ghost at its new orientation: it turns smoothly (see `update`).
     if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
   }
@@ -181,6 +183,7 @@ export class BuildMode {
       next = direction > 0 ? (up(a) >= up(b) ? a : b) : (up(a) <= up(b) ? a : b);
     }
     this.orientation = next;
+    sound.play('tilt');
     if (this.lastPointer) this.onMove({ ...this.lastPointer, buttons: 0 });
   }
 
@@ -206,12 +209,20 @@ export class BuildMode {
 
   /** Runs `edit` (which removes parts from the grid) so that the parts it removes pop away (see `FX.pop`). */
   removeAnimated(edit: () => void): void {
+    const before = this.grid.all().length;
     this.removing = true;
     try {
       edit();
     } finally {
       this.removing = false;
     }
+    if (this.grid.all().length < before) sound.play('remove');
+  }
+
+  /** The pitch of the sound of placing `part`: a bigger one sounds lower. */
+  private placePitch(part: Part): number {
+    const size = isStructural(part.type) ? partVolume(part as Part & { type: StructuralType }) : 1;
+    return 1.25 - 0.3 * Math.min(1, Math.sqrt(size) / 2);
   }
 
   /** A removed part swells a little and then shrinks to nothing, quickly. */
@@ -243,6 +254,11 @@ export class BuildMode {
 
   setPaintColor(color: string | null): void {
     this.paintColor = color;
+  }
+
+  /** The current cursor mode. */
+  get cursorMode(): CursorMode {
+    return this.mode;
   }
 
   setMode(mode: CursorMode): void {
@@ -315,7 +331,10 @@ export class BuildMode {
     } finally {
       this.moving = false;
     }
-    if (moved) this.selectMany(moved);
+    if (moved) {
+      this.selectMany(moved);
+      sound.play('move');
+    }
     return moved !== null;
   }
 
@@ -616,7 +635,11 @@ export class BuildMode {
     this.placing = true;
     const added = this.grid.add(part);
     this.placing = false;
-    if (!added) return;
+    if (!added) {
+      sound.play('error');
+      return;
+    }
+    sound.play('place', { pitch: this.placePitch(part) });
     this.setGhost(null);
     if (part.type !== 'block') {
       this.history.commit(before);
@@ -663,7 +686,9 @@ export class BuildMode {
     if (!part) return;
     s.x = e.clientX;
     s.y = e.clientY;
-    if (this.mode === 'paint') this.grid.paint(part.cell, this.paintColor);
+    if (this.mode === 'paint') {
+      if (this.grid.paint(part.cell, this.paintColor)) sound.play('paint');
+    }
     else this.removeAnimated(() => this.grid.remove(part.cell));
   }
 
@@ -691,7 +716,7 @@ export class BuildMode {
       cells.push({ type: 'block', cell, ...orientationFields(canonicalOrientation('block', this.orientation)) });
     }
     this.placing = true;
-    this.grid.addMany(cells);
+    if (this.grid.addMany(cells) > 0) sound.play('place', { gain: 0.6 });
     this.placing = false;
     s.last = goal;
   }
@@ -824,11 +849,13 @@ export class BuildMode {
           }
           const found = this.partsInRect(down.x, down.y, e.clientX, e.clientY);
           this.selectMany(shift ? [...this.selection, ...found.filter((p) => !this.isSelected(p))] : found);
+          if (found.length > 0) sound.play('select');
         } else {
           const part = this.pick(e)?.part ?? null;
           if (shift) {
             if (part) this.toggle(part);
           } else this.select(part);
+          if (part) sound.play('select');
         }
       }
     } else if (e.button === 2 && !moved && this.mode !== 'paint') {

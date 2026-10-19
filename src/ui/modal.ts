@@ -1,3 +1,4 @@
+import { sound } from '../audio/sound';
 export interface ModalOptions {
   /** Extra class(es) of the `.dialog` element (e.g. `help`, `catalog`). */
   className: string;
@@ -42,6 +43,7 @@ export function openModal(options: ModalOptions): void {
   backdrop.append(dialog);
 
   const finish = () => {
+    sound.play('close');
     document.removeEventListener('keydown', onKeyDown, true);
     backdrop.remove();
     current = null;
@@ -83,5 +85,6 @@ export function openModal(options: ModalOptions): void {
   const initialFocus = options.build(dialog, finish);
   document.addEventListener('keydown', onKeyDown, true);
   document.body.append(backdrop);
+  sound.play('open');
   initialFocus.focus();
 }

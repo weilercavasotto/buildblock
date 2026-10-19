@@ -184,6 +184,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Anywhere in the game',
         rows: [
+          { keys: ['M'], text: 'Mute / unmute all sounds (also the speaker button at the top right). The choice is saved.' },
           { keys: ['H'], text: 'Open or close this help.' },
           { keys: ['F3'], text: 'Show or hide the FPS counter.' },
           { keys: ['Esc'], text: 'Close this help or a confirmation dialog.' },
