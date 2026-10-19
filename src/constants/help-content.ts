@@ -184,6 +184,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Anywhere in the game',
         rows: [
+          { keys: ['Settings'], text: 'The gear button at the top right (beside the speaker) opens the settings: sound (mute and three volume sliders), the FPS counter, the controls panel while playing, shadows and the dust, smoke and flames. They are saved.' },
           { keys: ['M'], text: 'Mute / unmute all sounds (also the speaker button at the top right). The choice is saved.' },
           { keys: ['H'], text: 'Open or close this help.' },
           { keys: ['F3'], text: 'Show or hide the FPS counter.' },

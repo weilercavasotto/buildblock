@@ -65,4 +65,9 @@ export const SIZE = {
   /** The sliders (zoom, inspector): the thickness of the track and the size of the knob. */
   sliderTrack: 6,
   sliderThumb: 16,
+  /** The settings panel: its width, the width of a volume slider and the size of an on / off switch. */
+  settingsWidth: 460,
+  settingsSlider: 170,
+  switchWidth: 44,
+  switchHeight: 24,
 } as const;

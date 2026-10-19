@@ -112,6 +112,8 @@ export class PhysicsWorld {
   throttle = 0;
   /** Are the rotors switched on (F, see `VehicleController.rotating`)? */
   rotating = false;
+  /** Are the dust, smoke and flames drawn (a setting)? */
+  effectsEnabled = true;
   /** Are the pistons pushed out (G, see `VehicleController.extended`)? They slide out while it is on and back when it is off. */
   extended = false;
 
@@ -308,6 +310,7 @@ export class PhysicsWorld {
       this.accumulator -= WORLD.step;
     }
     this.sync();
+    this.effects.group.visible = this.effectsEnabled;
     this.effects.update(dt, this.level, this.boosting, this.thrusting);
   }
 

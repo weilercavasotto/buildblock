@@ -35,6 +35,8 @@ import { FpsCounter } from './ui/fps-counter';
 import { openCatalog } from './ui/catalog-dialog';
 import { confirmDialog } from './ui/confirm-dialog';
 import { ControlsPanel } from './ui/controls-panel';
+import { settings } from './settings';
+import { toggleSettingsDialog } from './ui/settings-dialog';
 import { sound } from './audio/sound';
 import { VehicleSound } from './audio/vehicle-sound';
 import { Hud } from './ui/hud';
@@ -259,6 +261,19 @@ async function main(): Promise<void> {
 
   const controlsPanel = new ControlsPanel();
   const fps = new FpsCounter();
+  // The settings (the gear button): applied now and whenever they change.
+  const applySettings = () => {
+    sound.setLevels({ master: settings.get('volumeMaster'), sfx: settings.get('volumeSfx'), vehicle: settings.get('volumeVehicle') });
+    fps.setVisible(settings.get('showFps'));
+    sun.castShadow = settings.get('shadows');
+    controlsPanel.setEnabled(settings.get('showControls'));
+  };
+  settings.subscribe(applySettings);
+  applySettings();
+  document.getElementById('btn-settings')!.onclick = () => {
+    toggleSettingsDialog();
+    (document.getElementById('btn-settings') as HTMLButtonElement).blur();
+  };
   const hotbar = new Hotbar(() => openCatalog(hotbar));
   hotbar.subscribe((part) => build.setTool(part));
 
@@ -375,7 +390,7 @@ async function main(): Promise<void> {
     if (menu.overGame) return; // the saved-games panel is open over the game: typing a name must not trigger shortcuts
     if (e.code === 'F3') {
       e.preventDefault();
-      fps.toggle();
+      settings.set('showFps', !fps.visible);
     }
     if (e.code === 'KeyH' && mode !== 'menu' && !e.ctrlKey && !e.metaKey && !e.altKey && !isHelpOpen()) {
       toggleHelpDialog();
@@ -443,6 +458,7 @@ async function main(): Promise<void> {
       physics.level = vehicle?.level ?? 0;
       physics.throttle = vehicle?.throttle ?? 0;
       physics.rotating = vehicle?.rotating ?? false;
+      physics.effectsEnabled = settings.get('effects');
       physics.extended = vehicle?.extended ?? false;
       physics.boosting = vehicle?.boosting ?? false;
       physics.thrusting = vehicle?.thrusting ?? false;

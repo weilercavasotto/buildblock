@@ -8,10 +8,13 @@ import { Part } from '../types';
  */
 export class ControlsPanel {
   private root = document.getElementById('controls-panel')!;
+  private enabled = true;
+  private parts: ReadonlyArray<Part> | null = null;
 
   /** Lists the commands of the parts in `parts` (the creation that is about to be played). */
   show(parts: ReadonlyArray<Part>): void {
-    const rows = PLAY_CONTROLS.filter((control) => control.when(parts));
+    this.parts = parts;
+    const rows = this.enabled ? PLAY_CONTROLS.filter((control) => control.when(parts)) : [];
     this.root.hidden = rows.length === 0;
     if (rows.length === 0) return;
     const title = document.createElement('h3');
@@ -35,6 +38,13 @@ export class ControlsPanel {
   }
 
   hide(): void {
+    this.parts = null;
     this.root.hidden = true;
+  }
+
+  /** The settings switch the panel on and off; while playing it follows at once. */
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (this.parts) this.show(this.parts);
   }
 }

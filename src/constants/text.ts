@@ -1,5 +1,10 @@
 /** User-facing strings built in code (static HTML text lives in index.html). All English. */
 export const TEXT = {
+  settings: {
+    title: 'Settings',
+    close: 'Close',
+    button: 'Settings',
+  },
   hud: {
     controlsTitle: 'Controls',
     soundOn: 'Sound on (M mutes)',

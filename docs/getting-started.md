@@ -46,10 +46,14 @@ the wheel, the buttons and the slider alike. It is shown while building and play
 
 The game has **sound effects**, all **synthesised** by the Web Audio API (no audio files): a small tick or click on the buttons of the menus, dialogs and panels, a pop when you **place** a part (lower for a bigger one, a jelly wobble after it) and a bump when a placement is refused, a pop-down when you **remove** one, ticks for **rotate / tilt**, a short spray hiss (the same as the turbo's) for **paint**, a rising and a falling note for **undo / redo**, a chime when a game is opened or created, a sweep when the catalog and the other panels open and close, and the standard button click when **Play** starts, restarts (Reset / `R`) and stops. While **playing** the vehicle has its own voices: the **engine** (its pitch follows the speed and the throttle), the **earth** thrown up by the wheels, a **skid** hiss, the **brakes** squealing, the **thrusters** roaring, the **turbos** spraying (a hiss) while Shift is held, the **rotors** whirring (the pitch follows the speed, chopped as the blades pass), the **pistons** hissing out and thudding home, and a **thud** for every bump or crash (louder the harder). The **speaker button** at the top right (always visible, also in the menu) or the **`M`** key mutes and unmutes everything; the choice is saved. Browsers keep sound off until you click or press a key once, so nothing plays before that. The tunables are in `src/constants/sound.ts`.
 
+## Settings
+
+The **gear button** at the top right, beside the speaker (always visible, also in the menu), opens the **Settings** panel (`Esc` or × closes it). **Sound**: the mute switch (the same as the speaker and `M`) and three volume sliders: everything, the interface and building sounds, and the vehicle. **Display**: the **FPS counter** (also `F3`) and the **controls panel** at the bottom left while playing. **Graphics**: the **shadows** (turn them off if the game runs slowly) and the **dust, smoke and flames** of Play. A change applies at once and is saved in the browser (`blocklab.settings`; the mute in `blocklab.sound`). To add a setting: a key in `SETTINGS_DEFAULTS` and a row in `SETTINGS_PANEL` (`src/constants/settings.ts`), and apply it in `applySettings` (`src/main.ts`).
+
 ## FPS counter and frame limit
 
 Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also shows 60). The target is
-`FRAME_LIMIT.targetFps` in `src/constants/game.ts`. A small frames-per-second readout sits in the **top-right corner** in every mode. It is green at 55+ FPS, yellow
+`FRAME_LIMIT.targetFps` in `src/constants/game.ts`. A small frames-per-second readout, **off by default**, sits under the top-right buttons in every mode once you turn it on (the **FPS counter** switch in the Settings, or **F3**). It is green at 55+ FPS, yellow
 at 30+ and red below. Press **F3** to show or hide it. Thresholds and refresh rate: `FPS_COUNTER` in
 `src/constants/game.ts`.
 

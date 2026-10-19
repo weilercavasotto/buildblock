@@ -14,6 +14,8 @@ class SoundEngine {
   private lastPlayed = new Map<string, number>();
   private listeners: Array<(muted: boolean) => void> = [];
   private mutedState = loadMuted();
+  /** What the settings multiply the bus levels by (0-1). */
+  private levels = { master: 1, sfx: 1, vehicle: 1 };
 
   constructor() {
     // Browsers keep audio suspended until the player does something: the first click / key wakes it.
@@ -39,8 +41,22 @@ class SoundEngine {
     } catch {
       /* private mode or blocked storage: the setting just is not kept */
     }
-    if (this.ctx && this.master) this.master.gain.setTargetAtTime(muted ? 0 : SOUND.master, this.ctx.currentTime, SOUND.muteFade);
+    this.applyLevels(SOUND.muteFade);
     this.listeners.forEach((fn) => fn(muted));
+  }
+
+  /** Sets the volume levels from the settings (each 0-1; they multiply the levels of `SOUND`). */
+  setLevels(levels: { master: number; sfx: number; vehicle: number }): void {
+    this.levels = levels;
+    this.applyLevels(SOUND.muteFade);
+  }
+
+  private applyLevels(fade: number): void {
+    if (!this.ctx || !this.master || !this.sfxBus || !this.vehicleBus) return;
+    const t = this.ctx.currentTime;
+    this.master.gain.setTargetAtTime(this.mutedState ? 0 : SOUND.master * this.levels.master, t, fade);
+    this.sfxBus.gain.setTargetAtTime(SOUND.sfx * this.levels.sfx, t, fade);
+    this.vehicleBus.gain.setTargetAtTime(SOUND.vehicle * this.levels.vehicle, t, fade);
   }
 
   toggleMuted(): void {
@@ -54,14 +70,14 @@ class SoundEngine {
     if (!Context) return null;
     this.ctx = new Context();
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.mutedState ? 0 : SOUND.master;
+    this.master.gain.value = this.mutedState ? 0 : SOUND.master * this.levels.master;
     const compressor = this.ctx.createDynamicsCompressor(); // many layers at once must not clip
     this.master.connect(compressor).connect(this.ctx.destination);
     this.sfxBus = this.ctx.createGain();
-    this.sfxBus.gain.value = SOUND.sfx;
+    this.sfxBus.gain.value = SOUND.sfx * this.levels.sfx;
     this.sfxBus.connect(this.master);
     this.vehicleBus = this.ctx.createGain();
-    this.vehicleBus.gain.value = SOUND.vehicle;
+    this.vehicleBus.gain.value = SOUND.vehicle * this.levels.vehicle;
     this.vehicleBus.connect(this.master);
     this.noiseBuffer = this.makeNoise(this.ctx);
     return this.ctx;

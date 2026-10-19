@@ -13,3 +13,4 @@ export * from './text';
 export * from './theme';
 export * from './typography';
 export * from './sound';
+export * from './settings';

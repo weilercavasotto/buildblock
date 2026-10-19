@@ -28,7 +28,11 @@ export class FpsCounter {
     this.windowStart = elapsedSeconds;
   }
 
-  toggle(): void {
-    this.el.hidden = !this.el.hidden;
+  get visible(): boolean {
+    return !this.el.hidden;
+  }
+
+  setVisible(visible: boolean): void {
+    this.el.hidden = !visible;
   }
 }

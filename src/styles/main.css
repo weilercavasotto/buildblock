@@ -1315,7 +1315,8 @@ body[data-cursor-mode='remove'] > canvas {
 }
 
 /* The sound button, top right (always visible, also in the menu): the speaker, or the crossed speaker while muted. */
-#btn-sound {
+#btn-sound,
+#btn-settings {
   position: fixed;
   top: var(--space-lg);
   right: var(--space-lg);
@@ -1332,10 +1333,16 @@ body[data-cursor-mode='remove'] > canvas {
   color: var(--color-text-primary);
   cursor: pointer;
 }
-#btn-sound:hover {
+#btn-settings {
+  /* The same gap as between the buttons at the top left (`#top-left`). */
+  right: calc(var(--space-lg) + var(--size-icon-button) + var(--space-sm));
+}
+#btn-sound:hover,
+#btn-settings:hover {
   background: var(--overlay-panel-hover);
 }
-#btn-sound svg {
+#btn-sound svg,
+#btn-settings svg {
   width: var(--size-icon);
   height: var(--size-icon);
 }
@@ -1412,4 +1419,71 @@ body[data-cursor-mode='remove'] > canvas {
   border: 0;
   border-radius: 50%;
   background: var(--color-text-primary);
+}
+
+/* ---- Settings panel (src/ui/settings-dialog.ts) ---- */
+.dialog.settings {
+  width: min(var(--size-settings-width), 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+.settings-body {
+  overflow-y: auto;
+  padding-right: var(--space-sm);
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-sm) 0;
+}
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.setting-hint {
+  font-size: var(--font-size-xs);
+  opacity: var(--opacity-muted);
+}
+.setting-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: var(--size-settings-slider);
+  flex: 0 0 auto;
+}
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--size-switch-width);
+  height: var(--size-switch-height);
+  padding: 0;
+  border: 0;
+  border-radius: var(--size-switch-height);
+  background: var(--color-surface-control-hover);
+  cursor: pointer;
+}
+.switch[aria-checked='true'] {
+  background: var(--color-accent-highlight);
+}
+.switch-knob {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  width: calc(var(--size-switch-height) - var(--space-xs) * 2);
+  height: calc(var(--size-switch-height) - var(--space-xs) * 2);
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  transition: transform var(--motion-fast) ease-out;
+}
+.switch[aria-checked='true'] .switch-knob {
+  transform: translateX(calc(var(--size-switch-width) - var(--size-switch-height)));
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch-knob {
+    transition: none;
+  }
 }
