@@ -6,6 +6,7 @@ export * from './help-content';
 export * from './part-catalog';
 export * from './part-shapes';
 export * from './physics';
+export * from './scenery';
 export * from './play-controls';
 export * from './spacing';
 export * from './text';

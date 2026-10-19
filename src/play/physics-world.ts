@@ -18,7 +18,7 @@ import {
   VEHICLE,
   brakeOf,
   ROUGHNESS,
-  SCENERY,
+  SCENERY_PARTS,
   SPAWN_CLEARANCE,
   SPAWN_LIFT,
   SUSPENSION,
@@ -368,24 +368,31 @@ export class PhysicsWorld {
         .setCollisionGroups(groups(GROUND, 0xffff))
         .setFriction(GROUND_COLLIDER.friction),
     );
-    for (const { halfExtents: half, position: pos, tiltDeg, color } of SCENERY) {
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(THREE.MathUtils.degToRad(tiltDeg), 0, 0));
-      const body = this.world.createRigidBody(
-        RAPIER.RigidBodyDesc.fixed().setTranslation(...pos).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }),
-      );
-      this.world.createCollider(
-        RAPIER.ColliderDesc.cuboid(...half).setCollisionGroups(groups(GROUND, 0xffff)).setFriction(1),
-        body,
-      );
-      const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(half[0] * 2, half[1] * 2, half[2] * 2),
-        new THREE.MeshStandardMaterial({ color: hexToNumber(color), roughness: ROUGHNESS.scenery }),
-      );
-      mesh.position.set(...pos);
-      mesh.quaternion.copy(q);
-      mesh.castShadow = mesh.receiveShadow = true;
-      this.group.add(mesh);
+    // The ramps and obstacles: parts of the catalog, fixed in place (one fixed body, a collider per box of each part).
+    const fixed = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+    for (const part of SCENERY_PARTS) {
+      this.addStructuralColliders(fixed, part, part.cell, (desc) => desc.setCollisionGroups(groups(GROUND, 0xffff)).setFriction(1));
+      const object = createPartObject(part);
+      object.position.set(...part.cell);
+      this.group.add(object);
     }
+  }
+
+  /**
+   * One collider on `body` for each box of the structural `part`, `local` being where the part's cell is in the body's frame: a cuboid
+   * around the centre of the box, or the convex hull of the corners of a wedge. `configure` sets the rest (density, friction, groups).
+   */
+  private addStructuralColliders(body: RAPIER.RigidBody, part: Part, local: Vec3, configure: (desc: RAPIER.ColliderDesc) => RAPIER.ColliderDesc): void {
+    const wedges = wedgePoints(part);
+    relativeBoxes(part).forEach((box, i) => {
+      const half = box.max.map((v, k) => (v - box.min[k]) / 2);
+      const corners = wedges[i];
+      const hull = corners ? RAPIER.ColliderDesc.convexHull(new Float32Array(corners.flatMap((c) => [local[0] + c[0], local[1] + c[1], local[2] + c[2]]))) : null;
+      const shape =
+        hull ??
+        RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2]).setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2);
+      this.world.createCollider(configure(shape), body);
+    });
   }
 
   /**
@@ -545,22 +552,9 @@ export class PhysicsWorld {
       for (const p of comp) {
         const local = subVec(p.cell, origin);
         // One collider per box of the part (a block is one cube, a plate a slab, an L bracket two slabs), around its centre.
-        const wedges = wedgePoints(p);
-        relativeBoxes(p).forEach((box, i) => {
-          const half = box.max.map((v, k) => (v - box.min[k]) / 2);
-          const corners = wedges[i];
-          // A wedge is a convex hull of its six corners (relative to the body), any other box a cuboid around its centre.
-          const shape = corners
-            ? RAPIER.ColliderDesc.convexHull(new Float32Array(corners.flatMap((c) => [local[0] + c[0], local[1] + c[1], local[2] + c[2]])))
-            : null;
-          this.world.createCollider(
-            (shape ?? RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2]).setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2))
-              .setDensity(CHASSIS.density * weightMass(weightOf(p)))
-              .setFriction(CHASSIS.friction)
-              .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
-            body,
-          );
-        });
+        this.addStructuralColliders(body, p, local, (desc) =>
+          desc.setDensity(CHASSIS.density * weightMass(weightOf(p))).setFriction(CHASSIS.friction).setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+        );
         const obj = createPartObject(p);
         obj.position.set(...local);
         visual.add(obj);

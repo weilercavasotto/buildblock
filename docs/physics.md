@@ -37,8 +37,11 @@ every time Play starts (and on `R`).
      floor. Measured ground clearance of the blocks at rest, strength 50: 0.27 (2 × 2 base, 4 blocks), 0.26 (2 × 3 base) and
      0.16 with 2 extra layers on the 2 × 3 base. An acceleration-based engine was tried first and did
      not work: it acts on the reduced mass of hub + wheel, far lighter than the chassis.
-3. **Scenery**: a large fixed floor plus a few fixed ramps/obstacles (far from the build area, only
-   present during Play).
+3. **Scenery**: a large fixed floor plus fixed ramps and obstacles (far from the build area, present during Play and in the
+   main menu). They are **parts of the catalog** (`SCENERY_PARTS`: a two-storey ramp of slopes and beams, a kicker with a table top,
+   a low wall of beams, tall pillars to weave between and a row of whoops), put on one fixed body with the same colliders as a
+   placed part (`PhysicsWorld.addStructuralColliders`, a convex hull for a slope) and drawn with `createPartObject`, so they look
+   like the blocks the player builds with and, being fixed, never slide away. To change them edit `constants/scenery.ts`.
 
 All bodies have `canSleep = false` so engines keep working.
 
@@ -116,4 +119,4 @@ All tunables are in [`src/constants/physics.ts`](../src/constants/physics.ts) (s
 | `WORLD.gravity` | -15 | World gravity |
 | `WORLD.step` / `WORLD.maxFrameTime` | 1/60 s / 0.1 s | Fixed step and frame-time clamp |
 | `SPAWN_LIFT` | 0.2 | Spawn height so wheels start above the floor |
-| `SCENERY` | list | Ramps and obstacles of Play mode |
+| `SCENERY_PARTS` (`constants/scenery.ts`) | list of `Part` | Ramps and obstacles of Play mode and the menu, built from catalog parts (slopes, beams, pillars) |

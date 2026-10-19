@@ -328,18 +328,3 @@ export const GROUND_COLLIDER = {
   friction: 1,
 } as const;
 
-export interface SceneryProp {
-  halfExtents: Vec3;
-  position: Vec3;
-  /** Tilt around the X axis in degrees. */
-  tiltDeg: number;
-  color: string;
-}
-
-/** Fixed ramps and obstacles, only present in Play mode and far from the build area. */
-export const SCENERY: SceneryProp[] = [
-  { halfExtents: [3, 0.25, 4], position: [0, 0.3, -16], tiltDeg: 15, color: COLORS.scene.rampBrown },
-  { halfExtents: [2.5, 0.25, 3], position: [14, 0.1, -10], tiltDeg: 15, color: COLORS.scene.rampGreen },
-  { halfExtents: [6, 0.5, 0.5], position: [-10, -0.25, -6], tiltDeg: 0, color: COLORS.scene.obstacleBlue },
-  { halfExtents: [6, 0.5, 0.5], position: [-10, -0.25, -9], tiltDeg: 0, color: COLORS.scene.obstacleBlue },
-];

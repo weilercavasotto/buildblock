@@ -20,6 +20,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/main.ts`: bootstrap, mode switching (menu/build/play), main loop, active-save autosave
 - `src/types.ts`: `Part`, `Vec3`, cell helpers
 - `src/build/`: `grid.ts` (data model), `build-mode.ts` (picking, ghost, place/remove)
+- Scenery (ramps, obstacles): `SCENERY_PARTS` in `src/constants/scenery.ts`, catalog parts on one fixed body (`PhysicsWorld.buildScenery` / `addStructuralColliders`); edit that list to change them
 - `src/play/`: `physics-world.ts` (grid -> Rapier), `vehicle-controller.ts` (WASD -> engines)
 - `src/play/play-effects.ts` + `src/play/particles.ts`: Play effects (wheel dust, engine smoke, engine shaking; `PhysicsWorld.level` from `VehicleController.level`); the placement bounce is in `BuildMode.animateBounces`; tunables in `FX` / `COLORS.fx` (`src/constants/`)
 - `src/parts/part-defs.ts`: visuals/dimensions of every part

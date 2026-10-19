@@ -51,6 +51,7 @@ export const COLORS = {
     rampBrown: '#8a6f4d',
     rampGreen: '#6f8a4d',
     obstacleBlue: '#4d6f8a',
+    rampBump: '#d98c3f',
   },
 
   /** Particle effects in the 3D scene (see `FX`). */
