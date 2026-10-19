@@ -69,8 +69,8 @@ export const SFX = {
   rotate: [tone('triangle', 620, 710, 0.045, 0.25)],
   tilt: [tone('triangle', 470, 540, 0.045, 0.25)],
   move: [tone('triangle', 450, 450, 0.035, 0.16)],
-  // The family of `place`, lighter and higher: a soft sine blip that rises and a small round tail (no noise sweep, so a drag of strokes stays gentle).
-  paint: [tone('sine', 560, 760, 0.06, 0.32), tone('sine', 760, 640, 0.09, 0.14, 0.05)],
+  // A spray: a short hiss of high noise, the same sound as the turbo's spray (`VEHICLE_SOUND.turbo`), like a can of paint.
+  paint: [noise('highpass', 3800, 3800, 0.11, 0.22, 0.7)],
   // Two soft sine notes like `place`, going down for undo and up for redo.
   undo: [tone('sine', 400, 300, 0.07, 0.4), tone('sine', 300, 235, 0.11, 0.25, 0.06)],
   redo: [tone('sine', 300, 400, 0.07, 0.4), tone('sine', 400, 470, 0.11, 0.25, 0.06)],
@@ -109,8 +109,8 @@ export const VEHICLE_SOUND = {
   brake: { gain: 0.07, freq: 1250, fall: 350, minSpeed: 2.5, topSpeed: 20 },
   /** The roar of the thrusters (noise through a low-pass that opens with their number). */
   thruster: { gain: 0.34, cutoff: 700, cutoffPerThruster: 350, rumble: 55, rumbleGain: 0.18 },
-  /** The turbos: a whistle that rises while the boost is held, over a hiss. */
-  turbo: { whistleFrom: 900, whistleTo: 2500, whistleGain: 0.07, hissGain: 0.1, hissFreq: 4200, riseTime: 0.7 },
+  /** The turbos: a spray, a hiss of high noise (above `hissFreq`) while the boost is held. */
+  turbo: { hissGain: 0.16, hissFreq: 3800 },
   /** A rotor: a saw whose pitch follows its speed (rad/s), chopped as its blades pass; `perRadian` Hz for each rad/s. */
   rotor: { base: 40, perRadian: 4.5, gain: 0.13, chop: 0.55, bladeCount: 2, topSpeed: 25 },
   /** An impact is heard when the vehicle's velocity changes by more than `minChange` (m/s) in a step, loudest at `maxChange`. */

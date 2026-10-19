@@ -162,6 +162,7 @@ async function main(): Promise<void> {
     hud.setNotice(grid.engineDrive && physics.wheels.length > 0 && vehicle.poweredWheels === 0 ? TEXT.hud.noEngine : null);
     scene.add(physics.group);
     controlsPanel.show(grid.all());
+    palette.show(false); // painting is for building: the colours are hidden while playing
     vehicleSound = new VehicleSound();
     sound.play('click'); // the standard button sound (Play, Reset and the P / R keys)
     mode = 'play';
@@ -186,6 +187,7 @@ async function main(): Promise<void> {
   const stop = () => {
     stopPlay();
     mode = 'build';
+    palette.show(build.cursorMode === 'paint'); // the colours come back if the cursor is still the paint brush
     build.setEnabled(true);
     gridLines!.visible = true;
     hud.setMode('build');

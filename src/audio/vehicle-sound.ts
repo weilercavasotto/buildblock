@@ -36,15 +36,12 @@ export class VehicleSound {
   private jetFilter!: BiquadFilterNode;
   private jetGain!: GainNode;
   private jetRumbleGain!: GainNode;
-  private whistle!: OscillatorNode;
-  private whistleGain!: GainNode;
   private hissGain!: GainNode;
   private rotorOsc!: OscillatorNode;
   private rotorFilter!: BiquadFilterNode;
   private rotorGain!: GainNode;
   private chopGain!: GainNode;
   private chopLfo!: OscillatorNode;
-  private boostFor = 0;
   private lastImpact = -1;
   private pistons = 0;
 
@@ -116,11 +113,7 @@ export class VehicleSound {
     this.jetRumbleGain = gain();
     jetRumble.connect(filter('lowpass', 220)).connect(this.jetRumbleGain).connect(out);
 
-    // The turbos: a whistle over a hiss.
-    this.whistle = osc('sine');
-    this.whistle.frequency.value = V.turbo.whistleFrom;
-    this.whistleGain = gain();
-    this.whistle.connect(this.whistleGain).connect(out);
+    // The turbos: a spray (a hiss of high noise) while the boost is held.
     const hissNoise = noise();
     this.hissGain = gain();
     hissNoise?.connect(filter('highpass', V.turbo.hissFreq)).connect(this.hissGain).connect(out);
@@ -177,16 +170,13 @@ export class VehicleSound {
     to(this.brakeOsc.frequency, V.brake.freq - V.brake.fall * (1 - clamp01(state.speed / V.brake.topSpeed)));
     to(this.brakeGain.gain, braking ? V.brake.gain : 0);
 
-    // Jets and turbos (the boost is heard as a rising whistle while the key is held).
+    // Jets and turbos (the boost is heard as a spray while the key is held).
     const jets = input.thrusting ? Math.min(1.5, state.thrusters) : 0;
     to(this.jetGain.gain, jets > 0 ? V.thruster.gain * Math.min(1, 0.6 + jets * 0.4) : 0);
     to(this.jetFilter.frequency, V.thruster.cutoff + V.thruster.cutoffPerThruster * Math.min(4, state.thrusters));
     to(this.jetRumbleGain.gain, jets > 0 ? V.thruster.rumbleGain : 0);
-    this.boostFor = input.boosting && state.turbos > 0 ? this.boostFor + dt : 0;
-    const rise = clamp01(this.boostFor / V.turbo.riseTime);
-    to(this.whistle.frequency, V.turbo.whistleFrom + (V.turbo.whistleTo - V.turbo.whistleFrom) * rise);
-    to(this.whistleGain.gain, this.boostFor > 0 ? V.turbo.whistleGain : 0);
-    to(this.hissGain.gain, this.boostFor > 0 ? V.turbo.hissGain : 0);
+    const boosting = input.boosting && state.turbos > 0;
+    to(this.hissGain.gain, boosting ? V.turbo.hissGain : 0);
 
     // Rotors: the pitch and the chop follow the fastest one, the level the number that turn.
     const spinning = state.rotors.filter((r) => r > 0.5).length;
