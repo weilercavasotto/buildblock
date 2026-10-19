@@ -296,7 +296,7 @@ async function main(): Promise<void> {
   // selection box).
   const palette = new PaintPalette((color) => build.setPaintColor(color));
   const setCursorMode = (mode: CursorMode) => {
-    if (mode !== build.cursorMode) sound.play('mode', { pitch: 0.9 + 0.1 * CURSOR_MODES.findIndex((m) => m.id === mode) });
+    if (mode !== build.cursorMode) sound.play('click'); // the standard button sound, also for the I / B / E / R keys
     build.setMode(mode);
     hud.setCursorMode(mode);
     palette.show(mode === 'paint');

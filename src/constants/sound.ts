@@ -57,7 +57,6 @@ export const SFX = {
   click: [tone('sine', 500, 360, 0.06, 0.45)],
   tick: [tone('sine', 1100, 900, 0.03, 0.22)],
   select: [tone('sine', 1000, 1250, 0.035, 0.22)],
-  mode: [tone('square', 520, 520, 0.04, 0.14), tone('sine', 780, 780, 0.05, 0.16, 0.03)],
   open: [tone('sine', 380, 640, 0.12, 0.3), noise('bandpass', 1500, 3200, 0.09, 0.08, 1)],
   close: [tone('sine', 640, 380, 0.1, 0.25)],
   confirm: [tone('sine', 523, 523, 0.09, 0.28), tone('sine', 659, 659, 0.09, 0.28, 0.07), tone('sine', 784, 784, 0.16, 0.3, 0.14)],

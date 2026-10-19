@@ -62,4 +62,7 @@ export const SIZE = {
   /** Margin above and below the part inspector (it is centred on the right edge); also the room kept free for the hotbar. */
   hotbarReserved: 100,
   zoomSliderHeight: 140,
+  /** The sliders (zoom, inspector): the thickness of the track and the size of the knob. */
+  sliderTrack: 6,
+  sliderThumb: 16,
 } as const;

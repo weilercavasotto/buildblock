@@ -26,7 +26,10 @@ export class ZoomControl {
     controls.maxDistance = CAMERA.maxDistance;
 
     this.slider.step = String(ZOOM.sliderStep);
-    this.slider.oninput = () => this.setDistance(this.distanceFromSlider(Number(this.slider.value)));
+    this.slider.oninput = () => {
+      this.slider.style.setProperty('--fill', this.slider.value);
+      this.setDistance(this.distanceFromSlider(Number(this.slider.value)));
+    };
     this.zoomIn.onclick = () => this.setDistance(this.distance / ZOOM.buttonFactor);
     this.zoomOut.onclick = () => this.setDistance(this.distance * ZOOM.buttonFactor);
     // Do not keep keyboard focus: the arrow keys belong to the game (driving) once the mouse is released.
@@ -52,6 +55,7 @@ export class ZoomControl {
     }
     // While the slider is being dragged it already holds the value; rewriting it would fight the thumb.
     if (document.activeElement !== this.slider) this.slider.value = String(position);
+    this.slider.style.setProperty('--fill', String(position)); // the yellow part of the track (see the sliders in main.css)
   }
 
   private get distance(): number {

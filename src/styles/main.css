@@ -479,7 +479,6 @@ body.dragging * {
   flex: 1;
   min-width: 0;
   margin: 0;
-  accent-color: var(--color-accent-highlight);
   cursor: pointer;
 }
 .slider-value {
@@ -773,7 +772,6 @@ body[data-cursor-mode='remove'] > canvas {
   direction: rtl;
   height: var(--size-zoom-slider-height);
   margin: 0;
-  accent-color: var(--color-accent-highlight);
   cursor: pointer;
 }
 #zoom-label {
@@ -1347,4 +1345,71 @@ body[data-cursor-mode='remove'] > canvas {
 }
 #btn-sound.muted .sound-off {
   display: block;
+}
+
+/*
+ * The sliders (the zoom control and the part inspector) are drawn by the page, not by the browser: the native ones turn grey when the
+ * window or the control is not active (`accent-color`), the filled part must always be yellow. `--fill` (0-1) is set by the script.
+ */
+.slider-input,
+#zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  --thumb: var(--size-slider-thumb);
+  --filled: calc(var(--fill, 0) * (100% - var(--thumb)) + var(--thumb) / 2);
+}
+.slider-input {
+  height: var(--size-slider-thumb);
+}
+.slider-input::-webkit-slider-runnable-track {
+  height: var(--size-slider-track);
+  border-radius: var(--size-slider-track);
+  background: linear-gradient(to right, var(--color-accent-highlight) var(--filled), var(--color-surface-control-hover) var(--filled));
+}
+#zoom-slider::-webkit-slider-runnable-track {
+  width: var(--size-slider-track);
+  border-radius: var(--size-slider-track);
+  background: linear-gradient(to top, var(--color-accent-highlight) var(--filled), var(--color-surface-control-hover) var(--filled));
+}
+.slider-input::-webkit-slider-thumb,
+#zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--size-slider-thumb);
+  height: var(--size-slider-thumb);
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+}
+.slider-input::-webkit-slider-thumb {
+  margin-top: calc((var(--size-slider-thumb) - var(--size-slider-track)) / -2);
+}
+#zoom-slider::-webkit-slider-thumb {
+  margin-left: calc((var(--size-slider-thumb) - var(--size-slider-track)) / -2);
+}
+/* Firefox draws the filled part itself (`-moz-range-progress`): from the start of the track to the knob. */
+.slider-input::-moz-range-track,
+#zoom-slider::-moz-range-track {
+  background: var(--color-surface-control-hover);
+  border-radius: var(--size-slider-track);
+}
+.slider-input::-moz-range-track {
+  height: var(--size-slider-track);
+}
+#zoom-slider::-moz-range-track {
+  width: var(--size-slider-track);
+}
+.slider-input::-moz-range-progress,
+#zoom-slider::-moz-range-progress {
+  background: var(--color-accent-highlight);
+  border-radius: var(--size-slider-track);
+}
+.slider-input::-moz-range-thumb,
+#zoom-slider::-moz-range-thumb {
+  width: var(--size-slider-thumb);
+  height: var(--size-slider-thumb);
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-text-primary);
 }

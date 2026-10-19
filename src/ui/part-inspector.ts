@@ -334,7 +334,13 @@ export class PartInspector {
     slider.value = String(o.value);
     slider.setAttribute('aria-label', o.heading);
     const readout = text('span', 'slider-value', String(o.value));
-    slider.oninput = () => (readout.textContent = slider.value);
+    // The yellow part of the track (see the sliders in main.css).
+    const fill = () => slider.style.setProperty('--fill', String((Number(slider.value) - o.min) / (o.max - o.min)));
+    fill();
+    slider.oninput = () => {
+      readout.textContent = slider.value;
+      fill();
+    };
     slider.onchange = () => o.onCommit(Number(slider.value));
 
     const reset = text('button', 'slider-reset', TEXT.inspector.defaultValue) as HTMLButtonElement;
