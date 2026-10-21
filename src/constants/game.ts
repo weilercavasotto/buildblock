@@ -31,6 +31,9 @@ export const CAMERA = {
   maxDistance: 60,
   /** While building, the camera's target stays within the creation widened by this many cells (room to build next to it). */
   panMargin: 10,
+  /** `F` flies the camera to the selected part(s): it takes this long (s) and ends at this many times the radius of what is selected (never closer than `minDistance`). */
+  focusSeconds: 0.6,
+  focusDistance: 2.6,
 } as const;
 
 export const SCENE = {

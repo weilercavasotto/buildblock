@@ -24,6 +24,7 @@ import {
 } from './constants';
 import { PhysicsWorld } from './play/physics-world';
 import { Sky } from './scene/sky';
+import { partBounds } from './parts/part-defs';
 import { keepCameraAboveGround, limitCamera, panArea } from './camera-limits';
 import { VehicleController } from './play/vehicle-controller';
 import { MenuScene } from './menu/menu-scene';
@@ -164,6 +165,7 @@ async function main(): Promise<void> {
     hud.setNotice(grid.engineDrive && physics.wheels.length > 0 && vehicle.poweredWheels === 0 ? TEXT.hud.noEngine : null);
     scene.add(physics.group);
     controlsPanel.show(grid.all());
+    cameraFocus = null; // the camera follows the vehicle now
     palette.show(false); // painting is for building: the colours are hidden while playing
     vehicleSound = new VehicleSound();
     sound.play('click'); // the standard button sound (Play, Reset and the P / R keys)
@@ -381,6 +383,36 @@ async function main(): Promise<void> {
     true,
   );
 
+  // `F` on a selection: the camera flies to it (see `focusOnSelection`), keeping the direction it looks from; any mouse press or wheel
+  // turn of the player takes the camera back.
+  let cameraFocus: { fromTarget: THREE.Vector3; toTarget: THREE.Vector3; fromDistance: number; toDistance: number; direction: THREE.Vector3; time: number } | null = null;
+  const focusOnSelection = () => {
+    const parts = build.selectedParts;
+    if (parts.length === 0) return;
+    const box = new THREE.Box3();
+    for (const part of parts) box.union(partBounds(part));
+    const radius = box.getSize(new THREE.Vector3()).length() / 2;
+    const direction = camera.position.clone().sub(controls.target);
+    cameraFocus = {
+      fromTarget: controls.target.clone(),
+      toTarget: box.getCenter(new THREE.Vector3()),
+      fromDistance: direction.length(),
+      toDistance: THREE.MathUtils.clamp(radius * CAMERA.focusDistance, CAMERA.minDistance, CAMERA.maxDistance),
+      direction: direction.normalize(),
+      time: 0,
+    };
+  };
+  const runCameraFocus = (dt: number) => {
+    if (!cameraFocus) return;
+    cameraFocus.time += dt;
+    const t = Math.min(1, cameraFocus.time / CAMERA.focusSeconds);
+    const eased = t * t * (3 - 2 * t); // smooth start and stop
+    controls.target.lerpVectors(cameraFocus.fromTarget, cameraFocus.toTarget, eased);
+    camera.position.copy(controls.target).addScaledVector(cameraFocus.direction, THREE.MathUtils.lerp(cameraFocus.fromDistance, cameraFocus.toDistance, eased));
+    if (t >= 1) cameraFocus = null;
+  };
+  for (const type of ['pointerdown', 'wheel']) renderer.domElement.addEventListener(type, () => (cameraFocus = null), { passive: true });
+
   addEventListener('keydown', (e) => {
     if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
       sound.toggleMuted();
@@ -409,6 +441,11 @@ async function main(): Promise<void> {
     }
     if (mode === 'play' && e.code === 'KeyR') startPlay();
     if (mode !== 'build') return;
+    // F flies the camera to what is selected (inspect mode), until it is close to it.
+    if (e.code === 'KeyF' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      focusOnSelection();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {
       // Ctrl/Cmd+Z undo, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redo. Not while a paint stroke is in progress.
       const isUndo = e.code === 'KeyZ' && !e.shiftKey;
@@ -480,6 +517,7 @@ async function main(): Promise<void> {
       }
     }
     if (mode !== 'menu') {
+      runCameraFocus(dt);
       // While building the camera cannot be panned away from the creation; while playing it follows the vehicle wherever it goes.
       if (mode === 'build') panBox ??= panArea(grid.all(), gridCells);
       limitCamera(controls, camera, mode === 'build' ? panBox : null);
