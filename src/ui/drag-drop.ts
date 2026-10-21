@@ -1,5 +1,6 @@
-import { DRAG } from '../constants';
+import { DRAG, SIZE } from '../constants';
 import { PartType } from '../types';
+import { createPreviewCanvas, renderPartPreview } from './part-preview';
 
 /** What is being dragged: a part from the catalog, or the part of a hotbar slot. */
 export interface DragSource {
@@ -47,7 +48,7 @@ export function enableDrag(el: HTMLElement, options: DragOptions): void {
     const move = (e: PointerEvent) => {
       if (!ghost) {
         if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < DRAG.threshold) return;
-        ghost = makeGhost(options.image());
+        ghost = makeGhost(source.type, options.image());
         document.body.append(ghost);
         document.body.classList.add('dragging');
       }
@@ -80,15 +81,22 @@ export function enableDrag(el: HTMLElement, options: DragOptions): void {
   });
 }
 
-function makeGhost(image: HTMLCanvasElement | null): HTMLElement {
+/** The picture that follows the pointer: the part drawn afresh at the ghost's size (a hotbar slot's own canvas is too small to scale up), or a copy of `image` if that fails. */
+function makeGhost(type: PartType, image: HTMLCanvasElement | null): HTMLElement {
   const ghost = document.createElement('div');
   ghost.className = 'drag-ghost';
-  if (image) {
-    const copy = document.createElement('canvas');
-    copy.width = image.width;
-    copy.height = image.height;
-    copy.getContext('2d')!.drawImage(image, 0, 0);
-    ghost.append(copy);
+  try {
+    const canvas = createPreviewCanvas(SIZE.dragGhost);
+    renderPartPreview(type, canvas);
+    ghost.append(canvas);
+  } catch {
+    if (image) {
+      const copy = document.createElement('canvas');
+      copy.width = image.width;
+      copy.height = image.height;
+      copy.getContext('2d')!.drawImage(image, 0, 0);
+      ghost.append(copy);
+    }
   }
   return ghost;
 }

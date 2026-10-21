@@ -57,7 +57,7 @@ export const SIZE = {
   /** Space the catalog keeps for its header and tabs, subtracted from the window height to size the body. */
   catalogChrome: 340,
   inspectorPreview: 160,
-  dragGhost: 64,
+  dragGhost: 92,
   partInspectorWidth: 340,
   partInspectorPreview: 72,
   paintSwatch: 28,
