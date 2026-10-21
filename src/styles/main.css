@@ -1165,6 +1165,30 @@ body[data-cursor-mode='remove'] > canvas {
   outline: none;
   border-color: var(--color-accent-highlight);
 }
+/* The credit, bottom centre of the menu: a line of text with a coffee cup at its end. */
+#menu-credit {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-md);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  letter-spacing: var(--letter-spacing-sm);
+  white-space: nowrap;
+  opacity: var(--opacity-muted);
+  text-shadow: var(--shadow-text-small);
+  user-select: none;
+}
+#menu-credit svg {
+  width: var(--size-credit-icon);
+  height: var(--size-credit-icon);
+  color: var(--color-accent-highlight);
+}
+#menu.over-game #menu-credit {
+  display: none;
+}
 #menu-version {
   position: fixed;
   right: var(--space-lg);

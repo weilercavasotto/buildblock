@@ -207,11 +207,13 @@ async function main(): Promise<void> {
     zoom.setVisible(true);
     zoom.sync();
     stop();
+    showFps();
   };
 
   const enterMenu = () => {
     stopPlay();
     mode = 'menu';
+    showFps(); // no FPS counter in the main menu
     activeSave = null;
     build.setEnabled(false);
     gridLines!.visible = false;
@@ -263,10 +265,12 @@ async function main(): Promise<void> {
 
   const controlsPanel = new ControlsPanel();
   const fps = new FpsCounter();
+  /** The FPS counter shows when the setting is on, except in the main menu. */
+  const showFps = () => fps.setVisible(settings.get('showFps') && mode !== 'menu');
   // The settings (the gear button): applied now and whenever they change.
   const applySettings = () => {
     sound.setLevels({ master: settings.get('volumeMaster'), sfx: settings.get('volumeSfx'), vehicle: settings.get('volumeVehicle') });
-    fps.setVisible(settings.get('showFps'));
+    showFps();
     sun.castShadow = settings.get('shadows');
     controlsPanel.setEnabled(settings.get('showControls'));
   };
@@ -422,7 +426,7 @@ async function main(): Promise<void> {
     if (menu.overGame) return; // the saved-games panel is open over the game: typing a name must not trigger shortcuts
     if (e.code === 'F3') {
       e.preventDefault();
-      settings.set('showFps', !fps.visible);
+      settings.set('showFps', !settings.get('showFps'));
     }
     if (e.code === 'KeyH' && mode !== 'menu' && !e.ctrlKey && !e.metaKey && !e.altKey && !isHelpOpen()) {
       toggleHelpDialog();

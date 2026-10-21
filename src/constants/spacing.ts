@@ -74,6 +74,8 @@ export const SIZE = {
   sliderTrack: 6,
   sliderThumb: 16,
   /** The settings panel: its width, the width of a volume slider and the size of an on / off switch. */
+  /** The coffee cup in the credit line of the main menu. */
+  creditIcon: 16,
   settingsWidth: 460,
   settingsSlider: 170,
   switchWidth: 44,

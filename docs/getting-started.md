@@ -53,7 +53,7 @@ The **gear button** at the top right, beside the speaker (always visible, also i
 ## FPS counter and frame limit
 
 Rendering is **capped at 60 FPS** on any display (a 75/120/144 Hz monitor also shows 60). The target is
-`FRAME_LIMIT.targetFps` in `src/constants/game.ts`. A small frames-per-second readout, **off by default**, sits under the top-right buttons in every mode once you turn it on (the **FPS counter** switch in the Settings, or **F3**). It is green at 55+ FPS, yellow
+`FRAME_LIMIT.targetFps` in `src/constants/game.ts`. A small frames-per-second readout, **off by default**, sits under the top-right buttons once you turn it on, in the building and Play modes (never in the main menu) (the **FPS counter** switch in the Settings, or **F3**). It is green at 55+ FPS, yellow
 at 30+ and red below. Press **F3** to show or hide it. Thresholds and refresh rate: `FPS_COUNTER` in
 `src/constants/game.ts`.
 
@@ -89,7 +89,7 @@ catalog (which just lists the property).
 
 ## Main menu and saved games
 
-The game opens on the main menu: a random vehicle (a coupe, a pickup that may lift its cargo on a piston, a buggy with a spinning propeller or a rocket car that fires its thrusters, always freshly painted) wanders in the background while the camera orbits it.
+The game opens on the main menu (with a credit line at the bottom centre, "Developed by Weiler Cavasotto with a lot of ☕", drawn in `index.html` as `#menu-credit`): a random vehicle (a coupe, a pickup that may lift its cargo on a piston, a buggy with a spinning propeller or a rocket car that fires its thrusters, always freshly painted) wanders in the background while the camera orbits it.
 Press **Play** to open the *Saved games* panel:
 
 - **Load** opens a save; **Delete** asks for confirmation in a dialog (Enter/Cancel/Esc/click outside keep the save;
