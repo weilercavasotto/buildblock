@@ -195,7 +195,7 @@ When nothing of a vehicle touches the ground (it is in the air: a jump, a fall, 
 
 ### The thruster
 
-The **Thruster** (catalog, *Mobility*) is a small jet (a steel tube with an intake on the front, a flared dark bell nozzle and a glowing orange ring at the back) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): it pushes towards its **front** and the flame leaves the bell at the back. In Play, **holding `Space`** (the same key as the brake: a vehicle with both brakes and thrusts) every thruster pushes the **body it is mounted on** with a force along its front, applied **where it is mounted**, so one away from the centre of the body also turns it. It works on the ground or in the air, with or without an engine, and the wheels do not matter. A symmetric vehicle goes straight: while you do not steer (`A` / `D`) an upright vehicle holds its heading (a small driving assist; strong collisions, flips and steering switch it off), and an air drag above 10 m/s limits the top speed of a thruster car. The inspector has a **Thrust** slider (1-10, default 5, plus "apply to all the thrusters on this body"); the thrusts of a body's thrusters add up. One default thruster has a force of 100, enough to just lift a light 2 × 2 body (about 90 with the world's gravity); four of them lift it fast. A thruster weighs half a block. The flame is orange, bigger than the turbo's.
+The **Thruster** (catalog, *Mobility*) is a small jet (a steel tube with an intake on the front, a flared dark bell nozzle and a glowing orange ring at the back) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): it pushes towards its **front** and the flame leaves the bell at the back. In Play, **holding the key you gave it** (see *Part keys*) every thruster pushes the **body it is mounted on** with a force along its front, applied **where it is mounted**, so one away from the centre of the body also turns it. It works on the ground or in the air, with or without an engine, and the wheels do not matter. A symmetric vehicle goes straight: while you do not steer (`A` / `D`) an upright vehicle holds its heading (a small driving assist; strong collisions, flips and steering switch it off), and an air drag above 10 m/s limits the top speed of a thruster car. The inspector has a **Thrust** slider (1-10, default 5, plus "apply to all the thrusters on this body"); the thrusts of a body's thrusters add up. One default thruster has a force of 100, enough to just lift a light 2 × 2 body (about 90 with the world's gravity); four of them lift it fast. A thruster weighs half a block. The flame is orange, bigger than the turbo's.
 
 ### The rotor
 
@@ -207,17 +207,11 @@ The **Piston** (catalog, *Mobility*) lifts things: it pushes up everything built
 
 ### The turbo
 
-The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a white band, a brass valve and a dark nozzle) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): its nozzle, where the flame leaves, is the back of the bottle. In Play, **holding `Shift`** boosts the **driven wheels** of its body (the wheels an engine powers): they turn up to 40% faster and push twice as hard for each turbo of the default boost, with a blue-white flame out of the nozzle; without an engine on the body the turbo does nothing, and wheels that are not driven are not boosted. The inspector has a **Boost** slider (1-10, default 5, plus "apply to all the turbos on this body"); the boosts of a body's turbos add up, up to three times one default turbo. There is no charge limit yet: the boost lasts as long as you hold the key. A turbo weighs one block. Measured on a 2 × 2 car after 3 s at full throttle: 9.0 m/s without, 12.7 m/s with a default turbo and 13.3 m/s with the strongest one (the speed is also limited by the wheels' grip).
+The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a white band, a brass valve and a dark nozzle) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): its nozzle, where the flame leaves, is the back of the bottle. In Play, **holding the key you gave it** (see *Part keys*) boosts the **driven wheels** of its body (the wheels an engine powers): they turn up to 40% faster and push twice as hard for each turbo of the default boost, with a blue-white flame out of the nozzle; without an engine on the body the turbo does nothing, and wheels that are not driven are not boosted. The inspector has a **Boost** slider (1-10, default 5, plus "apply to all the turbos on this body"); the boosts of a body's turbos add up, up to three times one default turbo. There is no charge limit yet: the boost lasts as long as you hold the key. A turbo weighs one block. Measured on a 2 × 2 car after 3 s at full throttle: 9.0 m/s without, 12.7 m/s with a default turbo and 13.3 m/s with the strongest one (the speed is also limited by the wheels' grip).
 
 ### The brake
 
-The **Brake** (catalog, *Mobility*; drag it onto a hotbar slot) is **fitted to a wheel**: pick it and click a wheel (small or large), and a
-drilled steel disc with a red caliper appears behind its rim (every wheel's rim is open between the spokes, so you can see it through them);
-one brake per wheel, and the preview turns red on a wheel that already has one. It is not a part of the grid, it is a property of the wheel
-(`Part.brake`, 1-10), saved and undoable like the tire and the suspension. In Play, **holding `Space`** holds back every wheel that has a brake, driven
-or not (it overrides the throttle for them); wheels without a brake keep rolling. Select the wheel in inspect mode to set the **Brake** strength
-(a slider, with "apply to the braked wheels on this body") or press **Remove brake**; removing the wheel removes its brake. Measured on a 2 × 2
-car at 8.9 m/s: no brake stops in 2.9 s, brakes (5) on the two front wheels in 2.2 s and on all four in 0.7 s (10: 0.6 s); a locked wheel is limited by its grip.
+**Every wheel has a brake** (a drilled steel disc with a red caliper behind the rim; the rims are open between the spokes, so you can see it). There is no brake part: select the wheel in inspect mode and the inspector has the **Brake** strength slider (1-10, default 5, with "apply to the wheels on this body", saved and undoable like the tire and the suspension) and the wheel's **key section** (*Action Key*). A wheel brakes only when it has a key: in Play, **holding that key** (see *Part keys*) holds back every wheel with it, driven or not (it overrides the throttle for them); a wheel with no key never brakes, and the bell does not count it. Measured on a 2 × 2 car at 8.9 m/s: no brake stops in 2.9 s, brakes (5) on the two front wheels in 2.2 s and on all four in 0.7 s (10: 0.6 s); a locked wheel is limited by its grip. Games saved with the old Brake part keep the strength of the wheels that had one.
 
 ### The engine
 
@@ -290,7 +284,18 @@ bottom) and click. The face you click defines the wheel's axle.
 
 ### Play mode
 
-At the **bottom left** a **Controls** panel lists the keys of the parts of the creation you are playing, and only those: wheels give `W` / `S` (drive) and `A` / `D` (steer), a braked wheel `Space` (brake), a thruster `Space` (thrust) plus `W` / `S` (pitch), `A` / `D` (roll) and `Q` / `E` (yaw) in the air, a turbo `Shift` (boost), a rotor `F` (rotors on / off). It is hidden when nothing needs a key. The rows are `PLAY_CONTROLS` (`src/constants/play-controls.ts`): add one there when a new part has a key.
+### Part keys
+
+**No part comes with a key.** The **rotors**, **pistons**, **thrusters**, **turbos** and the **brakes** of wheels (optional) are run by a key *you* give each one: select the part in inspect mode (`I`); the inspector starts with the key section: a label (*No key*, in red, until there is one), a yellow **Assign a key** button (click it and press the key you want; `Esc` cancels) and, once there is a key, a **trash button** that removes it (`Backspace` while waiting for a key does too). The key is saved with the part (as the physical key, `KeyboardEvent.code`, shown with the name on the player's keyboard where the browser can tell).
+
+- **Held or toggled** depends on the kind of part: a thruster, a turbo and a brake work **while the key is held**; a rotor and a piston **switch on / out with one press and off / back with the next** (they start off).
+- **Parts with the same key work together**, so one key can run a whole group and different keys run them one by one. A key can mix kinds (`Space` can fire thrusters and boost turbos; a held key runs the held kinds, a press flips the toggled kinds).
+- **Several parts at once**: with a selection the inspector has *Set the key of N parts*, which gives the same key to every part of the selection that takes one; a single part with a key also offers *Use G for all N Rotors* to give that key to every part of its kind.
+- **Reserved keys**: `W` `A` `S` `D`, the arrows, `Q` `E` (yaw in the air), `R` (restart), `P` (play / stop), `H` (help) and `M` (mute) are used by the game and are refused with a message. Letters, digits, `Space`, `Shift`, the numeric pad and the punctuation keys are fine, **also the editing keys** (`I`, `B`, `C`...: they do nothing while playing). The list is `RESERVED_KEYS` in `src/constants/part-keys.ts`.
+- **Alerts**: the **bell** at the top right (next to settings and sound; hidden in the main menu) shows a red **badge** with the number of parts that need a key and have none. Click it for the list, grouped by kind; while building, a row takes you to that part (inspect mode, the camera flies to it). A wheel's brake key is optional, so wheels are not counted. Games saved before the keys existed load with every key empty, so the bell lists them.
+- The **Controls** panel in Play lists each key with what it runs.
+
+At the **bottom left** a **Controls** panel lists the keys of the parts of the creation you are playing, and only those: wheels give `W` / `S` (drive) and `A` / `D` (steer), a thruster adds `W` / `S` (pitch), `A` / `D` (roll) and `Q` / `E` (yaw) in the air (`PLAY_CONTROLS`, `src/constants/play-controls.ts`), and then one row per **key you gave to parts**, with what it runs (`PART_KEY_LABELS`: `G` *3 × Pistons out / back*, `Space` *Thrust + Turbo boost*...). Parts that need a key and have none are counted under the list. It is hidden when nothing needs a key. Add a `PART_KEYS` entry (`src/constants/part-keys.ts`) and a `PART_KEY_LABELS` label when a new part takes a key.
 
 | Key | Action |
 |---|---|
@@ -298,11 +303,7 @@ At the **bottom left** a **Controls** panel lists the keys of the parts of the c
 | `A` / `D` (or ← / →) | Steer left / right |
 | `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
 | `W` `S` `A` `D` `Q` `E` | In the air: pitch (W nose down) / roll / yaw the vehicle (see *Flying*) |
-| `Space` | Also fires the thrusters of the vehicle (together with the brake) |
-| `Shift` | Turbo: boosts the driven wheels of a body that has a **Turbo** (hold it) |
-| `Space` | Brake: holds the wheels that have a **Brake** (hold it) |
-| `F` | Switches the **Rotors** on and off (press it; they start off) |
-| `G` | Pushes the **Pistons** out and, pressed again, back (they start folded) |
+| *your keys* | The key you gave to each **Rotor**, **Piston**, **Thruster**, **Turbo** and **Brake** (see *Part keys*): thrusters, turbos and brakes work while it is held, rotors and pistons switch on / out and off / back with each press |
 | `P` / `Esc` | Stop and return to build mode (the same as **Stop**); `P` in build mode starts Play (an open dialog takes the `Esc` first) |
 | **Stop** | Return to build mode; the build is untouched |
 

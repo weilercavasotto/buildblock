@@ -81,10 +81,12 @@ export interface WheelDrive {
   engines: Array<{ front: Vec3; power: number }> | null;
   /** How many wheels are mounted on the same body (the engines' power is shared among them). */
   wheelCount: number;
-  /** The boost of the turbos on this wheel's body, 0 with none, in units of one default turbo (capped by `TURBO.maxBoost`): what `Shift` adds. */
-  boost: number;
-  /** This wheel's brake strength over the default (`BRAKE`), 0 when it has no brake: what it is held with while Space is pressed. */
+  /** The turbos on this wheel's body, each with its boost in units of one default turbo: the ones whose key is held add up (capped by `TURBO.maxBoost`). */
+  turbos: Array<{ part: Part; boost: number }>;
+  /** This wheel's brake strength over the default (`BRAKE`): what it is held with while its key is pressed. */
   brake: number;
+  /** The wheel itself: its key (`Part.key`) is its brake's. */
+  part: Part;
 }
 
 interface SyncPair {
@@ -104,18 +106,15 @@ export class PhysicsWorld {
   pilot = { pitch: 0, roll: 0, yaw: 0 };
   /** Has the vehicle left the ground (see `FLIGHT`)? Recomputed every step. */
   airborne = false;
-  /** Is the boost key held (see `VehicleController.boosting`)? The turbos' flames follow it. */
-  boosting = false;
-  /** Is the thrust key held (Space, see `VehicleController.thrusting`)? The thrusters push and fire while it is. */
-  thrusting = false;
+  /**
+   * Is this rotor, piston, thruster or turbo switched on right now (see `VehicleController.isOn`)? Each is run by its own key, so the
+   * physics asks about every part. Nothing is on until the controller is wired in.
+   */
+  isOn: (part: Part) => boolean = () => false;
   /** The throttle (W / S, -1 to 1, see `VehicleController.throttle`): the engines' push on the body follows it. */
   throttle = 0;
-  /** Are the rotors switched on (F, see `VehicleController.rotating`)? */
-  rotating = false;
   /** Are the dust, smoke and flames drawn (a setting)? */
   effectsEnabled = true;
-  /** Are the pistons pushed out (G, see `VehicleController.extended`)? They slide out while it is on and back when it is off. */
-  extended = false;
 
   private world = new RAPIER.World({ x: 0, y: WORLD.gravity, z: 0 });
   private pairs: SyncPair[] = [];
@@ -125,15 +124,15 @@ export class PhysicsWorld {
   private turboFx: TurboFx[] = [];
   private thrusterFx: ThrusterFx[] = [];
   /** The thrusters: the body each pushes, where (in the body's frame), along which direction and with what force. */
-  private thrusters: Array<{ body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number }> = [];
+  private thrusters: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number }> = [];
   /** The engines: the body each is mounted on, where (in the body's frame), where it faces and its power (see `ENGINE.leverage`). */
   private pushers: Array<{ body: RAPIER.RigidBody; point: Vec3; front: Vec3; power: number }> = [];
   /** The direction the vehicle drives in (in the body's frame), the same one the vehicle controller uses. */
   private forward = new THREE.Vector3(0, 0, -1);
   /** The rotors: the hinge between the body of the block and the head (with what it holds) and the signed speed it is driven to (rad/s). */
-  private rotors: Array<{ joint: RAPIER.RevoluteImpulseJoint; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
+  private rotors: Array<{ part: Part; joint: RAPIER.RevoluteImpulseJoint; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
   /** The pistons: the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
-  private pistons: Array<{ joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh }> = [];
+  private pistons: Array<{ part: Part; joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh }> = [];
   private effects: PlayEffects;
   /** The bodies that carry wheels: the ones the straightening assist acts on. */
   private chassis = new Set<RAPIER.RigidBody>();
@@ -154,7 +153,7 @@ export class PhysicsWorld {
 
   /**
    * Pushes the bodies that have thrusters: every step the force of each thruster is applied to its body at the place where it is
-   * mounted, along its direction turned by the body's rotation (nothing while the thrust key is not held).
+   * mounted, along its direction turned by the body's rotation (nothing while its key is not held).
    */
   private applyThrust(): void {
     const q = new THREE.Quaternion();
@@ -165,8 +164,8 @@ export class PhysicsWorld {
       body.resetTorques(true);
     }
     this.applyEngines(q);
-    if (!this.thrusting) return;
     for (const t of this.thrusters) {
+      if (!this.isOn(t.part)) continue;
       const r = t.body.rotation();
       q.set(r.x, r.y, r.z, r.w);
       const direction = new THREE.Vector3(...t.direction).applyQuaternion(q).multiplyScalar(t.thrust);
@@ -244,7 +243,7 @@ export class PhysicsWorld {
   /** Drives the rotors: towards their speed while they are switched on, else almost free (a light damping). */
   private driveRotors(): void {
     for (const rotor of this.rotors) {
-      if (this.rotating) rotor.joint.configureMotorVelocity(rotor.target, ROTOR.strength);
+      if (this.isOn(rotor.part)) rotor.joint.configureMotorVelocity(rotor.target, ROTOR.strength);
       else rotor.joint.configureMotorVelocity(0, ROTOR.idleDamping);
     }
   }
@@ -276,7 +275,7 @@ export class PhysicsWorld {
         const b = r.host.angvel();
         return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
       }),
-      pistonsMoving: this.pistons.filter((p) => Math.abs((this.extended ? p.stroke : 0) - p.target) > 1e-3).length,
+      pistonsMoving: this.pistons.filter((p) => Math.abs((this.isOn(p.part) ? p.stroke : 0) - p.target) > 1e-3).length,
       impact,
     };
   }
@@ -284,7 +283,7 @@ export class PhysicsWorld {
   /** Slides the pistons: the target of each spring moves towards out (the stroke) or back (0) at `PISTON.speed` and the spring follows it. */
   private drivePistons(dt: number): void {
     for (const piston of this.pistons) {
-      const goal = this.extended ? piston.stroke : 0;
+      const goal = this.isOn(piston.part) ? piston.stroke : 0;
       const step = PISTON.speed * dt;
       piston.target += Math.max(-step, Math.min(step, goal - piston.target));
       piston.joint.configureMotorPosition(piston.target, PISTON.stiffness, PISTON.damping);
@@ -311,7 +310,7 @@ export class PhysicsWorld {
     }
     this.sync();
     this.effects.group.visible = this.effectsEnabled;
-    this.effects.update(dt, this.level, this.boosting, this.thrusting);
+    this.effects.update(dt, this.level, this.isOn);
   }
 
   dispose(): void {
@@ -550,13 +549,13 @@ export class PhysicsWorld {
         rod.position.set(...baseLocal).addScaledVector(new THREE.Vector3(...face), PISTON_VISUAL.baseDepth / 2);
         rod.visible = false;
         host.visual.add(rod);
-        this.pistons.push({ joint, stroke, target: 0, host: host.body, head: head.body, pivot, headLocal, face, rod });
+        this.pistons.push({ part, joint, stroke, target: 0, host: host.body, head: head.body, pivot, headLocal, face, rod });
         continue;
       }
       const joint = this.world.createImpulseJoint(RAPIER.JointData.revolute(anchors[0], anchors[1], axis), host.body, head.body, true) as RAPIER.RevoluteImpulseJoint;
       joint.setContactsEnabled(false);
       // Positive speed is clockwise seen from the head: the other way round about the axis (right-handed), which points out of the block.
-      this.rotors.push({ joint, target: (-rotorSpeedOf(part) / ROTOR.max) * ROTOR.maxSpeed, host: host.body, head: head.body });
+      this.rotors.push({ part, joint, target: (-rotorSpeedOf(part) / ROTOR.max) * ROTOR.maxSpeed, host: host.body, head: head.body });
     }
   }
 
@@ -578,8 +577,8 @@ export class PhysicsWorld {
       return host ? bodyOfBlock.get(cellKey(host.cell)) : undefined;
     };
     const enginesOfBody = new Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number }>>();
-    /** The boost of the turbos of each body, in units of one turbo of the default strength. */
-    const boostOfBody = new Map<RAPIER.RigidBody, number>();
+    /** The turbos of each body, each with its boost in units of one turbo of the default strength. */
+    const boostOfBody = new Map<RAPIER.RigidBody, Array<{ part: Part; boost: number }>>();
     let biggest = 0;
 
     // Blocks and plates linked by studs become ONE rigid body with a collider per part (keeps the structure stiff).
@@ -647,13 +646,13 @@ export class PhysicsWorld {
       obj.position.set(...local);
       host.visual.add(obj);
       if (engine.type === 'thruster') {
-        this.thrusters.push({ body: host.body, point: local, direction: frontOf(engine), thrust: (THRUSTER.thrust * powerOf(engine)) / ENGINE.default });
-        this.thrusterFx.push({ object: obj });
+        this.thrusters.push({ part: engine, body: host.body, point: local, direction: frontOf(engine), thrust: (THRUSTER.thrust * powerOf(engine)) / ENGINE.default });
+        this.thrusterFx.push({ part: engine, object: obj });
         continue;
       }
       if (engine.type === 'turbo') {
-        boostOfBody.set(host.body, (boostOfBody.get(host.body) ?? 0) + powerOf(engine) / ENGINE.default);
-        this.turboFx.push({ object: obj });
+        boostOfBody.set(host.body, [...(boostOfBody.get(host.body) ?? []), { part: engine, boost: powerOf(engine) / ENGINE.default }]);
+        this.turboFx.push({ part: engine, object: obj });
         continue;
       }
       this.pushers.push({ body: host.body, point: local, front: frontOf(engine), power: powerOf(engine) });
@@ -734,20 +733,19 @@ export class PhysicsWorld {
       this.wheels.push({ joint, axis: axle, cell: centre, speed: tireOf(wheel).speed * sizeSpeed, torque: tireOf(wheel).torque * sizeTorque, cruise,
         engines: grid.engineDrive ? (enginesOfBody.get(host.body) ?? []) : null,
         wheelCount: wheelsOn.get(host.body) ?? 1,
-        boost: Math.min(TURBO.maxBoost, boostOfBody.get(host.body) ?? 0),
+        turbos: boostOfBody.get(host.body) ?? [],
         brake: brakeOf(wheel) / BRAKE.default,
+        part: wheel,
       });
 
-      // The wheel (with the disc of its brake, which turns with it) follows the wheel body; the caliper follows the hub, so it
+      // The wheel (with its brake disc, which turns with it) follows the wheel body; the caliper follows the hub, so it
       // stays on the suspension while the wheel spins.
       const obj = createPartObject(wheel, undefined, { caliper: false });
       this.group.add(obj);
       this.pairs.push({ body, object: obj });
-      if (brakeOf(wheel) > 0) {
-        const caliper = createCaliperObject(wheel);
-        this.group.add(caliper);
-        this.pairs.push({ body: hub, object: caliper });
-      }
+      const caliper = createCaliperObject(wheel);
+      this.group.add(caliper);
+      this.pairs.push({ body: hub, object: caliper });
     }
 
     this.buildFlight(enginesOfBody);

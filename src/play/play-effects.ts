@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { COLLISION_GROUP, COLORS, FX, hexToNumber } from '../constants';
 import { thrusterTip } from '../parts/thruster-model';
 import { turboNozzleTip } from '../parts/turbo-model';
+import { Part } from '../types';
 import { ParticleSystem } from './particles';
 
 /** A wheel the effects follow: its body, its size and its axle (in the body's own frame, where the joint's axis is given). */
@@ -24,11 +25,15 @@ export interface EngineFx {
 
 /** A thruster the effects follow: its visual (the flame leaves the bell). */
 export interface ThrusterFx {
+  /** The thruster: its key says whether it is firing. */
+  part: Part;
   object: THREE.Object3D;
 }
 
 /** A turbo the effects follow: its visual (the flame leaves its nozzle). */
 export interface TurboFx {
+  /** The turbo: its key says whether it is blowing. */
+  part: Part;
   object: THREE.Object3D;
 }
 
@@ -81,12 +86,12 @@ export class PlayEffects {
     return Math.max(0, ...this.slips);
   }
 
-  update(dt: number, level: number, boosting: boolean, thrusting: boolean): void {
+  update(dt: number, level: number, isOn: (part: Part) => boolean): void {
     this.time += dt;
     this.wheels.forEach((wheel, i) => this.emitDust(wheel, i, dt));
     this.engines.forEach((engine, i) => this.runEngine(engine, i, dt, level));
-    this.turbos.forEach((turbo, i) => this.fireTurbo(turbo, i, dt, boosting));
-    this.thrusters.forEach((thruster, i) => this.fireThruster(thruster, i, dt, thrusting));
+    this.turbos.forEach((turbo, i) => this.fireTurbo(turbo, i, dt, isOn(turbo.part)));
+    this.thrusters.forEach((thruster, i) => this.fireThruster(thruster, i, dt, isOn(thruster.part)));
     this.dust.update(dt);
     this.smoke.update(dt);
     this.flame.update(dt);
@@ -135,7 +140,7 @@ export class PlayEffects {
     }
   }
 
-  /** While the boost key is held, a turbo breathes a blue-white flame out of its nozzle (backwards along the bottle). */
+  /** While its key is held, a turbo breathes a blue-white flame out of its nozzle (backwards along the bottle). */
   private fireTurbo(turbo: TurboFx, index: number, dt: number, boosting: boolean): void {
     if (!boosting) {
       this.turboDebt[index] = 0;
@@ -155,7 +160,7 @@ export class PlayEffects {
     }
   }
 
-  /** While the thrust key is held, a thruster breathes an orange flame out of its bell (backwards along the jet). */
+  /** While its key is held, a thruster breathes an orange flame out of its bell (backwards along the jet). */
   private fireThruster(thruster: ThrusterFx, index: number, dt: number, thrusting: boolean): void {
     if (!thrusting) {
       this.thrusterDebt[index] = 0;

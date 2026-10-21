@@ -39,10 +39,3 @@ export const createBrakeDisc = (): THREE.Group =>
 
 /** The caliper on the disc's top edge (it does not turn with the wheel). */
 export const createBrakeCaliper = (): THREE.Group => build([[caliper, caliperMat]]);
-
-/** The whole brake, centred on the disc: what the catalog and the placement preview show. */
-export function createBrakeModel(): THREE.Group {
-  const model = new THREE.Group();
-  model.add(createBrakeDisc(), createBrakeCaliper());
-  return model;
-}

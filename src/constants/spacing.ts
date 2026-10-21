@@ -58,7 +58,7 @@ export const SIZE = {
   catalogChrome: 340,
   inspectorPreview: 160,
   dragGhost: 64,
-  partInspectorWidth: 280,
+  partInspectorWidth: 340,
   partInspectorPreview: 72,
   paintSwatch: 28,
   loadingLogo: 96,
@@ -77,6 +77,12 @@ export const SIZE = {
   /** The coffee cup in the credit line of the main menu. */
   creditIcon: 16,
   settingsWidth: 460,
+  /** The alerts panel (the bell): its width, and the size and the offset of the count badge on the bell. */
+  alertsWidth: 480,
+  /** The label in front of the key button of the inspector. */
+  keyLabel: 56,
+  badge: 20,
+  badgeOffset: 6,
   settingsSlider: 170,
   switchWidth: 44,
   switchHeight: 24,

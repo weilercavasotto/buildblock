@@ -31,11 +31,8 @@ export const STRUCTURAL_TYPES = [
   'slopePlateLong',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
-/**
- * Every kind of part in the catalog. `'brake'` is the odd one out: it is never placed in the grid, it is fitted to a wheel (it sets
- * `Part.brake`), so no grid part has that type.
- */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'rotor' | 'piston' | 'brake';
+/** Every kind of part in the catalog. */
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'rotor' | 'piston';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -104,7 +101,7 @@ export interface Part {
   suspension?: number;
   /** Wheels only (`PART_INFO[type].hasTire`): tire value, an integer 0-100 (0 speed tires, 100 traction tires, see `TIRE`). Missing = `TIRE.default`. Read it through `tireOf()`. */
   tire?: number;
-  /** Wheels only (`PART_INFO[type].hasBrake`): brake strength, an integer 1-10 (see `BRAKE`); missing = no brake. Read it through `brakeOf()`. */
+  /** Wheels only (every wheel has a brake): brake strength, an integer 1-10 (see `BRAKE`); missing = `BRAKE.default`. Read it through `brakeOf()`. */
   brake?: number;
   /** Engines only (`PART_INFO[type].hasPower`): power, an integer (see `ENGINE`). Missing = `ENGINE.default`. Read it through `powerOf()`. */
   power?: number;
@@ -112,6 +109,12 @@ export interface Part {
   speed?: number;
   /** Pistons only (`PART_INFO[type].hasStroke`): how far the head goes out, in steps of `PISTON.strokeStep` cells (an integer, `PISTON.min` to `PISTON.max`). Missing = `PISTON.default`. Read it through `strokeOf()`. */
   stroke?: number;
+  /**
+   * The key that runs the part while playing, as a `KeyboardEvent.code` (`'KeyG'`): only rotors, pistons, thrusters, turbos and wheels (their
+   * brake's key) take one (`isKeyed`), and none comes with a key. Parts with the same key move together. Missing = no key yet (the alerts
+   * panel lists it). Read it through `keyLabel()` to show it.
+   */
+  key?: string;
   /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
   weight?: number;
 }

@@ -16,7 +16,7 @@ Example: a new part type `'thruster'`.
    to register. Keep the text in English.
 7. **Physics** — in `PhysicsWorld.buildCreation` create its collider/body/joint and push a `SyncPair`
    so the mesh follows. Pick its collision group (see [physics.md](physics.md)).
-8. **Control** — if it should react to input, extend `VehicleController` or add a sibling controller.
+8. **Control** — if it should react to input it takes a **player-assigned key** (no part has a default one): add it to `PART_KEYS` (hold or toggle) in `src/constants/part-keys.ts`, a label to `PART_KEY_LABELS` (`constants/play-controls.ts`), keep `Part.key` on the part in `sanitize` (`Grid`) and ask `PhysicsWorld.isOn(part)` (= `VehicleController.isOn`) whether it runs; the inspector, the bell and the Controls panel pick it up from `isKeyed`. Driving / flight keys stay in `VehicleController.KEY_MAP`.
 9. **Persistence** — nothing to do: parts are saved as plain JSON. If you change the shape of `Part`
    incompatibly, bump `STORAGE_KEY` in `src/save.ts`.
 10. **Confirmations** — for destructive actions use `confirmDialog` from `src/ui/confirm-dialog.ts` (strings in `TEXT`),

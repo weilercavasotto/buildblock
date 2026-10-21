@@ -1,7 +1,8 @@
-import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, isKeyed, keyLabel, keyModeOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
-import { Part, Vec3, axleOf, frontOf, isHostType, isStructural, partCells, studsOf, subVec } from '../types';
+import { Part, Vec3, axleOf, frontOf, isHostType, isWheelType, isStructural, partCells, studsOf, subVec } from '../types';
+import { captureKey } from './key-capture';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
 export interface InspectorHandlers {
@@ -22,8 +23,10 @@ export interface InspectorHandlers {
   onStroke(part: Part, stroke: number): void;
   /** Sets the power (an integer, see `ENGINE`) of an engine, or of all the engines on its body with `connected`. */
   onPower(part: Part, power: number, connected: boolean): void;
-  /** Fits a brake of the given strength to a wheel (or takes it off with null), or to every braked wheel on its body with `wholeBody`. */
-  onBrake(part: Part, strength: number | null, wholeBody: boolean): void;
+  /** Sets the brake strength (1-10) of a wheel, or of every wheel on its body with `wholeBody`. */
+  onBrake(part: Part, strength: number, wholeBody: boolean): void;
+  /** Gives a key (a `KeyboardEvent.code`) to these parts, or takes theirs off with null: one undo step. */
+  onKey(parts: ReadonlyArray<Part>, key: string | null): void;
   onClose(): void;
 }
 
@@ -38,6 +41,8 @@ const coords = (cell: Vec3): string => cell.join(', ');
 export class PartInspector {
   private root = document.getElementById('part-inspector')!;
   private stopSpin: (() => void) | null = null;
+  /** Stops the wait for a key press of the key button, if one is waiting (the panel is rebuilt, or the selection changes). */
+  private stopCapture: (() => void) | null = null;
 
   constructor(
     private grid: Grid,
@@ -48,6 +53,8 @@ export class PartInspector {
   show(parts: ReadonlyArray<Part>): void {
     this.stopSpin?.();
     this.stopSpin = null;
+    this.stopCapture?.();
+    this.stopCapture = null;
     this.root.hidden = parts.length === 0;
     if (parts.length === 0) return;
     if (parts.length > 1) return this.showMany(parts);
@@ -61,15 +68,14 @@ export class PartInspector {
     close.title = TEXT.inspector.close;
     close.setAttribute('aria-label', TEXT.inspector.close);
     close.onclick = () => this.handlers.onClose();
-    header.append(title, close);
+    const trash = this.trashButton(TEXT.inspector.remove, () => this.handlers.onRemove(part));
+    const actions = el('div', 'header-actions');
+    actions.append(trash, close);
+    header.append(title, actions);
 
     const canvas = createPreviewCanvas(SIZE.partInspectorPreview);
     renderPartPreview(part.type, canvas, undefined, { color: part.color });
     this.stopSpin = startSpin(part.type, canvas, PREVIEW.inspectSpinSpeed, false, { color: part.color });
-
-    const remove = text('button', 'catalog-action danger', TEXT.inspector.remove) as HTMLButtonElement;
-    remove.type = 'button';
-    remove.onclick = () => this.handlers.onRemove(part);
 
     // Preview beside the name: saves height, so the position / connection rows are visible without scrolling.
     const summary = el('div', 'inspector-summary');
@@ -84,7 +90,7 @@ export class PartInspector {
     const body = el('div', 'inspector-body');
     body.append(
       summary,
-      remove,
+      ...this.keySection(part),
       ...this.tireSection(part),
       ...this.brakeSection(part),
       ...this.powerSection(part),
@@ -109,18 +115,17 @@ export class PartInspector {
     close.title = TEXT.inspector.close;
     close.setAttribute('aria-label', TEXT.inspector.close);
     close.onclick = () => this.handlers.onClose();
-    header.append(text('h2', 'dialog-title', TEXT.inspector.title), close);
+    const trash = this.trashButton(TEXT.inspector.removeMany(parts.length), () => this.handlers.onRemoveMany(parts));
+    const actions = el('div', 'header-actions');
+    actions.append(trash, close);
+    header.append(text('h2', 'dialog-title', TEXT.inspector.title), actions);
 
     const counts = new Map<string, number>();
     for (const part of parts) counts.set(part.type, (counts.get(part.type) ?? 0) + 1);
-    const remove = text('button', 'catalog-action danger', TEXT.inspector.removeMany(parts.length)) as HTMLButtonElement;
-    remove.type = 'button';
-    remove.onclick = () => this.handlers.onRemoveMany(parts);
-
     const body = el('div', 'inspector-body');
     body.append(
       text('h3', 'inspector-name', TEXT.inspector.selectedCount(parts.length)),
-      remove,
+      ...this.keySectionMany(parts),
       text('h4', 'inspector-heading', TEXT.inspector.move),
       this.movePad(),
       text('p', 'inspector-status', TEXT.inspector.moveHint),
@@ -130,6 +135,17 @@ export class PartInspector {
       text('p', 'inspector-status', TEXT.inspector.multiHint),
     );
     this.root.replaceChildren(header, body);
+  }
+
+  /** A square trash-can button for the header, next to the close button; `label` is its tooltip. */
+  private trashButton(label: string, onClick: () => void): HTMLButtonElement {
+    const button = el('button', 'help-close danger') as HTMLButtonElement;
+    button.type = 'button';
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    button.append(trashIcon());
+    button.onclick = onClick;
+    return button;
   }
 
   /** How to move the selection with the mouse, as a highlighted box of key caps (Shift = up and down must be hard to miss). */
@@ -187,30 +203,112 @@ export class PartInspector {
     });
   }
 
-  /** Brake of a wheel that has one: a strength slider (with "apply to the other braked wheels") and a button that takes the brake off. */
+  /** Brake strength slider of a wheel (every wheel has a brake; its key is the key section's), with "apply to the wheels on this body". */
   private brakeSection(part: Part): HTMLElement[] {
-    if (!PART_INFO[part.type].hasBrake || brakeOf(part) === 0) return [];
-    const braked = this.grid.wheelsOnBody(part.cell).filter((w) => brakeOf(w) > 0).length;
+    if (!isWheelType(part.type)) return [];
+    const wheels = this.grid.wheelsOnBody(part.cell).length;
     const t = TEXT.inspector;
-    const remove = text('button', 'catalog-action', t.brakeRemove) as HTMLButtonElement;
-    remove.type = 'button';
-    remove.onclick = () => this.handlers.onBrake(part, null, false);
+    return this.sliderSection({
+      heading: t.brake,
+      min: BRAKE.min,
+      max: BRAKE.max,
+      step: BRAKE.step,
+      value: brakeOf(part),
+      defaultValue: BRAKE.default,
+      low: t.brakeLow,
+      high: t.brakeHigh,
+      hint: t.brakeHint,
+      onCommit: (value) => this.handlers.onBrake(part, value, false),
+      applyAll: wheels > 1 ? { label: t.brakeApplyAll(wheels), run: () => this.handlers.onBrake(part, brakeOf(part), true) } : undefined,
+    });
+  }
+
+  /**
+   * The key that runs a rotor, piston, thruster, turbo or a wheel's brake: a label with the key (or that there is none), a button that
+   * waits for the next key press, a line about how the key acts (held or toggled, which depends on the kind of part) and a shortcut
+   * that gives the same key to every part of its kind.
+   */
+  private keySection(part: Part): HTMLElement[] {
+    if (!isKeyed(part)) return [];
+    const t = TEXT.keys;
+    const same = this.grid.all().filter((p) => p.type === part.type);
+    const out = [text('h4', 'inspector-heading', t.heading), ...this.keyPicker(part.key, (key) => this.handlers.onKey([part], key))];
+    if (part.key && same.some((p) => p.key !== part.key)) {
+      const apply = text('button', 'catalog-action primary', t.applyAll(keyLabel(part.key), same.length, `${PART_INFO[part.type].name}s`)) as HTMLButtonElement;
+      apply.type = 'button';
+      apply.onclick = () => this.handlers.onKey(same, part.key!);
+      out.push(apply);
+    }
+    out.push(text('p', 'inspector-status', keyModeOf(part) === 'toggle' ? t.toggle : t.hold), text('p', 'inspector-status', t.shared));
+    return out;
+  }
+
+  /** The key of several parts at once: the button gives the same key to every part of the selection that takes one. */
+  private keySectionMany(parts: ReadonlyArray<Part>): HTMLElement[] {
+    const keyed = parts.filter(isKeyed);
+    if (keyed.length === 0) return [];
+    const t = TEXT.keys;
+    const keys = new Set(keyed.map((p) => p.key ?? ''));
+    const current = keys.size === 1 ? ([...keys][0] || undefined) : t.mixedKeys;
     return [
-      ...this.sliderSection({
-        heading: t.brake,
-        min: BRAKE.min,
-        max: BRAKE.max,
-        step: BRAKE.step,
-        value: brakeOf(part),
-        defaultValue: BRAKE.default,
-        low: t.brakeLow,
-        high: t.brakeHigh,
-        hint: t.brakeHint,
-        onCommit: (value) => this.handlers.onBrake(part, value, false),
-        applyAll: braked > 1 ? { label: t.brakeApplyAll(braked), run: () => this.handlers.onBrake(part, brakeOf(part), true) } : undefined,
-      }),
-      remove,
+      text('h4', 'inspector-heading', t.setMany(keyed.length)),
+      ...this.keyPicker(current, (key) => this.handlers.onKey(keyed, key), keys.size > 1),
+      text('p', 'inspector-status', t.setManyHint),
     ];
+  }
+
+  /**
+   * The key row: a label that says which key the part has (or that it has none, in red), a yellow button that waits for the next key
+   * press to assign one, and, once there is a key, a trash button that clears it. `onPick` gets the key, or null to clear it; the line
+   * under the row says what it is waiting for.
+   */
+  private keyPicker(current: string | undefined, onPick: (key: string | null) => void, mixed = false): HTMLElement[] {
+    const t = TEXT.keys;
+    const hasKey = Boolean(current) || mixed;
+    const label = el('div', 'key-label');
+    label.classList.toggle('unbound', !hasKey);
+    label.replaceChildren(...(mixed ? [document.createTextNode(t.mixedKeys)] : current ? [text('kbd', '', keyLabel(current))] : [document.createTextNode(t.notSet)]));
+
+    const assign = text('button', 'catalog-action primary key-assign', hasKey ? t.change : t.assign) as HTMLButtonElement;
+    assign.type = 'button';
+    const message = text('p', 'inspector-status key-message', '');
+    message.hidden = true;
+    const row = el('div', 'key-row');
+    row.append(label, assign);
+    if (hasKey) {
+      const clear = el('button', 'catalog-action danger key-clear') as HTMLButtonElement;
+      clear.type = 'button';
+      clear.title = t.clear;
+      clear.setAttribute('aria-label', t.clear);
+      clear.append(trashIcon());
+      clear.onclick = () => onPick(null);
+      row.append(clear);
+    }
+    assign.onclick = () => {
+      this.stopCapture?.();
+      assign.classList.add('waiting');
+      assign.textContent = t.press;
+      message.hidden = false;
+      message.classList.remove('error');
+      message.textContent = t.pressHint;
+      this.stopCapture = captureKey(
+        (code) => {
+          this.stopCapture = null;
+          onPick(code);
+        },
+        (problem) => {
+          message.classList.add('error');
+          message.textContent = problem;
+        },
+        () => {
+          this.stopCapture = null;
+          assign.classList.remove('waiting');
+          assign.textContent = hasKey ? t.change : t.assign;
+          message.hidden = true;
+        },
+      );
+    };
+    return [row, message];
   }
 
   /** Suspension slider (wheels only; it is the only place to change it, the catalog just lists the property). */
@@ -393,7 +491,7 @@ export class PartInspector {
         rows.push([TEXT.inspector.bodyTurbos, String(this.grid.turbosOnBody(part.cell).length)]);
       } else {
         rows.push([TEXT.inspector.tire, String(tireValueOf(part))]);
-        rows.push([TEXT.inspector.brake, brakeOf(part) > 0 ? String(brakeOf(part)) : TEXT.inspector.brakeNone]);
+        rows.push([TEXT.inspector.brake, String(brakeOf(part))]);
         rows.push([TEXT.inspector.suspension, TEXT.inspector.suspensionValue(suspensionOf(part))]);
         rows.push([TEXT.inspector.axle, TEXT.inspector.axis(AXES[axleOf(part).findIndex((v) => v !== 0)])]);
       }
@@ -406,6 +504,14 @@ export class PartInspector {
     for (const [label, value] of rows) list.append(text('dt', '', label), text('dd', '', value));
     return list;
   }
+}
+
+/** The trash can drawn in the buttons that delete (the key button's, the header's). */
+function trashIcon(): SVGElement {
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) icon.setAttribute(name, value);
+  icon.innerHTML = '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>'; // trusted constant
+  return icon;
 }
 
 function el(tag: string, className: string): HTMLElement {

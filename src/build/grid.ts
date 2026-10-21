@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, ROTOR, THRUSTER, TURBO } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, BRAKE, isKeyed, isValidKey } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -218,6 +218,24 @@ export class Grid {
     return true;
   }
 
+  /**
+   * Gives the key (a `KeyboardEvent.code`, see `Part.key`) to the parts at `cells`, or takes their key off with `null`. Only parts that
+   * take a key (`isKeyed`) change. Returns false, changing nothing, when no part changes.
+   */
+  setKey(cells: ReadonlyArray<Vec3>, key: string | null): boolean {
+    if (key !== null && !isValidKey(key)) return false;
+    let changed = false;
+    for (const cell of cells) {
+      const part = this.get(cell);
+      if (!part || !isKeyed(part) || (part.key ?? null) === key) continue;
+      const { key: _old, ...rest } = part;
+      this.parts.set(cellKey(part.cell), key === null ? rest : { ...rest, key });
+      changed = true;
+    }
+    if (changed) this.emit();
+    return changed;
+  }
+
   /** The parts of `type` mounted on the same rigid body as the block or mounted part at `cell` (itself included); [] when there is none. */
   mountedOfTypeOnBody(cell: Vec3, type: Part['type']): Part[] {
     const part = this.get(cell);
@@ -283,19 +301,18 @@ export class Grid {
   }
 
   /**
-   * Fits a brake of `strength` (1-10) to the wheel at `cell`, or takes its brake off with `null`; with `wholeBody` the same goes
-   * for every wheel that already has a brake on the same body (see `wheelsOnBody`). Returns false, changing nothing, when there
-   * is no such wheel or no wheel changes.
+   * Sets the brake strength (1-10) of the wheel at `cell`, or of every wheel on the same body with `wholeBody` (see `wheelsOnBody`);
+   * the default strength is stored as "not set". Returns false, changing nothing, when there is no such wheel or no wheel changes.
    */
-  setBrake(cell: Vec3, strength: number | null, wholeBody = false): boolean {
+  setBrake(cell: Vec3, strength: number, wholeBody = false): boolean {
     const part = this.get(cell);
-    if (!part || !PART_INFO[part.type].hasBrake || (strength !== null && !Number.isFinite(strength))) return false;
-    const value = strength === null ? null : clampBrake(strength);
+    if (!part || !isWheelType(part.type) || !Number.isFinite(strength)) return false;
+    const value = clampBrake(strength);
     let changed = false;
-    for (const target of wholeBody ? this.wheelsOnBody(part.cell).filter((w) => cellKey(w.cell) === cellKey(part.cell) || brakeOf(w) > 0) : [part]) {
-      if ((value === null ? 0 : value) === brakeOf(target)) continue;
+    for (const target of wholeBody ? this.wheelsOnBody(part.cell) : [part]) {
+      if (brakeOf(target) === value) continue;
       const { brake: _old, ...rest } = target;
-      this.parts.set(cellKey(target.cell), value === null ? rest : { ...rest, brake: value });
+      this.parts.set(cellKey(target.cell), value === BRAKE.default ? rest : { ...rest, brake: value });
       changed = true;
     }
     if (changed) this.emit();
@@ -417,7 +434,7 @@ export class Grid {
  * converts older shapes. Returns null for a part that cannot be kept.
  */
 function sanitize(part: Part, legacyFormat: boolean): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, speed, stroke, brake, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+  const { color, suspension, tire: savedTire, weight, power, speed, stroke, brake, key, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
     layers?: number;
     rotation?: number;
     pitch?: number;
@@ -442,8 +459,9 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   if (power !== undefined && typeof power === 'number' && info.hasPower) out.power = clampPower(power);
   if (speed !== undefined && typeof speed === 'number' && info.hasSpeed) out.speed = clampRotorSpeed(speed);
   if (stroke !== undefined && typeof stroke === 'number' && info.hasStroke) out.stroke = clampStroke(stroke);
-  if (brake !== undefined && typeof brake === 'number' && info.hasBrake) out.brake = clampBrake(brake);
+  if (brake !== undefined && typeof brake === 'number' && isWheelType(part.type) && clampBrake(brake) !== BRAKE.default) out.brake = clampBrake(brake);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
+  if (isValidKey(key) && isKeyed(part)) out.key = key;
   if (isMountedType(part.type) && !part.face) return null; // wheels and engines are always mounted on a block
   // Orientation: the same fields for every part. Wheels and engines saved before that had `rotation` / `pitch` / `front`.
   const fromLegacy = isMountedType(part.type) && (rotation !== undefined || pitch !== undefined || front !== undefined || (legacyFormat && studs === undefined && spin === undefined));

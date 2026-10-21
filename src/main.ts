@@ -21,6 +21,7 @@ import {
   WORLD,
   applyTheme,
   hexToNumber,
+  loadKeyLabels,
 } from './constants';
 import { PhysicsWorld } from './play/physics-world';
 import { Sky } from './scene/sky';
@@ -38,6 +39,7 @@ import { confirmDialog } from './ui/confirm-dialog';
 import { ControlsPanel } from './ui/controls-panel';
 import { settings } from './settings';
 import { toggleSettingsDialog } from './ui/settings-dialog';
+import { openAlertsDialog, partsWithoutKey } from './ui/alerts-dialog';
 import { sound } from './audio/sound';
 import { VehicleSound } from './audio/vehicle-sound';
 import { Hud } from './ui/hud';
@@ -51,6 +53,7 @@ import { LoadingScreen } from './ui/loading-screen';
 
 async function main(): Promise<void> {
   applyTheme();
+  void loadKeyLabels(); // key names as printed on the player's keyboard, where the browser can tell
   document.documentElement.classList.add('ready'); // reveals the page (see the inline style in index.html)
   const loading = new LoadingScreen();
   loading.show(TEXT.loading.boot.physics);
@@ -158,10 +161,13 @@ async function main(): Promise<void> {
   let vehicle: VehicleController | null = null;
   let vehicleSound: VehicleSound | null = null;
 
+  let updateAlerts = () => {}; // set below, once the bell exists
+
   const startPlay = () => {
     stopPlay();
     physics = new PhysicsWorld(grid);
-    vehicle = new VehicleController(physics.wheels);
+    vehicle = new VehicleController(physics.wheels, grid.all());
+    physics.isOn = vehicle.isOn;
     hud.setNotice(grid.engineDrive && physics.wheels.length > 0 && vehicle.poweredWheels === 0 ? TEXT.hud.noEngine : null);
     scene.add(physics.group);
     controlsPanel.show(grid.all());
@@ -170,6 +176,7 @@ async function main(): Promise<void> {
     vehicleSound = new VehicleSound();
     sound.play('click'); // the standard button sound (Play, Reset and the P / R keys)
     mode = 'play';
+    updateAlerts();
     build.setEnabled(false);
     gridLines!.visible = false;
     hud.setMode('play');
@@ -191,6 +198,7 @@ async function main(): Promise<void> {
   const stop = () => {
     stopPlay();
     mode = 'build';
+    updateAlerts();
     palette.show(build.cursorMode === 'paint'); // the colours come back if the cursor is still the paint brush
     build.setEnabled(true);
     gridLines!.visible = true;
@@ -213,6 +221,7 @@ async function main(): Promise<void> {
   const enterMenu = () => {
     stopPlay();
     mode = 'menu';
+    updateAlerts();
     showFps(); // no FPS counter in the main menu
     activeSave = null;
     build.setEnabled(false);
@@ -347,6 +356,7 @@ async function main(): Promise<void> {
     onStroke: (part, stroke) => history.run(() => grid.setStroke(part.cell, stroke)),
     onSpeed: (part, speed) => history.run(() => grid.setSpeed(part.cell, speed)),
     onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
+    onKey: (parts, key) => history.run(() => grid.setKey(parts.map((p) => p.cell), key)),
     onBrake: (part, strength, wholeBody) => history.run(() => grid.setBrake(part.cell, strength, wholeBody)),
     onSuspension: (part, strength) => history.run(() => grid.setSuspension(part.cell, strength)),
     onRemoveMany: (parts) =>
@@ -377,6 +387,33 @@ async function main(): Promise<void> {
   };
   sound.onMuteChange(showSound);
   showSound();
+
+  // The bell: how many mobility parts still need a key (rotors, pistons, thrusters, turbos and brakes), and the panel that lists them.
+  const alertsButton = document.getElementById('btn-alerts') as HTMLButtonElement;
+  const alertsBadge = document.getElementById('alerts-badge')!;
+  updateAlerts = () => {
+    const missing = partsWithoutKey(grid).length;
+    alertsButton.hidden = mode === 'menu';
+    alertsBadge.hidden = missing === 0;
+    alertsBadge.textContent = String(missing);
+    alertsButton.title = TEXT.alerts.button(missing);
+    alertsButton.setAttribute('aria-label', alertsButton.title);
+  };
+  alertsButton.onclick = () => {
+    alertsButton.blur();
+    openAlertsDialog(
+      grid,
+      mode === 'build'
+        ? (part) => {
+            setCursorMode('inspect');
+            build.select(part);
+            focusOnSelection();
+          }
+        : null,
+    );
+  };
+  grid.subscribe(updateAlerts);
+  updateAlerts();
   // The buttons of the menus, dialogs and panels click when pressed (the other sounds belong to what the button does).
   document.addEventListener(
     'click',
@@ -498,11 +535,7 @@ async function main(): Promise<void> {
       vehicle?.update();
       physics.level = vehicle?.level ?? 0;
       physics.throttle = vehicle?.throttle ?? 0;
-      physics.rotating = vehicle?.rotating ?? false;
       physics.effectsEnabled = settings.get('effects');
-      physics.extended = vehicle?.extended ?? false;
-      physics.boosting = vehicle?.boosting ?? false;
-      physics.thrusting = vehicle?.thrusting ?? false;
       physics.steering = vehicle?.steering ?? false;
       physics.pilot = vehicle?.pilot ?? { pitch: 0, roll: 0, yaw: 0 };
       physics.step(dt);

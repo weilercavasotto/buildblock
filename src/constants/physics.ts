@@ -37,10 +37,10 @@ export const TIRE = {
 } as const;
 
 /**
- * The brake of a wheel (`Part.brake`, 1-10; missing = the wheel has no brake): fitted to a wheel with the Brake part and set with a
- * slider in the part inspector. While `Space` is held a braked wheel is held back (driven or not) with strength
+ * The brake every wheel has (`Part.brake`, 1-10; missing = `default`), set with a slider in the part inspector. While the wheel's key
+ * (`Part.key`, chosen by the player) is held the wheel is held back (driven or not) with strength
  * `VEHICLE.idleBrake + VEHICLE.brakeStrength * strength / default`, so the default strength brakes as `brakeStrength` says and 10
- * twice as much. Only the wheels that have one brake.
+ * twice as much.
  */
 export const BRAKE = {
   min: 1,
@@ -52,8 +52,8 @@ export const BRAKE = {
 export const clampBrake = (value: number): number =>
   Math.min(BRAKE.max, Math.max(BRAKE.min, Math.round(Number.isFinite(value) ? value : BRAKE.default)));
 
-/** The brake strength of a wheel (1-10), or 0 when it has none. */
-export const brakeOf = (part: { brake?: number }): number => (part.brake === undefined ? 0 : clampBrake(part.brake));
+/** The brake strength of a wheel (1-10): its own, or the default. */
+export const brakeOf = (part: { brake?: number }): number => clampBrake(part.brake ?? BRAKE.default);
 
 export const clampTire = (value: number): number =>
   Math.min(TIRE.max, Math.max(TIRE.min, Math.round(Number.isFinite(value) ? value : TIRE.default)));
@@ -283,7 +283,7 @@ export const VEHICLE = {
   maxWheelSpeed: 14,
   motorStrength: 60,
   idleBrake: 12,
-  /** Strength with which a braked wheel is held while `Space` is held, on top of `idleBrake` (times its brake strength over `BRAKE.default`). */
+  /** Strength with which a wheel is held while its brake key is held, on top of `idleBrake` (times its brake strength over `BRAKE.default`). */
   brakeStrength: 22,
   /**
    * Driving assist: while the player does not steer, an upright vehicle (its up axis within `uprightMin` of vertical) holds the

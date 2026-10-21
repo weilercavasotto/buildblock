@@ -8,12 +8,12 @@
 - No export/import of saves and no rename of existing saves; the undo history is per session (not saved).
 - Blocks have no joints that can break; a structure never falls apart.
 - Scenery in Play mode is fixed (ramps, a kicker, walls, pillars and whoops built from catalog parts: `SCENERY_PARTS`). Every part of a creation is a body that can be pushed: there is no part fixed to the ground.
-- Controls are fixed WASD/arrows; there is no per-wheel key configuration.
+- Driving is fixed WASD/arrows (and Q / E in the air); only the keys of the rotors, pistons, thrusters, turbos and brakes are the player's. There is no per-wheel throttle or steering key.
 
 ## Ideas
 
 - More parts: slopes, thrusters, hinges, suspension, steering wheels.
-- Per-wheel key bindings (Besiege-style) and a steerable/non-driven wheel flag.
+- Keys for driving and steering per wheel (the part keys already exist) and a steerable/non-driven wheel flag.
 - Copy/paste and save slots (export/import JSON); undo/redo that also survives reloading a save.
 - Painting for other tools (e.g. a row of wheels) and an erase-by-dragging mode.
 - An asymmetric part (slope / wedge, thruster) where the new rotation (A / D) is visible and matters physically; rotating an already placed part.
@@ -69,4 +69,4 @@ Left out for now: 1 (an anchor block fixed to the ground).
 5. Round parts, corner slopes, arches and plates with a hole (shapes that are not boxes).
 6. Propeller and wings with lift.
 
-Every new part follows [adding-a-part.md](adding-a-part.md) (and the rules of `AGENTS.md`: tokens in `constants/`, `help-content.ts`, `PLAY_CONTROLS` when it has a key, a sound recipe if it should make one).
+Every new part follows [adding-a-part.md](adding-a-part.md) (and the rules of `AGENTS.md`: tokens in `constants/`, `help-content.ts`, `PART_KEYS` / `PART_KEY_LABELS` when it takes a key, a sound recipe if it should make one).

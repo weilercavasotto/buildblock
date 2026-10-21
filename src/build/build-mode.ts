@@ -3,8 +3,8 @@ import { Grid } from './grid';
 import { sound } from '../audio/sound';
 import { Checkpoint, History } from './history';
 import { disposeOutline, createOutline, outlineFill } from './outline';
-import { BRAKE, BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, brakeOf, hexToNumber, partVolume } from '../constants';
-import { brakePose, createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
+import { BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, hexToNumber, partVolume } from '../constants';
+import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
 import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isHostType, isStructural, isWheelType, partCentre, roundCoord } from '../types';
@@ -202,7 +202,7 @@ export class BuildMode {
     } else {
       this.ghostQuat.copy(this.ghostTargetQuat);
     }
-    if (this.ghost && this.ghost.type !== 'brake') this.ghost.object.quaternion.copy(this.ghostQuat); // a brake's preview follows its wheel
+    if (this.ghost) this.ghost.object.quaternion.copy(this.ghostQuat);
     this.animateBounces(dt);
     this.animateRemovals(dt);
   }
@@ -617,16 +617,6 @@ export class BuildMode {
     }
     if (this.mode !== 'build') return;
 
-    // The brake is fitted to the wheel that is clicked (it is not placed in the grid).
-    if (this.tool === 'brake') {
-      const wheel = this.pick(e)?.part;
-      if (wheel && PART_INFO[wheel.type].hasBrake && brakeOf(wheel) === 0) {
-        this.history.run(() => this.grid.setBrake(wheel.cell, BRAKE.default));
-        this.setBrakeGhost(null);
-      }
-      return;
-    }
-
     // The left button places on press; for blocks, keeping it down and moving paints more blocks (see `paint`).
     const p = this.pick(e);
     const part = p && this.target(p);
@@ -753,8 +743,7 @@ export class BuildMode {
     const p = this.pick(e);
     if (this.mode === 'build') {
       this.setHover(null);
-      if (this.tool === 'brake') this.setBrakeGhost(p?.part && PART_INFO[p.part.type].hasBrake ? p.part : null);
-      else this.setGhost(p ? this.target(p) : null);
+      this.setGhost(p ? this.target(p) : null);
     } else {
       this.setGhost(null);
       this.setHover(p?.part ?? null);
@@ -787,28 +776,6 @@ export class BuildMode {
    * towards the one the user chose (`this.orientation`, the same for every part), so every quarter turn is seen, even for a
    * part that looks the same afterwards (the placed part stores `canonicalOrientation`).
    */
-  /**
-   * Shows the preview of a brake fitted to `wheel` (or hides it): the brake model where it would sit in the wheel, translucent,
-   * red when the wheel already has a brake.
-   */
-  private setBrakeGhost(wheel: Part | null): void {
-    if (!wheel) {
-      this.setGhost(null);
-      return;
-    }
-    const valid = brakeOf(wheel) === 0;
-    if (!this.ghost || this.ghost.type !== 'brake' || this.ghost.valid !== valid) {
-      if (this.ghost) this.scene.remove(this.ghost.object);
-      const object = createPartObject({ type: 'brake' }, valid ? 'ok' : 'bad');
-      this.scene.add(object);
-      this.ghost = { object, type: 'brake', valid };
-    }
-    const pose = brakePose(wheel);
-    this.ghost.object.position.copy(new THREE.Vector3(...partCentre(wheel)).add(pose.position));
-    this.ghost.object.quaternion.copy(pose.quaternion);
-    this.ghost.object.scale.setScalar(pose.scale);
-  }
-
   private setGhost(part: Part | null): void {
     if (!part) {
       if (this.ghost) this.scene.remove(this.ghost.object);

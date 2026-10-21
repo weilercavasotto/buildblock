@@ -1,14 +1,13 @@
 import { WheelDrive } from './physics-world';
-import { ENGINE, TURBO, VEHICLE } from '../constants';
-import { Vec3 } from '../types';
+import { ENGINE, TURBO, VEHICLE, keyModeOf } from '../constants';
+import { Part, Vec3, isRotor, isPiston } from '../types';
 
-const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'brake' | 'boost' | 'yawLeft' | 'yawRight'> = {
+/** The keys that drive and fly the vehicle: fixed (and reserved: see `RESERVED_KEYS`). The keys of the other parts are the parts' own (`Part.key`). */
+const KEY_MAP: Record<string, 'forward' | 'back' | 'left' | 'right' | 'yawLeft' | 'yawRight'> = {
   KeyW: 'forward', ArrowUp: 'forward',
   KeyS: 'back', ArrowDown: 'back',
   KeyA: 'left', ArrowLeft: 'left',
   KeyD: 'right', ArrowRight: 'right',
-  Space: 'brake',
-  ShiftLeft: 'boost', ShiftRight: 'boost',
   KeyQ: 'yawLeft',
   KeyE: 'yawRight',
 };
@@ -31,16 +30,25 @@ interface DrivenWheel {
 }
 
 export class VehicleController {
-  private pressed = { forward: false, back: false, left: false, right: false, brake: false, boost: false, yawLeft: false, yawRight: false };
+  private pressed = { forward: false, back: false, left: false, right: false, yawLeft: false, yawRight: false };
   private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean } | null = null;
-  private rotorsOn = false;
-  private pistonsOut = false;
+  /** The part keys that are held right now, and the ones switched on by a press (a key runs its `hold` parts while held and flips its `toggle` parts). */
+  private held = new Set<string>();
+  private toggled = new Set<string>();
+  /** The keys some part is bound to: the only part keys this listens to (the rest of the keyboard is left alone). */
+  private bound: Set<string>;
+  /** Was a brake held at the last `update`? */
+  private wheelBraking = false;
   private driven: DrivenWheel[];
   private listening: boolean;
 
-  /** With `keyboard: false` the vehicle only moves through `setAutopilot` (used by the main menu). */
-  constructor(wheels: WheelDrive[], { keyboard = true } = {}) {
+  /**
+   * `parts` are the parts of the creation being played (their keys decide what runs). With `keyboard: false` the vehicle only moves
+   * through `setAutopilot` (used by the main menu).
+   */
+  constructor(wheels: WheelDrive[], private parts: ReadonlyArray<Part> = [], { keyboard = true } = {}) {
     this.listening = keyboard;
+    this.bound = new Set(parts.flatMap((p) => (p.key ? [p.key] : [])));
     // Forward is perpendicular to the axles of the majority of wheels.
     const onX = wheels.filter((w) => w.axis[0] !== 0).length;
     const forward: Vec3 = onX >= wheels.length - onX ? [0, 0, -1] : [1, 0, 0];
@@ -70,7 +78,29 @@ export class VehicleController {
     if (keyboard) {
       window.addEventListener('keydown', this.onKey);
       window.addEventListener('keyup', this.onKey);
+      window.addEventListener('blur', this.releaseAll);
     }
+  }
+
+  /**
+   * Is this rotor, piston, thruster or turbo (or the brake of this wheel) running? Its key decides: a `hold` part while the key is held,
+   * a `toggle` part once the key has been pressed an odd number of times. A part with no key never runs. The autopilot (main menu)
+   * runs every part of a kind at once.
+   */
+  isOn = (part: Part): boolean => {
+    if (this.autopilot) {
+      if (isRotor(part.type)) return this.autopilot.rotors ?? false;
+      if (isPiston(part.type)) return this.autopilot.pistons ?? false;
+      if (part.type === 'thruster') return this.autopilot.thrust ?? false;
+      if (part.type === 'turbo') return this.autopilot.boost ?? false;
+      return this.autopilot.brake ?? false;
+    }
+    if (!part.key) return false;
+    return keyModeOf(part) === 'toggle' ? this.toggled.has(part.key) : this.held.has(part.key);
+  };
+
+  private anyOn(match: (part: Part) => boolean): boolean {
+    return this.parts.some((p) => match(p) && this.isOn(p));
   }
 
   /**
@@ -86,19 +116,19 @@ export class VehicleController {
     };
   }
 
-  /** Is the thrust key (Space, the same as the brake's) held? The thrusters push and fire while it is. */
+  /** Is any thruster firing? (The sound of the jets follows it.) */
   get thrusting(): boolean {
-    return this.autopilot?.thrust ?? this.pressed.brake;
+    return this.anyOn((p) => p.type === 'thruster');
   }
 
-  /** Is the brake key (Space) held? */
+  /** Is any brake held? */
   get braking(): boolean {
-    return this.autopilot?.brake ?? this.pressed.brake;
+    return this.wheelBraking;
   }
 
-  /** Is the boost key (Shift) held? The turbos' flames follow it. */
+  /** Is any turbo blowing? */
   get boosting(): boolean {
-    return this.autopilot?.boost ?? this.pressed.boost;
+    return this.anyOn((p) => p.type === 'turbo');
   }
 
   /** Is the player steering (A / D, or the autopilot's steer)? The straightening assist is off while so. */
@@ -107,14 +137,9 @@ export class VehicleController {
     return steer !== 0;
   }
 
-  /** Are the pistons pushed out (G toggles them; they start folded)? */
-  get extended(): boolean {
-    return this.autopilot?.pistons ?? this.pistonsOut;
-  }
-
-  /** Are the rotors switched on (F toggles them; they start off)? */
+  /** Is any rotor switched on (they start off)? */
   get rotating(): boolean {
-    return this.autopilot?.rotors ?? this.rotorsOn;
+    return this.anyOn((p) => isRotor(p.type));
   }
 
   /** The throttle, -1 (S) to 1 (W): the engines' push on the body (see `ENGINE.leverage`) follows it. */
@@ -138,7 +163,14 @@ export class VehicleController {
     if (!this.listening) return;
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('keyup', this.onKey);
+    window.removeEventListener('blur', this.releaseAll);
   }
+
+  /** The window lost the focus: the keys that were held are released (their keyup never comes). */
+  private releaseAll = (): void => {
+    this.held.clear();
+    this.pressed = { forward: false, back: false, left: false, right: false, yawLeft: false, yawRight: false };
+  };
 
   /** Drives the vehicle with the given throttle/steer in [-1, 1]; `null` hands control back to the keyboard. */
   setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean } | null): void {
@@ -146,21 +178,25 @@ export class VehicleController {
   }
 
   private onKey = (e: KeyboardEvent): void => {
-    // G pushes the pistons out and, pressed again, back (one press each; not Ctrl / Cmd + G).
-    if (e.code === 'KeyG' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (e.type === 'keydown' && !e.repeat) this.pistonsOut = !this.pistonsOut;
-      e.preventDefault();
-      return;
-    }
-    // F switches the rotors on and off (one press each; not Ctrl / Cmd + F, the browser's search).
-    if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (e.type === 'keydown' && !e.repeat) this.rotorsOn = !this.rotorsOn;
+    if (e.ctrlKey || e.metaKey || e.altKey) return; // browser and system shortcuts are not for the vehicle
+    const down = e.type === 'keydown';
+    // The key of some parts: held while pressed; each press (not the repeats of a held key) flips the toggles.
+    if (this.bound.has(e.code)) {
+      if (down) {
+        if (!e.repeat) {
+          if (this.toggled.has(e.code)) this.toggled.delete(e.code);
+          else this.toggled.add(e.code);
+        }
+        this.held.add(e.code);
+      } else {
+        this.held.delete(e.code);
+      }
       e.preventDefault();
       return;
     }
     const action = KEY_MAP[e.code];
     if (!action) return;
-    this.pressed[action] = e.type === 'keydown';
+    this.pressed[action] = down;
     e.preventDefault();
   };
 
@@ -169,12 +205,12 @@ export class VehicleController {
     const steer = this.autopilot?.steer ?? Number(this.pressed.right) - Number(this.pressed.left);
     const idle = throttle === 0 && steer === 0;
 
-    const braking = this.autopilot?.brake ?? this.pressed.brake;
-    const boosting = this.boosting;
+    this.wheelBraking = false;
 
     for (const { wheel, roll, side, power } of this.driven) {
-      // Braking (Space) holds the wheels that have a brake, driven or not, and overrides the throttle for them.
-      if (braking && wheel.brake > 0) {
+      // A held brake key holds the wheels that have it, driven or not, and overrides the throttle for them.
+      if (this.isOn(wheel.part)) {
+        this.wheelBraking = true;
         wheel.joint.configureMotorVelocity(0, VEHICLE.idleBrake + VEHICLE.brakeStrength * wheel.brake); // on top of the light hold of a wheel at rest
         continue;
       }
@@ -187,8 +223,8 @@ export class VehicleController {
       const speed = throttle - steer * side * VEHICLE.steerGain;
       // Full strength to steer, `cruise` of it in a straight line (see `WHEEL_SIZES`), blended with the steering input.
       const strength = wheel.cruise + (1 - wheel.cruise) * Math.min(1, Math.abs(steer));
-      // The turbos of the wheel's body (Shift) make it turn faster and push harder.
-      const boost = boosting ? wheel.boost : 0;
+      // The turbos of the wheel's body whose keys are held make it turn faster and push harder.
+      const boost = Math.min(TURBO.maxBoost, wheel.turbos.reduce((sum, t) => sum + (this.isOn(t.part) ? t.boost : 0), 0));
       wheel.joint.configureMotorVelocity(
         roll * speed * VEHICLE.maxWheelSpeed * wheel.speed * (1 + TURBO.speedGain * boost),
         VEHICLE.motorStrength * wheel.torque * strength * power * (1 + TURBO.torqueGain * boost),

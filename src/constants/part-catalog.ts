@@ -26,8 +26,6 @@ export interface PartInfo {
   hasTire: boolean;
   /** Does it have an adjustable weight (set in the part inspector)? */
   hasWeight: boolean;
-  /** Can a brake be fitted to it (the wheels)? The brake strength is then set in the part inspector. */
-  hasBrake: boolean;
   /** Does it have an adjustable power (an engine; set in the part inspector)? */
   hasPower: boolean;
   /** Does it have an adjustable speed and direction (a rotor; set in the part inspector)? */
@@ -65,7 +63,6 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     hasSuspension: false,
     hasTire: false,
     hasWeight: true,
-    hasBrake: false,
     hasPower: false,
     hasSpeed: false,
     hasStroke: false,
@@ -319,7 +316,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: false,
     hasTire: false,
     hasWeight: false,
-    hasBrake: false,
     hasPower: true,
     hasSpeed: false,
     hasStroke: false,
@@ -349,19 +345,18 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: false,
     hasTire: false,
     hasWeight: false,
-    hasBrake: false,
     hasPower: true,
     hasSpeed: false,
     hasStroke: false,
     tagline: 'Pushes its body, no wheels needed.',
     description:
-      'A small jet that you mount on a face of a block, like the engine. Hold Space while playing and it pushes the body it is mounted on towards its front, from where it sits, with an orange flame out of the bell at the back, on the ground or in the air, with or without an engine. A thruster far from the centre of the body also turns it. The thrusts of a body\'s thrusters add up.',
+      'A small jet that you mount on a face of a block, like the engine. Give it a key in the inspector and hold it while playing: it pushes the body it is mounted on towards its front, from where it sits, with an orange flame out of the bell at the back, on the ground or in the air, with or without an engine. A thruster far from the centre of the body also turns it. The thrusts of a body\'s thrusters add up.',
     properties: [
       { label: 'Size', value: `${THRUSTER_BODY.width} × ${THRUSTER_BODY.width} × ${THRUSTER_BODY.depth} cells, against the block` },
       { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
-      { label: 'Front', value: 'The jet\'s front (the bell and the flame are at the back): Space pushes the body towards it. A / D turn it, W / S tilt it, in every direction' },
+      { label: 'Front', value: 'The jet\'s front (the bell and the flame are at the back): its key pushes the body towards it. A / D turn it, W / S tilt it, in every direction' },
       { label: 'Thrust', value: 'Adjustable in the inspector (1-10, default 5)' },
-      { label: 'Control', value: 'Hold Space while playing' },
+      { label: 'Control', value: 'Hold its key while playing (chosen in the inspector)' },
       { label: 'Mass', value: `${THRUSTER.mass} block of the default weight` },
       { label: 'Paint', value: 'Yes, in paint mode (E): the tube takes the colour' },
     ],
@@ -380,20 +375,19 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: false,
     hasTire: false,
     hasWeight: false,
-    hasBrake: false,
     hasPower: false,
     hasSpeed: false,
     hasStroke: true,
     tagline: 'Pushes up everything built on its head, and holds it there.',
     description:
-      'A barrel that you mount on a face of a block, with a round silver head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play, press G and the head slides out along the face, carrying it all, and stays out until you press G again, and then it slides back. Use it for lifts, doors, hatches and launchers.',
+      'A barrel that you mount on a face of a block, with a round silver head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play, press its key (chosen in the inspector) and the head slides out along the face, carrying it all, and stays out until you press the key again, and then it slides back. Use it for lifts, doors, hatches and launchers.',
     properties: [
       { label: 'Size', value: `${PISTON_BODY.width} × ${PISTON_BODY.width} × ${PISTON_BODY.depth} cells folded, against the block` },
       { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
       { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
       { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red' },
       { label: 'Stroke', value: 'Adjustable in the inspector (0.5 to 3 cells, default 1 cell)' },
-      { label: 'Control', value: 'Press G while playing: out, and G again: back (all the pistons together)' },
+      { label: 'Control', value: 'Press its key while playing (chosen in the inspector): out, and again: back' },
       { label: 'Mass', value: `${PISTON.mass} block of the default weight (the barrel); the head and what it holds weigh what they are` },
       { label: 'Paint', value: 'Yes, in paint mode (E): the head takes the colour (silver by default)' },
     ],
@@ -413,13 +407,12 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: false,
     hasTire: false,
     hasWeight: false,
-    hasBrake: false,
     hasPower: false,
     hasSpeed: true,
     hasStroke: false,
     tagline: 'A spinning head: build propellers, fans and cranes.',
     description:
-      'A round base that you mount on a face of a block, with a round orange head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play it turns with the head on the axis of the face. Press F while playing to switch every rotor on or off. Use it for propellers, fans, cranes and doors.',
+      'A round base that you mount on a face of a block, with a round orange head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play it turns with the head on the axis of the face. Press its key (chosen in the inspector) while playing to switch it on or off. Use it for propellers, fans, cranes and doors.',
     properties: [
       { label: 'Size', value: `${ROTOR_BODY.width} × ${ROTOR_BODY.width} × ${ROTOR_BODY.depth} cells, against the block` },
       { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
@@ -427,7 +420,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red' },
       { label: 'Axis', value: 'The line of the head: it turns around the line that leaves the block where it is mounted' },
       { label: 'Speed', value: 'Adjustable in the inspector (-10 to 10, default 5): the sign is the direction (positive is clockwise seen from the head), 0 holds it' },
-      { label: 'Control', value: 'Press F while playing to switch the rotors on and off' },
+      { label: 'Control', value: 'Press its key while playing (chosen in the inspector) to switch it on and off' },
       { label: 'Mass', value: `${ROTOR.mass} block of the default weight (the base); the head and what it holds weigh what they are` },
       { label: 'Paint', value: 'Yes, in paint mode (E): the head takes the colour (orange by default)' },
     ],
@@ -447,19 +440,18 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: false,
     hasTire: false,
     hasWeight: false,
-    hasBrake: false,
     hasPower: true,
     hasSpeed: false,
     hasStroke: false,
     tagline: 'A nitro boost for the driven wheels.',
     description:
-      'A nitrous bottle that you mount on a face of a block, like the engine. Hold Shift while playing and the wheels that an engine drives, on the same body, turn faster and push harder, with a blue flame out of the nozzle. It only boosts: without an engine on the body it does nothing. The boosts of a body\'s turbos add up.',
+      'A nitrous bottle that you mount on a face of a block, like the engine. Give it a key in the inspector and hold it while playing: the wheels that an engine drives, on the same body, turn faster and push harder, with a blue flame out of the nozzle. It only boosts: without an engine on the body it does nothing. The boosts of a body\'s turbos add up.',
     properties: [
       { label: 'Size', value: `${TURBO_BODY.width} × ${TURBO_BODY.width} × ${TURBO_BODY.depth} cells, against the block` },
       { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
       { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps), in every direction; the nozzle (the flame) goes with it' },
       { label: 'Boost', value: 'Adjustable in the inspector (1-10, default 5)' },
-      { label: 'Control', value: 'Hold Shift while playing' },
+      { label: 'Control', value: 'Hold its key while playing (chosen in the inspector)' },
       { label: 'Mass', value: `${TURBO.mass} block of the default weight` },
       { label: 'Paint', value: 'Yes, in paint mode (E): the bottle takes the colour' },
     ],
@@ -467,35 +459,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'Mount it on the same body as the engine and the wheels it should boost.',
       'Point the nozzle backwards (the flame leaves the back of the bottle) so it looks right.',
       'Two turbos add their boost: up to three times the push of one default turbo.',
-    ],
-  },
-  brake: {
-    type: 'brake',
-    name: 'Brake',
-    category: 'mobility',
-    // It is fitted to a wheel and takes the wheel's turn, so there is nothing to rotate.
-    rotatable: false,
-    paintable: false,
-    hasSuspension: false,
-    hasTire: false,
-    hasWeight: false,
-    hasBrake: false,
-    hasPower: false,
-    hasSpeed: false,
-    hasStroke: false,
-    tagline: 'Fits to a wheel to stop it.',
-    description:
-      'A drilled steel disc with a caliper that you fit to a wheel: pick the brake and click a wheel, and the disc appears behind its rim. Hold Space while playing and every wheel with a brake is held back, whether it is driven or not; a wheel without one rolls on. Each wheel has its own brake, with a strength you set in the part inspector.',
-    properties: [
-      { label: 'Fits to', value: 'A wheel (small or large), one brake per wheel' },
-      { label: 'Strength', value: 'Adjustable in the inspector (1-10, default 5)' },
-      { label: 'Control', value: 'Hold Space while playing' },
-      { label: 'Remove', value: 'The Remove brake button in the wheel\'s inspector (the wheel stays)' },
-    ],
-    tips: [
-      'Brake only the wheels you want: the back ones make the car slide in a turn, the front ones stop it hardest.',
-      'Select the wheel in inspect mode (I) to change the strength of its brake or take the brake off.',
-      'Brake hard while turning: the wheels lock, the car slides and throws up earth.',
     ],
   },
   wheel: {
@@ -508,7 +471,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: true,
     hasTire: true,
     hasWeight: false,
-    hasBrake: true,
     hasPower: false,
     hasSpeed: false,
     hasStroke: false,
@@ -523,6 +485,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
       { label: 'Tire', value: 'Adjustable in the inspector, from speed to traction (0-100, default 50)' },
+      { label: 'Brake', value: 'Every wheel has one: strength 1-10 (default 5) and a key (optional) in the inspector; hold the key while playing to hold the wheels with it back' },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],
     tips: [
@@ -541,7 +504,6 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasSuspension: true,
     hasTire: true,
     hasWeight: false,
-    hasBrake: true,
     hasPower: false,
     hasSpeed: false,
     hasStroke: false,
@@ -557,6 +519,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
       { label: 'Tire', value: 'Adjustable in the inspector, from speed to traction (0-100, default 50)' },
+      { label: 'Brake', value: 'Every wheel has one: strength 1-10 (default 5) and a key (optional) in the inspector; hold the key while playing to hold the wheels with it back' },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],
     tips: [
@@ -598,7 +561,6 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'engine',
   'thruster',
   'turbo',
-  'brake',
   'rotor',
   'piston',
   'wheel',

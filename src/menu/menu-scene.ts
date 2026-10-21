@@ -61,11 +61,7 @@ export class MenuScene {
     this.vehicle.update();
     this.physics.level = this.vehicle.level;
     this.physics.throttle = this.vehicle.throttle;
-    this.physics.boosting = this.vehicle.boosting;
-    this.physics.thrusting = this.vehicle.thrusting;
     this.physics.steering = this.vehicle.steering;
-    this.physics.rotating = this.vehicle.rotating;
-    this.physics.extended = this.vehicle.extended;
     this.physics.step(dt);
 
     this.focus.lerp(new THREE.Vector3(t.x, t.y + MENU_SCENE.focusYOffset, t.z), 1 - Math.exp(-dt * MENU_SCENE.focusSmoothing));
@@ -127,7 +123,8 @@ export class MenuScene {
     this.bursting = false;
     this.burstTimer = MENU_SCENE.burstPauseMin;
     this.physics = new PhysicsWorld(grid);
-    this.vehicle = new VehicleController(this.physics.wheels, { keyboard: false });
+    this.vehicle = new VehicleController(this.physics.wheels, grid.all(), { keyboard: false });
+    this.physics.isOn = this.vehicle.isOn;
     this.scene.add(this.physics.group);
     this.age = 0;
     this.flippedFor = 0;

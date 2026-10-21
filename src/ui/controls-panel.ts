@@ -1,10 +1,26 @@
-import { PLAY_CONTROLS, TEXT } from '../constants';
+import { PLAY_CONTROLS, PART_KEY_LABELS, TEXT, isKeyed, keyLabel } from '../constants';
 import { Part } from '../types';
 
+/** The commands of the keys the player gave to parts: the keys with what they run (several parts on one key are counted), in key order. */
+function partKeyRows(parts: ReadonlyArray<Part>): Array<{ keys: string[]; label: string }> {
+  const byKey = new Map<string, Map<string, number>>();
+  for (const part of parts) {
+    if (!isKeyed(part) || !part.key) continue;
+    const label = PART_KEY_LABELS[part.type] ?? part.type;
+    const group = byKey.get(part.key) ?? new Map<string, number>();
+    group.set(label, (group.get(label) ?? 0) + 1);
+    byKey.set(part.key, group);
+  }
+  return [...byKey]
+    .map(([code, group]) => ({ keys: [keyLabel(code)], label: [...group].map(([label, n]) => (n > 1 ? `${n} × ${label}` : label)).join(' + ') }))
+    .sort((a, b) => a.keys[0].localeCompare(b.keys[0]));
+}
+
 /**
- * The panel at the bottom left in Play mode: the keys that drive the creation, only for the parts it has (`PLAY_CONTROLS`): wheels
- * give the driving keys, a brake or a thruster Space, a turbo Shift, a rotor F. Hidden when no row applies. All text is set with
- * `textContent`.
+ * The panel at the bottom left in Play mode: the keys that drive the creation, only for the parts it has: the driving keys for wheels
+ * and the flight keys for thrusters (`PLAY_CONTROLS`), then the keys the player gave to the rotors, pistons, thrusters, turbos and brakes,
+ * grouped by key ("G  3 × Pistons out / back"). Parts that need a key and have none are counted at the bottom. Hidden when no row
+ * applies. All text is set with `textContent`.
  */
 export class ControlsPanel {
   private root = document.getElementById('controls-panel')!;
@@ -14,9 +30,12 @@ export class ControlsPanel {
   /** Lists the commands of the parts in `parts` (the creation that is about to be played). */
   show(parts: ReadonlyArray<Part>): void {
     this.parts = parts;
-    const rows = this.enabled ? PLAY_CONTROLS.filter((control) => control.when(parts)) : [];
-    this.root.hidden = rows.length === 0;
-    if (rows.length === 0) return;
+    const rows = this.enabled
+      ? [...PLAY_CONTROLS.filter((control) => control.when(parts)), ...partKeyRows(parts)]
+      : [];
+    const unbound = this.enabled ? parts.filter((p) => isKeyed(p) && !p.key).length : 0;
+    this.root.hidden = rows.length === 0 && unbound === 0;
+    if (this.root.hidden) return;
     const title = document.createElement('h3');
     title.className = 'controls-title';
     title.textContent = TEXT.hud.controlsTitle;
@@ -35,6 +54,12 @@ export class ControlsPanel {
       list.append(keys, label);
     }
     this.root.replaceChildren(title, list);
+    if (unbound > 0) {
+      const warning = document.createElement('p');
+      warning.className = 'controls-warning';
+      warning.textContent = `${TEXT.hud.unboundControls(unbound)}. ${TEXT.hud.unboundHint}`;
+      this.root.append(warning);
+    }
   }
 
   hide(): void {

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, HEADED_PARTS, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, Vec3, axleOf, isCompactMounted, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
-import { createBrakeCaliper, createBrakeDisc, createBrakeModel } from './brake-model';
+import { createBrakeCaliper, createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
 import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
@@ -230,7 +230,7 @@ function brakeFitting(wheel: Pick<Part, 'type' | 'studs' | 'spin' | 'face'>): TH
   return fitting;
 }
 
-/** The caliper of a braked wheel as a separate object (in Play it follows the suspension, not the spinning wheel). */
+/** The caliper of a wheel as a separate object (in Play it follows the suspension, not the spinning wheel). */
 export function createCaliperObject(wheel: Pick<Part, 'type' | 'studs' | 'spin' | 'face'>): THREE.Group {
   const fitting = brakeFitting(wheel);
   fitting.add(createBrakeCaliper());
@@ -358,9 +358,9 @@ export function createHeadedHeadObject(part: Pick<Part, 'type' | 'studs' | 'spin
 
 /** Builds the visual for a part, centred on its own origin (cell centre). */
 export function createPartObject(
-  part: Pick<Part, 'type' | 'color' | 'studs' | 'spin' | 'face' | 'brake'>,
+  part: Pick<Part, 'type' | 'color' | 'studs' | 'spin' | 'face'>,
   ghost?: 'ok' | 'bad',
-  /** `caliper: false` leaves the caliper of a braked wheel out (in Play it is a separate object that stays with the suspension). */
+  /** `caliper: false` leaves the caliper of a wheel out (in Play it is a separate object that stays with the suspension). */
   { caliper = true }: { caliper?: boolean } = {},
 ): THREE.Group {
   const root = new THREE.Group();
@@ -392,9 +392,6 @@ export function createPartObject(
     const head = part.type === 'piston' ? pistonHeadGroup(part.color) : rotorHeadGroup(part.color);
     head.position.y = offsets.head;
     root.add(base, head);
-  } else if (part.type === 'brake') {
-    // The brake part itself (what the catalog and the placement preview show): the whole brake, in its own frame.
-    root.add(createBrakeModel());
   } else if (part.type === 'thruster') {
     // The thruster in its own frame: the jet along z, the bell at the back.
     root.add(createThrusterModel(blockMaterials(part.color, 'thruster').face));
@@ -411,20 +408,18 @@ export function createPartObject(
     // carries its orientation inside, in the pivot, instead of on the root like the other parts.
     pivot.quaternion.copy(orientationQuaternion(orientationOfPart(part))).multiply(faceQuaternion([1, 0, 0]));
     pivot.scale.setScalar(wheelSizeOf(part.type).scale);
-    // Tire (rubber) and rim (metal, open between the spokes: a braked wheel shows its brake disc there); see wheel-model.ts.
+    // Tire (rubber) and rim (metal, open between the spokes: the brake disc shows there); see wheel-model.ts.
     const tire = new THREE.Mesh(wheelGeometry.tire, tireMat);
     tire.castShadow = true;
     const rim = new THREE.Mesh(wheelGeometry.rim, rimMat);
     rim.castShadow = true;
     pivot.add(tire, rim);
     root.add(pivot);
-    // A braked wheel has its disc behind the rim; the disc turns with the wheel, so it is part of this object.
-    if (brakeOf(part) > 0) {
-      const brake = brakeFitting(part);
-      brake.add(createBrakeDisc());
-      if (caliper) brake.add(createBrakeCaliper());
-      root.add(brake);
-    }
+    // Every wheel has its brake disc behind the rim; the disc turns with the wheel, so it is part of this object.
+    const brake = brakeFitting(part);
+    brake.add(createBrakeDisc());
+    if (caliper) brake.add(createBrakeCaliper());
+    root.add(brake);
   }
   // Every other part is turned the same way: its own frame to the world by its orientation.
   if (!isWheelType(part.type)) root.quaternion.copy(orientationQuaternion(orientationOfPart(part)));

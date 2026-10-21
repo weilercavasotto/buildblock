@@ -206,9 +206,23 @@ body.dragging * {
   line-height: 1;
   cursor: pointer;
 }
+.help-close.danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-danger);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
 .help-close:hover,
 .help-tab:hover {
   background: var(--color-surface-control-hover);
+}
+.help-close.danger:hover {
+  background: var(--color-accent-danger); /* the hover colour of the other close buttons would turn it grey */
 }
 .help-tabs {
   display: flex;
@@ -517,6 +531,11 @@ body.dragging * {
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
   cursor: pointer;
+}
+/* A long label ("Apply to the 4 wheels on this body") wraps inside the narrow inspector instead of being cut. */
+#part-inspector .catalog-action {
+  white-space: normal;
+  line-height: var(--line-height-normal);
 }
 .catalog-action.primary {
   background: var(--color-accent-highlight);
@@ -1333,6 +1352,7 @@ body[data-cursor-mode='remove'] > canvas {
 }
 
 /* The sound button, top right (always visible, also in the menu): the speaker, or the crossed speaker while muted. */
+#btn-alerts,
 #btn-sound,
 #btn-settings {
   position: fixed;
@@ -1355,10 +1375,40 @@ body[data-cursor-mode='remove'] > canvas {
   /* The same gap as between the buttons at the top left (`#top-left`). */
   right: calc(var(--space-lg) + var(--size-icon-button) + var(--space-sm));
 }
+#btn-alerts {
+  right: calc(var(--space-lg) + 2 * (var(--size-icon-button) + var(--space-sm)));
+}
+#btn-alerts[hidden] {
+  display: none;
+}
+/* The count of parts that need a key, on the corner of the bell (hidden when there is none). */
+#alerts-badge {
+  position: absolute;
+  top: calc(-1 * var(--size-badge-offset));
+  right: calc(-1 * var(--size-badge-offset));
+  min-width: var(--size-badge);
+  height: var(--size-badge);
+  padding: 0 var(--space-xs);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--size-badge);
+  background: var(--color-accent-danger);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  pointer-events: none;
+}
+#alerts-badge[hidden] {
+  display: none;
+}
+#btn-alerts:hover,
 #btn-sound:hover,
 #btn-settings:hover {
   background: var(--overlay-panel-hover);
 }
+#btn-alerts svg,
 #btn-sound svg,
 #btn-settings svg {
   width: var(--size-icon);
@@ -1516,6 +1566,7 @@ body[data-cursor-mode='remove'] > canvas {
 #btn-saves,
 #help-button,
 #btn-settings,
+#btn-alerts,
 #btn-sound,
 #top-bar button,
 #zoom button,
@@ -1543,6 +1594,7 @@ body[data-cursor-mode='remove'] > canvas {
 #btn-saves:hover:not(:disabled),
 #help-button:hover:not(:disabled),
 #btn-settings:hover:not(:disabled),
+#btn-alerts:hover:not(:disabled),
 #btn-sound:hover:not(:disabled),
 #top-bar button:hover:not(:disabled),
 #zoom button:hover:not(:disabled),
@@ -1565,6 +1617,7 @@ body[data-cursor-mode='remove'] > canvas {
 #btn-saves:active:not(:disabled),
 #help-button:active:not(:disabled),
 #btn-settings:active:not(:disabled),
+#btn-alerts:active:not(:disabled),
 #btn-sound:active:not(:disabled),
 #top-bar button:active:not(:disabled),
 #zoom button:active:not(:disabled),
@@ -1591,6 +1644,7 @@ body[data-cursor-mode='remove'] > canvas {
 #btn-saves,
 #help-button,
 #btn-settings,
+#btn-alerts,
 #btn-sound {
   height: calc(var(--size-icon-button) - var(--button-lip));
 }
@@ -1609,6 +1663,7 @@ body[data-cursor-mode='remove'] > canvas {
   --lip: var(--color-button-lip-highlight);
 }
 .catalog-action.danger,
+.help-close.danger,
 .dialog-button.danger,
 #menu button.danger:hover {
   --lip: var(--color-button-lip-danger);
@@ -1634,6 +1689,7 @@ button:focus-visible {
   #btn-saves,
   #help-button,
   #btn-settings,
+  #btn-alerts,
   #btn-sound,
   #top-bar button,
   #zoom button,
@@ -1652,6 +1708,7 @@ button:focus-visible {
   #btn-saves:hover,
   #help-button:hover,
   #btn-settings:hover,
+  #btn-alerts:hover,
   #btn-sound:hover,
   #top-bar button:hover,
   #zoom button:hover,
@@ -1660,4 +1717,89 @@ button:focus-visible {
   .dialog-button:hover {
     transform: none;
   }
+}
+
+
+/* ---- Keys of the parts: the button in the inspector, the alerts panel (the bell) and the Controls panel warning ---- */
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.key-label {
+  flex: 0 0 auto;
+  min-width: var(--size-key-label);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+.key-label kbd {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-control);
+  font: inherit;
+}
+.key-label.unbound {
+  color: var(--color-accent-danger);
+  font-weight: var(--font-weight-semibold);
+}
+.key-assign {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: var(--space-sm);
+}
+.key-clear {
+  flex: 0 0 auto;
+  padding-inline: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.key-message.error {
+  color: var(--color-accent-highlight);
+  opacity: 1;
+}
+#controls-panel .controls-warning {
+  margin: var(--space-sm) 0 0;
+  color: var(--color-accent-highlight);
+}
+.dialog.alerts {
+  width: min(var(--size-alerts-width), 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+.alerts-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  overflow-y: auto;
+  padding-right: var(--space-sm);
+}
+.alerts-body p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  opacity: var(--opacity-muted);
+}
+.alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+button.alert-row {
+  cursor: pointer;
+}
+.alert-row span:last-child {
+  opacity: var(--opacity-muted);
+  white-space: nowrap;
 }
