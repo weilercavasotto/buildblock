@@ -8,7 +8,6 @@ import {
   GROUND_COLLIDER,
   BRAKE,
   ENGINE,
-  FLIGHT,
   PISTON,
   PISTON_VISUAL,
   ROTOR,
@@ -78,7 +77,7 @@ export interface WheelDrive {
    * The engines welded to the body this wheel is mounted on (where each pushes towards and its power); null when the game
    * does not need engines (an old save), in which case every wheel is driven at full torque.
    */
-  engines: Array<{ front: Vec3; power: number }> | null;
+  engines: Array<{ front: Vec3; power: number; part: Part }> | null;
   /** How many wheels are mounted on the same body (the engines' power is shared among them). */
   wheelCount: number;
   /** The turbos on this wheel's body, each with its boost in units of one default turbo: the ones whose key is held add up (capped by `TURBO.maxBoost`). */
@@ -102,17 +101,15 @@ export class PhysicsWorld {
   level = 0;
   /** Is the player steering (see `VehicleController.steering`)? The straightening assist is off while so. */
   steering = false;
-  /** What the player asks of a flying vehicle, each -1 to 1 (see `VehicleController.pilot` and `FLIGHT`). */
-  pilot = { pitch: 0, roll: 0, yaw: 0 };
-  /** Has the vehicle left the ground (see `FLIGHT`)? Recomputed every step. */
+  /** Has the vehicle left the ground (no wheel or block touches it)? Recomputed every step: the engines' lever and the heading hold are off in the air. */
   airborne = false;
   /**
    * Is this rotor, piston, thruster or turbo switched on right now (see `VehicleController.isOn`)? Each is run by its own key, so the
    * physics asks about every part. Nothing is on until the controller is wired in.
    */
-  isOn: (part: Part) => boolean = () => false;
-  /** The throttle (W / S, -1 to 1, see `VehicleController.throttle`): the engines' push on the body follows it. */
-  throttle = 0;
+  isOn: (part: Part, action: string) => boolean = () => false;
+  /** The throttle an engine is given, -1 to 1 (see `VehicleController.engineInput`): its push on the body follows it. */
+  engineInput: (engine: Part) => number = () => 0;
   /** Are the dust, smoke and flames drawn (a setting)? */
   effectsEnabled = true;
 
@@ -126,7 +123,7 @@ export class PhysicsWorld {
   /** The thrusters: the body each pushes, where (in the body's frame), along which direction and with what force. */
   private thrusters: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number }> = [];
   /** The engines: the body each is mounted on, where (in the body's frame), where it faces and its power (see `ENGINE.leverage`). */
-  private pushers: Array<{ body: RAPIER.RigidBody; point: Vec3; front: Vec3; power: number }> = [];
+  private pushers: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; front: Vec3; power: number }> = [];
   /** The direction the vehicle drives in (in the body's frame), the same one the vehicle controller uses. */
   private forward = new THREE.Vector3(0, 0, -1);
   /** The rotors: the hinge between the body of the block and the head (with what it holds) and the signed speed it is driven to (rad/s). */
@@ -140,7 +137,6 @@ export class PhysicsWorld {
   private heldYaw = new Map<RAPIER.RigidBody, number>();
   /** The bodies of the vehicle that can be flown (the ones that carry wheels or thrusters), where each one's nose is, and the colliders that tell whether it touches the ground. */
   private craft = new Set<RAPIER.RigidBody>();
-  private noses = new Map<RAPIER.RigidBody, THREE.Vector3>();
   private groundColliders: RAPIER.Collider[] = [];
 
   constructor(grid: Grid) {
@@ -165,7 +161,7 @@ export class PhysicsWorld {
     }
     this.applyEngines(q);
     for (const t of this.thrusters) {
-      if (!this.isOn(t.part)) continue;
+      if (!this.isOn(t.part, 'run')) continue;
       const r = t.body.rotation();
       q.set(r.x, r.y, r.z, r.w);
       const direction = new THREE.Vector3(...t.direction).applyQuaternion(q).multiplyScalar(t.thrust);
@@ -183,9 +179,10 @@ export class PhysicsWorld {
    * drives nothing) has none. Rapier keeps the torque until it is reset, which `applyThrust` does every step.
    */
   private applyEngines(q: THREE.Quaternion): void {
-    if (this.airborne || this.throttle === 0) return;
+    if (this.airborne) return;
     for (const e of this.pushers) {
-      if (!this.chassis.has(e.body)) continue;
+      const input = this.engineInput(e.part);
+      if (input === 0 || !this.chassis.has(e.body)) continue;
       const front = new THREE.Vector3(...e.front);
       if (Math.abs(front.dot(this.forward)) < 0.5) continue;
       const r = e.body.rotation();
@@ -193,7 +190,7 @@ export class PhysicsWorld {
       const com = e.body.worldCom();
       const position = e.body.translation();
       const arm = new THREE.Vector3(...e.point).applyQuaternion(q).add(new THREE.Vector3(position.x, position.y, position.z)).sub(new THREE.Vector3(com.x, com.y, com.z));
-      const push = front.applyQuaternion(q).multiplyScalar(ENGINE.leverage * e.body.mass() * (e.power / ENGINE.default) * this.throttle);
+      const push = front.applyQuaternion(q).multiplyScalar(ENGINE.leverage * e.body.mass() * (e.power / ENGINE.default) * input);
       const torque = arm.cross(push);
       e.body.addTorque({ x: torque.x, y: torque.y, z: torque.z }, true);
     }
@@ -243,7 +240,7 @@ export class PhysicsWorld {
   /** Drives the rotors: towards their speed while they are switched on, else almost free (a light damping). */
   private driveRotors(): void {
     for (const rotor of this.rotors) {
-      if (this.isOn(rotor.part)) rotor.joint.configureMotorVelocity(rotor.target, ROTOR.strength);
+      if (this.isOn(rotor.part, 'run')) rotor.joint.configureMotorVelocity(rotor.target, ROTOR.strength);
       else rotor.joint.configureMotorVelocity(0, ROTOR.idleDamping);
     }
   }
@@ -275,7 +272,7 @@ export class PhysicsWorld {
         const b = r.host.angvel();
         return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
       }),
-      pistonsMoving: this.pistons.filter((p) => Math.abs((this.isOn(p.part) ? p.stroke : 0) - p.target) > 1e-3).length,
+      pistonsMoving: this.pistons.filter((p) => Math.abs((this.isOn(p.part, 'run') ? p.stroke : 0) - p.target) > 1e-3).length,
       impact,
     };
   }
@@ -283,7 +280,7 @@ export class PhysicsWorld {
   /** Slides the pistons: the target of each spring moves towards out (the stroke) or back (0) at `PISTON.speed` and the spring follows it. */
   private drivePistons(dt: number): void {
     for (const piston of this.pistons) {
-      const goal = this.isOn(piston.part) ? piston.stroke : 0;
+      const goal = this.isOn(piston.part, 'run') ? piston.stroke : 0;
       const step = PISTON.speed * dt;
       piston.target += Math.max(-step, Math.min(step, goal - piston.target));
       piston.joint.configureMotorPosition(piston.target, PISTON.stiffness, PISTON.damping);
@@ -297,7 +294,6 @@ export class PhysicsWorld {
     this.accumulator = Math.min(this.accumulator + dt, WORLD.maxFrameTime);
     this.airborne = this.craft.size > 0 && !this.touchingGround();
     while (this.accumulator >= WORLD.step) {
-      this.fly(WORLD.step);
       this.straighten();
       this.drag(WORLD.step);
       const before = this.focus?.linvel();
@@ -310,7 +306,7 @@ export class PhysicsWorld {
     }
     this.sync();
     this.effects.group.visible = this.effectsEnabled;
-    this.effects.update(dt, this.level, this.isOn);
+    this.effects.update(dt, this.level, (part) => this.isOn(part, 'run'));
   }
 
   dispose(): void {
@@ -347,23 +343,15 @@ export class PhysicsWorld {
   }
 
   /**
-   * Prepares flying (see `FLIGHT`): the bodies that can be flown, where each one's nose is (the sum of where its horizontal thrusters push,
-   * else of where its engines push, else the way the wheels roll, else -z, all in the body's frame) and the colliders whose contacts with
-   * the ground say whether it has left it.
+   * Prepares what tells whether the vehicle has left the ground: the bodies of the vehicle (the ones that carry wheels or thrusters)
+   * and the colliders whose contacts with the ground are checked, and the direction the vehicle drives in.
    */
-  private buildFlight(enginesOfBody: Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number }>>): void {
+  private buildGroundSensors(): void {
     for (const t of this.thrusters) this.craft.add(t.body);
     for (const body of this.chassis) this.craft.add(body);
     const onX = this.wheels.filter((w) => w.axis[0] !== 0).length;
-    const rolling = new THREE.Vector3(...(onX >= this.wheels.length - onX ? [0, 0, -1] : [1, 0, 0]));
-    this.forward.copy(rolling);
+    this.forward.copy(new THREE.Vector3(...(onX >= this.wheels.length - onX ? [0, 0, -1] : [1, 0, 0])));
     for (const body of this.craft) {
-      const nose = new THREE.Vector3();
-      // Only the thrusters that push sideways count (a plane's engines, not the ones that lift it).
-      for (const t of this.thrusters) if (t.body === body && Math.abs(t.direction[1]) < 0.5) nose.add(new THREE.Vector3(...t.direction));
-      if (nose.length() < 0.1) for (const e of enginesOfBody.get(body) ?? []) nose.add(new THREE.Vector3(...e.front));
-      if (nose.length() < 0.1) nose.copy(rolling);
-      this.noses.set(body, nose.normalize());
       for (let i = 0; i < body.numColliders(); i++) this.groundColliders.push(body.collider(i));
     }
     for (const wheel of this.wheelFx) this.groundColliders.push(wheel.body.collider(0));
@@ -382,40 +370,6 @@ export class PhysicsWorld {
       if (touching) return true;
     }
     return false;
-  }
-
-  /**
-   * Flying (see `FLIGHT`): while the vehicle is in the air the pilot's input turns it around its pitch, roll and yaw axes (the
-   * angular velocity is changed directly, whatever the shape or mass of the vehicle), and without input its rotation fades.
-   */
-  private fly(dt: number): void {
-    if (!this.airborne) return;
-    const q = new THREE.Quaternion();
-    const { pitch, roll, yaw } = this.pilot;
-    for (const body of this.craft) {
-      const r = body.rotation();
-      q.set(r.x, r.y, r.z, r.w);
-      const nose = this.noses.get(body)!.clone().applyQuaternion(q);
-      // The body's own up (the nose's neighbour that is most upright in the body's frame), then right = nose x up.
-      let up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
-      if (Math.abs(up.dot(nose)) > 0.9) up = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-      const right = new THREE.Vector3().crossVectors(nose, up).normalize();
-      up.crossVectors(right, nose).normalize();
-      const v = body.linvel();
-      const authority = Math.min(1, FLIGHT.minAuthority + (1 - FLIGHT.minAuthority) * (Math.hypot(v.x, v.y, v.z) / FLIGHT.authoritySpeed));
-      const w = body.angvel();
-      const spin = new THREE.Vector3(w.x, w.y, w.z);
-      if (pitch === 0 && roll === 0 && yaw === 0) {
-        spin.multiplyScalar(Math.exp(-FLIGHT.damping * dt));
-      } else {
-        // Positive about the right axis lifts the nose, about the nose banks to the right, about up yaws to the left.
-        spin.addScaledVector(right, -pitch * FLIGHT.rate * authority * dt);
-        spin.addScaledVector(nose, roll * FLIGHT.rate * authority * dt);
-        spin.addScaledVector(up, -yaw * FLIGHT.rate * authority * dt);
-        if (spin.length() > FLIGHT.maxRate) spin.setLength(FLIGHT.maxRate);
-      }
-      body.setAngvel({ x: spin.x, y: spin.y, z: spin.z }, true);
-    }
   }
 
   private buildScenery(): void {
@@ -576,7 +530,7 @@ export class PhysicsWorld {
       const host = grid.hostOf(part);
       return host ? bodyOfBlock.get(cellKey(host.cell)) : undefined;
     };
-    const enginesOfBody = new Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number }>>();
+    const enginesOfBody = new Map<RAPIER.RigidBody, Array<{ front: Vec3; power: number; part: Part }>>();
     /** The turbos of each body, each with its boost in units of one turbo of the default strength. */
     const boostOfBody = new Map<RAPIER.RigidBody, Array<{ part: Part; boost: number }>>();
     let biggest = 0;
@@ -655,9 +609,9 @@ export class PhysicsWorld {
         this.turboFx.push({ part: engine, object: obj });
         continue;
       }
-      this.pushers.push({ body: host.body, point: local, front: frontOf(engine), power: powerOf(engine) });
+      this.pushers.push({ part: engine, body: host.body, point: local, front: frontOf(engine), power: powerOf(engine) });
       this.engineFx.push({ body: host.body, object: obj, position: obj.position.clone(), quaternion: obj.quaternion.clone() });
-      enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine) }]);
+      enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine), part: engine }]);
     }
 
     this.buildHeaded(parts, bodyOfBlock, hostBody, lift);
@@ -748,6 +702,6 @@ export class PhysicsWorld {
       this.pairs.push({ body: hub, object: caliper });
     }
 
-    this.buildFlight(enginesOfBody);
+    this.buildGroundSensors();
   }
 }

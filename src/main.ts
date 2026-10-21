@@ -39,7 +39,7 @@ import { confirmDialog } from './ui/confirm-dialog';
 import { ControlsPanel } from './ui/controls-panel';
 import { settings } from './settings';
 import { toggleSettingsDialog } from './ui/settings-dialog';
-import { openAlertsDialog, partsWithoutKey } from './ui/alerts-dialog';
+import { openAlertsDialog, partsToCheck } from './ui/alerts-dialog';
 import { sound } from './audio/sound';
 import { VehicleSound } from './audio/vehicle-sound';
 import { Hud } from './ui/hud';
@@ -168,6 +168,7 @@ async function main(): Promise<void> {
     physics = new PhysicsWorld(grid);
     vehicle = new VehicleController(physics.wheels, grid.all());
     physics.isOn = vehicle.isOn;
+    physics.engineInput = vehicle.engineInput;
     hud.setNotice(grid.engineDrive && physics.wheels.length > 0 && vehicle.poweredWheels === 0 ? TEXT.hud.noEngine : null);
     scene.add(physics.group);
     controlsPanel.show(grid.all());
@@ -356,7 +357,8 @@ async function main(): Promise<void> {
     onStroke: (part, stroke) => history.run(() => grid.setStroke(part.cell, stroke)),
     onSpeed: (part, speed) => history.run(() => grid.setSpeed(part.cell, speed)),
     onPower: (part, power, connected) => history.run(() => grid.setPower(part.cell, power, connected)),
-    onKey: (parts, key) => history.run(() => grid.setKey(parts.map((p) => p.cell), key)),
+    onKeys: (parts, action, edit) => history.run(() => grid.editKeys(parts.map((p) => p.cell), action, edit)),
+    onCopyKeys: (from, to) => history.run(() => grid.assignKeys(to.map((p) => p.cell), from.keys)),
     onBrake: (part, strength, wholeBody) => history.run(() => grid.setBrake(part.cell, strength, wholeBody)),
     onSuspension: (part, strength) => history.run(() => grid.setSuspension(part.cell, strength)),
     onRemoveMany: (parts) =>
@@ -388,11 +390,11 @@ async function main(): Promise<void> {
   sound.onMuteChange(showSound);
   showSound();
 
-  // The bell: how many mobility parts still need a key (rotors, pistons, thrusters, turbos and brakes), and the panel that lists them.
+  // The bell: how many parts still have an action without a key (required or optional), and the panel that lists them.
   const alertsButton = document.getElementById('btn-alerts') as HTMLButtonElement;
   const alertsBadge = document.getElementById('alerts-badge')!;
   updateAlerts = () => {
-    const missing = partsWithoutKey(grid).length;
+    const missing = partsToCheck(grid).length;
     alertsButton.hidden = mode === 'menu';
     alertsBadge.hidden = missing === 0;
     alertsBadge.textContent = String(missing);
@@ -534,10 +536,8 @@ async function main(): Promise<void> {
     } else if (physics) {
       vehicle?.update();
       physics.level = vehicle?.level ?? 0;
-      physics.throttle = vehicle?.throttle ?? 0;
       physics.effectsEnabled = settings.get('effects');
       physics.steering = vehicle?.steering ?? false;
-      physics.pilot = vehicle?.pilot ?? { pitch: 0, roll: 0, yaw: 0 };
       physics.step(dt);
       if (vehicle) {
         vehicleSound?.update(

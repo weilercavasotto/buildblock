@@ -137,7 +137,7 @@ mouse button does (the middle button always rotates the camera, the right button
 Choosing a hotbar slot (`1`–`9`, a click or the catalog) switches back to **Build**. The key caps next to the icons are only drawn in windows
 at least 1180 px wide (the shortcuts stay in the tooltips and the help); in a narrow window the top bar wraps onto a second row
 instead of running under the home / help buttons. The shortcuts only work while
-building (in Play, `W` / `A` / `S` / `D` drive; while building they only rotate the part to place). The modes are **icons** with their key cap beside them: a mouse cursor (Inspect), a hammer
+building (in Play they drive nothing by themselves: only the keys you gave to the parts do; while building they rotate the part to place). The modes are **icons** with their key cap beside them: a mouse cursor (Inspect), a hammer
 (Build), a brush (Paint) and a trash can (Remove); hover one for its name and description. Undo and Redo are icon-only buttons
 (curved arrows) in the same style; their tooltip gives the shortcut (`Ctrl/Cmd+Z` / `Ctrl/Cmd+Y`), so they carry no key cap.
 
@@ -189,13 +189,9 @@ A part you place **bounces like jelly**: it squashes, stretches and wobbles for 
 bounce anything); a part you **remove** (right click, remove mode, the inspector button or Clear) swells a little and **pops away**, wheels and engines with it. In **Play**, the wheels throw up **earth** while they grip the ground and the vehicle moves (more and bigger clods with speed and wheel spin) and every
 **engine** puffs **smoke** from its exhaust (more, bigger puffs the faster you go, a light puff already when you press the throttle) and **shakes**, a little at idle and a lot under power. Tuning: `FX` and `COLORS.fx`.
 
-### Flying
-
-When nothing of a vehicle touches the ground (it is in the air: a jump, a fall, or lifted by thrusters) the keys fly it: **`W` / `S`** pitch (`W` nose down, `S` nose up), **`A` / `D`** roll (bank left / right) and **`Q` / `E`** yaw (turn left / right), around the vehicle's own axes (the attitude changes by about 6 rad/s², up to 2.5 rad/s). Its **nose** is where its thrusters that push sideways push; with none, where its engines push; with none, the way its wheels roll. The controls bite less at low speed (40% at rest, full at 8 m/s), and without input the rotation fades out. On the ground the same keys drive as usual and the driving assist (heading hold) is on; in the air it is off. A vehicle that can be flown has at least a wheel or a thruster. So a plane is a body with thrusters at the back (nose forward), perhaps with wheels for landing: take off with the thrusters, then pilot it.
-
 ### The thruster
 
-The **Thruster** (catalog, *Mobility*) is a small jet (a steel tube with an intake on the front, a flared dark bell nozzle and a glowing orange ring at the back) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): it pushes towards its **front** and the flame leaves the bell at the back. In Play, **holding the key you gave it** (see *Part keys*) every thruster pushes the **body it is mounted on** with a force along its front, applied **where it is mounted**, so one away from the centre of the body also turns it. It works on the ground or in the air, with or without an engine, and the wheels do not matter. A symmetric vehicle goes straight: while you do not steer (`A` / `D`) an upright vehicle holds its heading (a small driving assist; strong collisions, flips and steering switch it off), and an air drag above 10 m/s limits the top speed of a thruster car. The inspector has a **Thrust** slider (1-10, default 5, plus "apply to all the thrusters on this body"); the thrusts of a body's thrusters add up. One default thruster has a force of 100, enough to just lift a light 2 × 2 body (about 90 with the world's gravity); four of them lift it fast. A thruster weighs half a block. The flame is orange, bigger than the turbo's.
+The **Thruster** (catalog, *Mobility*) is a small jet (a steel tube with an intake on the front, a flared dark bell nozzle and a glowing orange ring at the back) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): it pushes towards its **front** and the flame leaves the bell at the back. In Play, **holding its key** (see *Part keys*) every thruster pushes the **body it is mounted on** with a force along its front, applied **where it is mounted**, so one away from the centre of the body also turns it. It works on the ground or in the air, with or without an engine, and the wheels do not matter. A symmetric vehicle goes straight: while you do not steer (`A` / `D`) an upright vehicle holds its heading (a small driving assist; strong collisions, flips and steering switch it off), and an air drag above 10 m/s limits the top speed of a thruster car. The inspector has a **Thrust** slider (1-10, default 5, plus "apply to all the thrusters on this body"); the thrusts of a body's thrusters add up. One default thruster has a force of 100, enough to just lift a light 2 × 2 body (about 90 with the world's gravity); four of them lift it fast. A thruster weighs half a block. The flame is orange, bigger than the turbo's.
 
 ### The rotor
 
@@ -207,7 +203,7 @@ The **Piston** (catalog, *Mobility*) lifts things: it pushes up everything built
 
 ### The turbo
 
-The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a white band, a brass valve and a dark nozzle) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): its nozzle, where the flame leaves, is the back of the bottle. In Play, **holding the key you gave it** (see *Part keys*) boosts the **driven wheels** of its body (the wheels an engine powers): they turn up to 40% faster and push twice as hard for each turbo of the default boost, with a blue-white flame out of the nozzle; without an engine on the body the turbo does nothing, and wheels that are not driven are not boosted. The inspector has a **Boost** slider (1-10, default 5, plus "apply to all the turbos on this body"); the boosts of a body's turbos add up, up to three times one default turbo. There is no charge limit yet: the boost lasts as long as you hold the key. A turbo weighs one block. Measured on a 2 × 2 car after 3 s at full throttle: 9.0 m/s without, 12.7 m/s with a default turbo and 13.3 m/s with the strongest one (the speed is also limited by the wheels' grip).
+The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a white band, a brass valve and a dark nozzle) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): its nozzle, where the flame leaves, is the back of the bottle. In Play, **holding its key** (see *Part keys*) boosts the **driven wheels** of its body (the wheels an engine powers): they turn up to 40% faster and push twice as hard for each turbo of the default boost, with a blue-white flame out of the nozzle; without an engine on the body the turbo does nothing, and wheels that are not driven are not boosted. The inspector has a **Boost** slider (1-10, default 5, plus "apply to all the turbos on this body"); the boosts of a body's turbos add up, up to three times one default turbo. There is no charge limit yet: the boost lasts as long as you hold the key. A turbo weighs one block. Measured on a 2 × 2 car after 3 s at full throttle: 9.0 m/s without, 12.7 m/s with a default turbo and 13.3 m/s with the strongest one (the speed is also limited by the wheels' grip).
 
 ### The brake
 
@@ -215,7 +211,7 @@ The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a
 
 ### The engine
 
-The **Engine** (catalog, *Mobility*) is what drives the wheels. It is a separate unit, not a block: a small **V engine** (a 0.8-cell cube: aluminium crankcase, two banks of cylinders with bores, dark oil pan and intake) that you **mount on a face of a block** (top, bottom or sides) like a wheel, without taking the place of a block. Its cylinder heads point away from the block and the **fan** (blades in a ring, with a small yellow nose) marks its **front**. In Play the vehicle is pushed **towards the front of its engine**: turn it with `A` / `D` (around the vertical axis) and `W` / `S` (tilt it up / down) before placing; turned the other way, `W` / `S` are reversed, and an engine facing sideways or up does nothing. The front cannot point into the block it is mounted on (the ghost turns red). Wheels are driven only by the engines mounted on **their body** (the blocks welded together); wheels on a body without an engine roll freely, and a message under the top bar tells you when no wheel is driven. The inspector has a **Power** slider (1-10, default 5, plus "apply to all the engines on this body"): a body's engines add their power and share it among its wheels; one default engine drives 4 wheels at full torque, more wheels get less each, fewer get up to twice as much. An engine weighs as much as two blocks. Removing the block an engine is mounted on removes the engine. Games made before the engine existed keep driving every wheel; new games need an engine. **Where it is mounted matters:** while you accelerate on the ground the engine's push also acts on the body from the place where it sits (a lever about the body's centre of mass), so a **high engine tips the nose down** under power (and up when reversing), one **off to a side pulls the vehicle that way**, and a low, central one barely does; heavier vehicles feel it the same way (the push scales with the body's mass). It is tuned with `ENGINE.leverage`.
+The **Engine** (catalog, *Mobility*) is what drives the wheels. It is a separate unit, not a block: a small **V engine** (a 0.8-cell cube: aluminium crankcase, two banks of cylinders with bores, dark oil pan and intake) that you **mount on a face of a block** (top, bottom or sides) like a wheel, without taking the place of a block. Its cylinder heads point away from the block and the **fan** (blades in a ring, with a small yellow nose) marks its **front**. In Play the vehicle is pushed **towards the front of its engine**: turn it with `A` / `D` (around the vertical axis) and `W` / `S` (tilt it up / down) before placing; turned the other way, its *Accelerate* key drives the other way, and an engine facing sideways or up does nothing. Give it keys in the inspector (*Accelerate*, optionally *Reverse*: see *Part keys*): it has no default key, and nothing drives until it has one. The front cannot point into the block it is mounted on (the ghost turns red). Wheels are driven only by the engines mounted on **their body** (the blocks welded together); wheels on a body without an engine roll freely, and a message under the top bar tells you when no wheel is driven. The inspector has a **Power** slider (1-10, default 5, plus "apply to all the engines on this body"): a body's engines add their power and share it among its wheels; one default engine drives 4 wheels at full torque, more wheels get less each, fewer get up to twice as much. An engine weighs as much as two blocks. Removing the block an engine is mounted on removes the engine. Games made before the engine existed keep driving every wheel; new games need an engine. **Where it is mounted matters:** while you accelerate on the ground the engine's push also acts on the body from the place where it sits (a lever about the body's centre of mass), so a **high engine tips the nose down** under power (and up when reversing), one **off to a side pulls the vehicle that way**, and a low, central one barely does; heavier vehicles feel it the same way (the push scales with the body's mass). It is tuned with `ENGINE.leverage`.
 
 ### The large wheel
 
@@ -236,7 +232,7 @@ In Build mode you can turn the part you are about to place in **quarter turns ar
   the **↺ ↻ buttons** in the top bar do the same.
 - **`W`** / **`S`** (the **`↑`** / **`↓`** arrow keys work too): **tilt** the part up or down a quarter turn, around the horizontal axis that is the
   screen's left-right (so it follows the camera: `W` turns the top of the part away from you, `S` towards you); the **↑ ↓ buttons** do the same.
-  `W` / `A` / `S` / `D` are only used to rotate the part while building (they drive while playing).
+  `W` / `A` / `S` / `D` are used to rotate the part while building (they can be given to parts as keys for playing).
 - The placement preview **turns smoothly** to the chosen orientation (always the quarter turn you asked for, never an extra twist; it is a quaternion
   interpolation towards the orientation you chose, see `BuildMode.update`). If the studs lie along the tilt axis (they point to the
   right or left of the screen), `W` / `S` roll the part around the other horizontal axis instead, so the key always does something: `W` points
@@ -259,7 +255,7 @@ What it does for each part:
   (a square block with its studs up): you see every quarter turn.
 
 The buttons are dimmed (and the keys do nothing) outside Build mode and with an empty hotbar slot; `W` / `A` / `S` / `D` and the arrows only rotate while
-building (they drive while playing).
+building (in Play they are free to be given to parts as keys).
 
 ### Build mode
 
@@ -282,28 +278,36 @@ The ghost preview is the **part itself, translucent**; it turns **red** when the
 A **wheel** must be mounted on the **side** of a block: hover a side face of a block (not the top or
 bottom) and click. The face you click defines the wheel's axle.
 
-### Play mode
-
 ### Part keys
 
-**No part comes with a key.** The **rotors**, **pistons**, **thrusters**, **turbos** and the **brakes** of wheels (optional) are run by a key *you* give each one: select the part in inspect mode (`I`); the inspector starts with the key section: a label (*No key*, in red, until there is one), a yellow **Assign a key** button (click it and press the key you want; `Esc` cancels) and, once there is a key, a **trash button** that removes it (`Backspace` while waiting for a key does too). The key is saved with the part (as the physical key, `KeyboardEvent.code`, shown with the name on the player's keyboard where the browser can tell).
+**Nothing moves until you give it a key**, and this is a rule of the game: no part comes with a key (not even `W` / `S` / `A` / `D`), and every mobility part is run by keys *you* assign. Select the part in inspect mode (`I`): the inspector starts with an **Action Keys** section, one block per **action** of the part:
 
-- **Held or toggled** depends on the kind of part: a thruster, a turbo and a brake work **while the key is held**; a rotor and a piston **switch on / out with one press and off / back with the next** (they start off).
-- **Parts with the same key work together**, so one key can run a whole group and different keys run them one by one. A key can mix kinds (`Space` can fire thrusters and boost turbos; a held key runs the held kinds, a press flips the toggled kinds).
-- **Several parts at once**: with a selection the inspector has *Set the key of N parts*, which gives the same key to every part of the selection that takes one; a single part with a key also offers *Use G for all N Rotors* to give that key to every part of its kind.
-- **Reserved keys**: `W` `A` `S` `D`, the arrows, `Q` `E` (yaw in the air), `R` (restart), `P` (play / stop), `H` (help) and `M` (mute) are used by the game and are refused with a message. Letters, digits, `Space`, `Shift`, the numeric pad and the punctuation keys are fine, **also the editing keys** (`I`, `B`, `C`...: they do nothing while playing). The list is `RESERVED_KEYS` in `src/constants/part-keys.ts`.
-- **Alerts**: the **bell** at the top right (next to settings and sound; hidden in the main menu) shows a red **badge** with the number of parts that need a key and have none. Click it for the list, grouped by kind; while building, a row takes you to that part (inspect mode, the camera flies to it). A wheel's brake key is optional, so wheels are not counted. Games saved before the keys existed load with every key empty, so the bell lists them.
-- The **Controls** panel in Play lists each key with what it runs.
+| Part | Actions (held = works while the key is down, press = each press switches it) |
+|---|---|
+| **Engine** | *Accelerate* (held, required) and *Reverse* (held). Each engine has its own throttle: engines on different keys work apart; a wheel takes the throttle of the engines of its body, weighted by their power (engines that push the same way and are not all pressed give a part of the throttle) |
+| **Wheel** (small and large) | *Steer left*, *Steer right* (held, optional: differential drive, as the old `A` / `D`; a wheel with no steering key keeps going straight, so you can make only some wheels steer) and *Brake* (held, optional) |
+| **Rotor** | *Rotors on / off* (press) |
+| **Piston** | *Pistons out / back* (press) |
+| **Thruster** | *Thrust* (held) |
+| **Turbo** | *Turbo boost* (held) |
 
-At the **bottom left** a **Controls** panel lists the keys of the parts of the creation you are playing, and only those: wheels give `W` / `S` (drive) and `A` / `D` (steer), a thruster adds `W` / `S` (pitch), `A` / `D` (roll) and `Q` / `E` (yaw) in the air (`PLAY_CONTROLS`, `src/constants/play-controls.ts`), and then one row per **key you gave to parts**, with what it runs (`PART_KEY_LABELS`: `G` *3 × Pistons out / back*, `Space` *Thrust + Turbo boost*...). Parts that need a key and have none are counted under the list. It is hidden when nothing needs a key. Add a `PART_KEYS` entry (`src/constants/part-keys.ts`) and a `PART_KEY_LABELS` label when a new part takes a key.
+- **Assigning**: each action shows its keys as chips (or *No key*, in red when the action is required, greyed when it is optional). **Add a key** waits for the next key press and adds it (`Esc` cancels, `Backspace` clears the action); a **trash** button clears the action; **click a chip** to remove just that key. An action can have **several keys** (up to 4: `W` and `↑`, say). The keys are saved with the part as physical keys (`KeyboardEvent.code`, shown with the name on the player's keyboard where the browser can tell).
+- **Parts with the same key work together**, so one key can run a whole group and different keys run them one by one. A press flips the *press* actions bound to it; a held key runs the *held* ones.
+- **Several parts at once**: with a selection the inspector has one block per kind of action in it (*Wheel (4): Steer left*...): adding a key gives it to all of them. A single part also offers *Copy these keys to all N …* to give all its keys to every part of its kind.
+- **Reserved keys**: only `R` (restart), `P` (play / stop), `H` (help) and `M` (mute) are used by the game and refused. Letters, digits, the arrows, `Space`, `Shift`, the numeric pad and the punctuation keys are fine, **also the editing keys** (`I`, `B`, `C`...: they do nothing while playing). The list is `RESERVED_KEYS` in `src/constants/part-keys.ts`.
+- **Alerts**: the **bell** at the top right (next to settings and sound; hidden in the main menu) shows a red **badge** with the number of parts that have an action without a key, *required* (an engine's *Accelerate*, a rotor's, a piston's, a thruster's, a turbo's) or *optional* (a wheel's steering and brake, an engine's *Reverse*). Click it for the list: first the parts with a required action missing, then the *Optional keys*, grouped by kind and saying what is missing; while building, a row takes you to that part (inspect mode, the camera flies to it).
+- The **Controls** panel at the bottom left in Play lists each key with what it runs (`W` *2 × Accelerate*, `A` *4 × Steer left*...), and counts the parts that still need a key.
+- **Old games**: a game saved with one key per part keeps it on the part's first action (a wheel's brake); games without it load with every key empty, so the bell lists them. A game saved before engines existed (`engineDrive` false) has nothing to give driving keys to, so its wheels still drive with `W` / `S` and steer with `A` / `D` (and the arrows).
+- **No flight controls**: while keys were fixed, a vehicle in the air could be pitched, rolled and yawed with `W` `S` `A` `D` `Q` `E`. That is gone; it will come back with the propellers and wings (see the roadmap), as actions of those parts.
+
+### Play mode
+
+The vehicle moves only with the keys you gave to its parts (see *Part keys* above):
 
 | Key | Action |
 |---|---|
-| `W` / `S` (or ↑ / ↓) | Accelerate / reverse |
-| `A` / `D` (or ← / →) | Steer left / right |
 | `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
-| `W` `S` `A` `D` `Q` `E` | In the air: pitch (W nose down) / roll / yaw the vehicle (see *Flying*) |
-| *your keys* | The key you gave to each **Rotor**, **Piston**, **Thruster**, **Turbo** and **Brake** (see *Part keys*): thrusters, turbos and brakes work while it is held, rotors and pistons switch on / out and off / back with each press |
+| *your keys* | The keys you gave to the **Engines** (accelerate / reverse), **Wheels** (steer, brake), **Rotors**, **Pistons**, **Thrusters** and **Turbos** (see *Part keys*): held actions work while the key is down, rotors and pistons switch on / out and off / back with each press. Nothing moves without keys: `W` `A` `S` `D` and the arrows have no fixed meaning |
 | `P` / `Esc` | Stop and return to build mode (the same as **Stop**); `P` in build mode starts Play (an open dialog takes the `Esc` first) |
 | **Stop** | Return to build mode; the build is untouched |
 

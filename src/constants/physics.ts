@@ -305,20 +305,6 @@ export const VEHICLE = {
   steerGain: 0.7,
 } as const;
 
-/**
- * Flying (`PhysicsWorld.pilot`): while a vehicle has left the ground (none of its wheels or blocks touches it) the player can
- * steer its attitude with W / S (pitch: W nose down, S nose up), A / D (roll) and Q / E (yaw). The attitude changes at `rate`
- * rad/s² around the vehicle's axes (its nose is where its thrusters push, else where its engines push, else the way its wheels
- * roll), up to `maxRate` rad/s; the control surfaces bite less at low speed (`minAuthority` at rest, full at `authoritySpeed`
- * m/s); without input a flying vehicle's rotation fades at `damping` (1/s), and the heading hold of `VEHICLE` is off.
- */
-export const FLIGHT = {
-  rate: 6,
-  maxRate: 2.5,
-  damping: 1.5,
-  authoritySpeed: 8,
-  minAuthority: 0.4,
-} as const;
 
 export const GROUND_COLLIDER = {
   halfExtent: 200,

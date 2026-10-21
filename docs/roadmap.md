@@ -8,12 +8,13 @@
 - No export/import of saves and no rename of existing saves; the undo history is per session (not saved).
 - Blocks have no joints that can break; a structure never falls apart.
 - Scenery in Play mode is fixed (ramps, a kicker, walls, pillars and whoops built from catalog parts: `SCENERY_PARTS`). Every part of a creation is a body that can be pushed: there is no part fixed to the ground.
-- Driving is fixed WASD/arrows (and Q / E in the air); only the keys of the rotors, pistons, thrusters, turbos and brakes are the player's. There is no per-wheel throttle or steering key.
+- **Nothing moves without keys the player assigns** (a rule of the game): engines, wheels, rotors, pistons, thrusters and turbos have actions with player-chosen keys, and there are no fixed driving keys.
+- **No in-air attitude control.** It used to exist (W / S pitch, A / D roll, Q / E yaw while no wheel or block touched the ground) and was removed when the keys stopped being fixed. It is to come back with the propellers and wings, as actions of those parts (e.g. elevators / ailerons / rudder on the wings, a propeller's pitch), not as fixed keys. **To recover the old code: it is in git at commit `70596ad` (the last commit that still has it; the commit that removed it is the next one, "Assignable actions per part...")**: `git show 70596ad:src/play/physics-world.ts` (`fly`, `buildFlight`, `noses`), `git show 70596ad:src/constants/physics.ts` (`FLIGHT`), `git show 70596ad:src/play/vehicle-controller.ts` (`pilot`), and the *Flying* section of `git show 70596ad:docs/getting-started.md`.
 
 ## Ideas
 
 - More parts: slopes, thrusters, hinges, suspension, steering wheels.
-- Keys for driving and steering per wheel (the part keys already exist) and a steerable/non-driven wheel flag.
+- A steerable / non-driven wheel flag (a wheel with no steering key already goes straight).
 - Copy/paste and save slots (export/import JSON); undo/redo that also survives reloading a save.
 - Painting for other tools (e.g. a row of wheels) and an erase-by-dragging mode.
 - An asymmetric part (slope / wedge, thruster) where the new rotation (A / D) is visible and matters physically; rotating an already placed part.
@@ -36,7 +37,7 @@ Chosen from the brainstorm (the numbers are the ones of that list); **not starte
 | # | Part | Effort | Notes |
 |---|---|---|---|
 | 1 | **Hinge with servo** | medium | Turns to an angle and stops (a key toggles it, or an angle in the inspector). Reuses the head with studs and the joint of the rotor. |
-| 3 | **Propeller and wings with lift** | large | The propeller pushes the air by its rotation; the thin wedge plates become wings with lift that grows with speed (aeroplanes, helicopters). The part that touches the physics most. |
+| 3 | **Propeller and wings with lift** | large | The propeller pushes the air by its rotation; the thin wedge plates become wings with lift that grows with speed (aeroplanes, helicopters). The part that touches the physics most. **Also brings back the in-air attitude control** (pitch / roll / yaw) that was removed when the keys became assignable: as player-keyed actions of these parts (control surfaces), never as fixed keys. |
 | 4 | **Spring / damper** | medium | An elastic part between two bodies, like the wheels' suspension but placed anywhere. |
 | 5 | **Parachute and air brake** | low | A key opens it and it slows the fall or the speed (a force against the velocity). |
 | 6 | **Detachable stage** | medium | An explosive bolt that drops a part of the body on a key (two-stage rockets). |
@@ -69,4 +70,4 @@ Left out for now: 1 (an anchor block fixed to the ground).
 5. Round parts, corner slopes, arches and plates with a hole (shapes that are not boxes).
 6. Propeller and wings with lift.
 
-Every new part follows [adding-a-part.md](adding-a-part.md) (and the rules of `AGENTS.md`: tokens in `constants/`, `help-content.ts`, `PART_KEYS` / `PART_KEY_LABELS` when it takes a key, a sound recipe if it should make one).
+Every new part follows [adding-a-part.md](adding-a-part.md) (and the rules of `AGENTS.md`: tokens in `constants/`, `help-content.ts`, `PART_ACTIONS` when it takes keys, a sound recipe if it should make one).

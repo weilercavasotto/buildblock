@@ -8,7 +8,6 @@ export * from './part-keys';
 export * from './part-shapes';
 export * from './physics';
 export * from './scenery';
-export * from './play-controls';
 export * from './spacing';
 export * from './text';
 export * from './theme';

@@ -60,7 +60,6 @@ export class MenuScene {
     this.drive(dt, new THREE.Vector3(t.x, 0, t.z), rotation);
     this.vehicle.update();
     this.physics.level = this.vehicle.level;
-    this.physics.throttle = this.vehicle.throttle;
     this.physics.steering = this.vehicle.steering;
     this.physics.step(dt);
 
@@ -125,6 +124,7 @@ export class MenuScene {
     this.physics = new PhysicsWorld(grid);
     this.vehicle = new VehicleController(this.physics.wheels, grid.all(), { keyboard: false });
     this.physics.isOn = this.vehicle.isOn;
+    this.physics.engineInput = this.vehicle.engineInput;
     this.scene.add(this.physics.group);
     this.age = 0;
     this.flippedFor = 0;

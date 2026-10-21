@@ -1726,21 +1726,45 @@ button:focus-visible {
   align-items: center;
   gap: var(--space-sm);
 }
-.key-label {
-  flex: 0 0 auto;
-  min-width: var(--size-key-label);
+.key-action-label {
+  margin-top: var(--space-sm);
   font-size: var(--font-size-sm);
-  text-align: center;
+  font-weight: var(--font-weight-semibold);
 }
-.key-label kbd {
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-control);
-  font: inherit;
+.key-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
 }
 .key-label.unbound {
   color: var(--color-accent-danger);
   font-weight: var(--font-weight-semibold);
+}
+.key-label.unbound.optional {
+  color: inherit;
+  opacity: var(--opacity-muted);
+  font-weight: inherit;
+}
+.key-chip {
+  padding: var(--space-xs) var(--space-md);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-control);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+button.key-chip {
+  cursor: pointer;
+}
+button.key-chip:hover {
+  background: var(--color-accent-danger);
+}
+.key-note {
+  font-size: var(--font-size-xs);
+  opacity: var(--opacity-muted);
 }
 .key-assign {
   flex: 1 1 0;
@@ -1780,6 +1804,11 @@ button:focus-visible {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   opacity: var(--opacity-muted);
+}
+.alerts-section {
+  margin: var(--space-md) 0 0;
+  font-size: var(--font-size-md);
+  color: var(--color-accent-highlight);
 }
 .alert-row {
   display: flex;

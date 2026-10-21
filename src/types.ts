@@ -110,11 +110,12 @@ export interface Part {
   /** Pistons only (`PART_INFO[type].hasStroke`): how far the head goes out, in steps of `PISTON.strokeStep` cells (an integer, `PISTON.min` to `PISTON.max`). Missing = `PISTON.default`. Read it through `strokeOf()`. */
   stroke?: number;
   /**
-   * The key that runs the part while playing, as a `KeyboardEvent.code` (`'KeyG'`): only rotors, pistons, thrusters, turbos and wheels (their
-   * brake's key) take one (`isKeyed`), and none comes with a key. Parts with the same key move together. Missing = no key yet (the alerts
-   * panel lists it). Read it through `keyLabel()` to show it.
+   * The keys that run the part while playing: for each of its actions (`PART_ACTIONS`: an engine's `forward` / `reverse`, a wheel's
+   * `steerLeft` / `steerRight` / `brake`, the `run` of a rotor, piston, thruster or turbo) the `KeyboardEvent.code`s the player gave it
+   * (`['KeyG']`). No part comes with keys; parts with the same key work together. Missing = no keys yet (the alerts panel lists the
+   * parts with a required action left empty). Read them through `keysOf()` and show them with `keyLabel()`.
    */
-  key?: string;
+  keys?: Partial<Record<string, string[]>>;
   /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
   weight?: number;
 }

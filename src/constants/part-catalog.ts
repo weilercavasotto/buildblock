@@ -321,12 +321,13 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasStroke: false,
     tagline: 'Drives the wheels of its body.',
     description:
-      'The engine of a vehicle, a separate unit you mount on a face of a block (like a wheel). Wheels only get acceleration when an engine is mounted on their body. The engine pushes the vehicle towards its front, the side with the fan: turn it around and W / S are reversed. A body\'s engines add their power, and it is shared among the wheels of that body: one engine of the default power drives up to 4 wheels at full torque. Wheels on a body with no engine roll freely.',
+      'The engine of a vehicle, a separate unit you mount on a face of a block (like a wheel). Wheels only get acceleration when an engine is mounted on their body. The engine pushes the vehicle towards its front, the side with the fan: turn it around and its Accelerate key drives the other way. Give it a key for Accelerate (and Reverse if you want) in the inspector: it has no default key, and nothing moves until it has one. A body\'s engines add their power, and it is shared among the wheels of that body: one engine of the default power drives up to 4 wheels at full torque. Wheels on a body with no engine roll freely.',
     properties: [
       { label: 'Size', value: `${ENGINE_BODY.width} × ${ENGINE_BODY.width} × ${ENGINE_BODY.depth} cells, against the block` },
       { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
-      { label: 'Front', value: 'The side with the fan: W drives the vehicle towards it. A / D turn it around, W / S tilt it up or down, in every direction; it cannot point into its block nor be upside down' },
+      { label: 'Front', value: 'The side with the fan: its Accelerate key drives the vehicle towards it. A / D turn it around, W / S tilt it up or down, in every direction; it cannot point into its block nor be upside down' },
       { label: 'Power', value: 'Adjustable in the inspector (1-10, default 5)' },
+      { label: 'Control', value: 'Accelerate and Reverse keys, chosen in the inspector (several keys allowed)' },
       { label: 'Mass', value: `${ENGINE.mass} blocks of the default weight` },
       { label: 'Paint', value: 'Yes, in paint mode (E)' },
     ],
@@ -476,7 +477,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasStroke: false,
     tagline: 'Makes your creation roll.',
     description:
-      'A motorised wheel mounted on a side face of a block. Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face instead. In Play it is driven with W/S, and A/D steer by slowing down one side.',
+      'A motorised wheel mounted on a side face of a block. Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face instead. In Play it is driven by the engines of its body (it has no key of its own to drive), and it can steer (differential drive: give it Steer left / Steer right keys) and brake (a Brake key) once you set those keys in the inspector.',
     properties: [
       { label: 'Radius', value: `${WHEEL.radius} cells` },
       { label: 'Width', value: `${WHEEL.width} cells` },
@@ -485,7 +486,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       { label: 'Paint', value: 'No: wheels keep their tire and rim' },
       { label: 'Suspension', value: 'Adjustable in the inspector (0-100, default 50)' },
       { label: 'Tire', value: 'Adjustable in the inspector, from speed to traction (0-100, default 50)' },
-      { label: 'Brake', value: 'Every wheel has one: strength 1-10 (default 5) and a key (optional) in the inspector; hold the key while playing to hold the wheels with it back' },
+      { label: 'Brake', value: 'Every wheel has one: strength 1-10 (default 5) and an optional Brake key in the inspector; hold the key while playing to hold the wheels with it back' },
       { label: 'Collides with', value: 'The ground (not with blocks or other wheels)' },
     ],
     tips: [

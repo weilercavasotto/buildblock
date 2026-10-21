@@ -1,4 +1,4 @@
-import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, isKeyed, keyLabel, keyModeOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, actionsOf, isKeyed, keyLabel, keysOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
 import { Part, Vec3, axleOf, frontOf, isHostType, isWheelType, isStructural, partCells, studsOf, subVec } from '../types';
@@ -25,8 +25,10 @@ export interface InspectorHandlers {
   onPower(part: Part, power: number, connected: boolean): void;
   /** Sets the brake strength (1-10) of a wheel, or of every wheel on its body with `wholeBody`. */
   onBrake(part: Part, strength: number, wholeBody: boolean): void;
-  /** Gives a key (a `KeyboardEvent.code`) to these parts, or takes theirs off with null: one undo step. */
-  onKey(parts: ReadonlyArray<Part>, key: string | null): void;
+  /** Changes the keys of an action of these parts (see `Grid.editKeys`): `edit` gets the keys a part has and returns the new list. One undo step. */
+  onKeys(parts: ReadonlyArray<Part>, action: string, edit: (keys: readonly string[]) => readonly string[]): void;
+  /** Gives all the keys of a part to other parts of its kind (see `Grid.assignKeys`): one undo step. */
+  onCopyKeys(from: Part, to: ReadonlyArray<Part>): void;
   onClose(): void;
 }
 
@@ -224,64 +226,122 @@ export class PartInspector {
   }
 
   /**
-   * The key that runs a rotor, piston, thruster, turbo or a wheel's brake: a label with the key (or that there is none), a button that
-   * waits for the next key press, a line about how the key acts (held or toggled, which depends on the kind of part) and a shortcut
-   * that gives the same key to every part of its kind.
+   * The keys of a keyed part (an engine, a wheel, a rotor, a piston, a thruster or a turbo): one block per action with the keys it has
+   * (each key is a chip that removes itself when clicked), an *Add a key* button that waits for the next key press and a trash that
+   * clears the action; a shortcut copies all the keys to the other parts of its kind.
    */
   private keySection(part: Part): HTMLElement[] {
     if (!isKeyed(part)) return [];
     const t = TEXT.keys;
-    const same = this.grid.all().filter((p) => p.type === part.type);
-    const out = [text('h4', 'inspector-heading', t.heading), ...this.keyPicker(part.key, (key) => this.handlers.onKey([part], key))];
-    if (part.key && same.some((p) => p.key !== part.key)) {
-      const apply = text('button', 'catalog-action primary', t.applyAll(keyLabel(part.key), same.length, `${PART_INFO[part.type].name}s`)) as HTMLButtonElement;
-      apply.type = 'button';
-      apply.onclick = () => this.handlers.onKey(same, part.key!);
-      out.push(apply);
+    const actions = actionsOf(part);
+    const out: HTMLElement[] = [text('h4', 'inspector-heading', actions.length > 1 ? t.headingMany : t.heading)];
+    for (const action of actions) {
+      const note = [action.mode === 'toggle' ? t.toggle : t.hold, ...(action.required ? [] : [t.optional])].join(', ');
+      out.push(
+        text('div', 'key-action-label', action.label),
+        ...this.keyPicker({
+          keys: keysOf(part, action.id),
+          required: action.required,
+          note,
+          onAdd: (code) => this.handlers.onKeys([part], action.id, (keys) => [...keys, code]),
+          onRemove: (code) => this.handlers.onKeys([part], action.id, (keys) => keys.filter((k) => k !== code)),
+          onClear: () => this.handlers.onKeys([part], action.id, () => []),
+        }),
+      );
     }
-    out.push(text('p', 'inspector-status', keyModeOf(part) === 'toggle' ? t.toggle : t.hold), text('p', 'inspector-status', t.shared));
+    const same = this.grid.all().filter((p) => p.type === part.type);
+    if (part.keys && same.some((p) => JSON.stringify(p.keys ?? null) !== JSON.stringify(part.keys))) {
+      const copy = text('button', 'catalog-action primary', t.copyAll(same.length, `${PART_INFO[part.type].name}s`)) as HTMLButtonElement;
+      copy.type = 'button';
+      copy.onclick = () => this.handlers.onCopyKeys(part, same);
+      out.push(copy);
+    }
+    out.push(text('p', 'inspector-status', t.modesHint));
     return out;
   }
 
-  /** The key of several parts at once: the button gives the same key to every part of the selection that takes one. */
+  /** The keys of several parts at once: one block per kind of action in the selection; a key added goes to every part that has the action. */
   private keySectionMany(parts: ReadonlyArray<Part>): HTMLElement[] {
-    const keyed = parts.filter(isKeyed);
-    if (keyed.length === 0) return [];
+    const groups = new Map<string, { name: string; action: ReturnType<typeof actionsOf>[number]; parts: Part[] }>();
+    for (const part of parts) {
+      for (const action of actionsOf(part)) {
+        const id = `${part.type}:${action.id}`;
+        const group = groups.get(id) ?? { name: PART_INFO[part.type].name, action, parts: [] };
+        group.parts.push(part);
+        groups.set(id, group);
+      }
+    }
+    if (groups.size === 0) return [];
     const t = TEXT.keys;
-    const keys = new Set(keyed.map((p) => p.key ?? ''));
-    const current = keys.size === 1 ? ([...keys][0] || undefined) : t.mixedKeys;
-    return [
-      text('h4', 'inspector-heading', t.setMany(keyed.length)),
-      ...this.keyPicker(current, (key) => this.handlers.onKey(keyed, key), keys.size > 1),
-      text('p', 'inspector-status', t.setManyHint),
-    ];
+    const out: HTMLElement[] = [text('h4', 'inspector-heading', t.setMany(new Set([...groups.values()].flatMap((g) => g.parts)).size))];
+    for (const { name, action, parts: members } of groups.values()) {
+      const lists = members.map((p) => keysOf(p, action.id));
+      const same = lists.every((list) => list.join() === lists[0].join());
+      out.push(
+        text('div', 'key-action-label', t.manyLabel(name, members.length, action.label)),
+        ...this.keyPicker({
+          keys: same ? lists[0] : [],
+          mixed: !same,
+          required: action.required,
+          onAdd: (code) => this.handlers.onKeys(members, action.id, (keys) => [...keys, code]),
+          onRemove: same ? (code) => this.handlers.onKeys(members, action.id, (keys) => keys.filter((k) => k !== code)) : undefined,
+          onClear: () => this.handlers.onKeys(members, action.id, () => []),
+        }),
+      );
+    }
+    out.push(text('p', 'inspector-status', t.setManyHint));
+    return out;
   }
 
   /**
-   * The key row: a label that says which key the part has (or that it has none, in red), a yellow button that waits for the next key
-   * press to assign one, and, once there is a key, a trash button that clears it. `onPick` gets the key, or null to clear it; the line
-   * under the row says what it is waiting for.
+   * One action's key row: the keys it has as chips (click one to remove it; none shows *No key*, in red when the action is required),
+   * a yellow button that waits for the next key press and adds it, and a trash button that clears the action once it has keys. The
+   * line under the row says what it is waiting for.
    */
-  private keyPicker(current: string | undefined, onPick: (key: string | null) => void, mixed = false): HTMLElement[] {
+  private keyPicker(o: {
+    keys: readonly string[];
+    mixed?: boolean;
+    required: boolean;
+    note?: string;
+    onAdd(code: string): void;
+    onRemove?(code: string): void;
+    onClear(): void;
+  }): HTMLElement[] {
     const t = TEXT.keys;
-    const hasKey = Boolean(current) || mixed;
-    const label = el('div', 'key-label');
-    label.classList.toggle('unbound', !hasKey);
-    label.replaceChildren(...(mixed ? [document.createTextNode(t.mixedKeys)] : current ? [text('kbd', '', keyLabel(current))] : [document.createTextNode(t.notSet)]));
+    const hasKeys = o.keys.length > 0 || Boolean(o.mixed);
+    const chips = el('div', 'key-chips');
+    if (o.mixed) chips.append(text('span', 'key-label', t.mixedKeys));
+    else if (o.keys.length === 0) {
+      const none = text('span', 'key-label unbound', t.notSet);
+      none.classList.toggle('optional', !o.required);
+      chips.append(none);
+    }
+    for (const code of o.keys) {
+      const chip = text(o.onRemove ? 'button' : 'span', 'key-chip', keyLabel(code));
+      if (o.onRemove && chip instanceof HTMLButtonElement) {
+        chip.type = 'button';
+        chip.title = t.removeKey(keyLabel(code));
+        chip.setAttribute('aria-label', chip.title);
+        chip.onclick = () => o.onRemove!(code);
+      }
+      chips.append(chip);
+    }
+    if (o.note) chips.append(text('span', 'key-note', o.note));
 
-    const assign = text('button', 'catalog-action primary key-assign', hasKey ? t.change : t.assign) as HTMLButtonElement;
+    const label = o.keys.length > 0 || o.mixed ? t.add : t.assign;
+    const assign = text('button', 'catalog-action primary key-assign', label) as HTMLButtonElement;
     assign.type = 'button';
     const message = text('p', 'inspector-status key-message', '');
     message.hidden = true;
     const row = el('div', 'key-row');
-    row.append(label, assign);
-    if (hasKey) {
+    row.append(assign);
+    if (hasKeys) {
       const clear = el('button', 'catalog-action danger key-clear') as HTMLButtonElement;
       clear.type = 'button';
       clear.title = t.clear;
       clear.setAttribute('aria-label', t.clear);
       clear.append(trashIcon());
-      clear.onclick = () => onPick(null);
+      clear.onclick = o.onClear;
       row.append(clear);
     }
     assign.onclick = () => {
@@ -294,7 +354,8 @@ export class PartInspector {
       this.stopCapture = captureKey(
         (code) => {
           this.stopCapture = null;
-          onPick(code);
+          if (code === null) o.onClear();
+          else o.onAdd(code);
         },
         (problem) => {
           message.classList.add('error');
@@ -303,12 +364,12 @@ export class PartInspector {
         () => {
           this.stopCapture = null;
           assign.classList.remove('waiting');
-          assign.textContent = hasKey ? t.change : t.assign;
+          assign.textContent = label;
           message.hidden = true;
         },
       );
     };
-    return [row, message];
+    return [chips, row, message];
   }
 
   /** Suspension slider (wheels only; it is the only place to change it, the catalog just lists the property). */

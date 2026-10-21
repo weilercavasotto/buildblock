@@ -114,7 +114,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Engine'], text: 'Drives the wheels of its body. A separate unit: click any face of a block to mount it there (it does not take the place of a block), and turn it (A / D, W / S) so the fan on its front points where the vehicle should go; it cannot point into its block, nor be upside down. A body\'s engines add their power (slider in the inspector, 1-10); one engine of the default power drives 4 wheels at full torque, more wheels share it. It weighs two blocks. Where you mount it matters: while you accelerate on the ground its push acts on the body from where it sits, so a high engine tips the nose down and one off to a side pulls the vehicle that way; a low, central one barely does.' },
           {
             keys: ['Wheel'],
-            text: 'Click the side of a block to mount a wheel (not the top or bottom). Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face like a caster. Every wheel has a brake: in the inspector (inspect mode, I) set its strength (1-10) and, if you want it to brake, give it a key; while you hold that key in Play every wheel with it is held back, driven or not. A wheel with no key never brakes.',
+            text: 'Click the side of a block to mount a wheel (not the top or bottom). Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face like a caster. Every wheel has a brake: in the inspector (inspect mode, I) set its strength (1-10) and, if you want it to brake, give its Brake action a key; while you hold that key in Play every wheel with it is held back, driven or not. A wheel can also steer: give its Steer left / Steer right actions keys (the same ones on all the wheels you want to turn).',
           },
           {
             keys: ['Large wheel'],
@@ -134,15 +134,10 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Driving (Play)',
         rows: [
-          { keys: ['W', '↑'], text: 'Accelerate.' },
-          { keys: ['S', '↓'], text: 'Reverse.' },
-          { keys: ['A', '←'], text: 'Steer left.' },
-          { keys: ['D', '→'], text: 'Steer right.' },
-          { keys: ['W', 'S', 'A', 'D', 'Q', 'E'], text: 'In the air (nothing of the vehicle touches the ground) they fly it: W / S pitch (W nose down, S nose up), A / D roll (bank left / right), Q / E yaw (turn left / right), around the axes of the vehicle. Its nose is where its thrusters push (the ones that push sideways), else where its engines push, else the way its wheels roll. At low speed the controls bite less.' },
-          { text: 'Part keys: no part comes with a key. Rotors, pistons, thrusters, turbos and the brakes of wheels (every wheel has one) are run by the key you give each one in the inspector (select the part in inspect mode, I, and click its key button, then press the key; Backspace clears it). A thruster, a turbo and a brake work while the key is held; a rotor and a piston switch on or off with each press. Parts with the same key work together, so give each its own key to run it alone; with several parts of a kind selected the inspector sets all their keys at once. W, A, S, D, the arrows, Q, E, R, P, H and M are used by the game and cannot be given. The bell at the top right counts the parts that still need a key and lists them; the Controls panel shows each key with what it runs.' },
+          { text: 'Nothing moves until you give it a key: no part comes with one, and W, A, S, D and the arrows drive nothing by themselves. Select a part in inspect mode (I): the inspector has an Action Keys section with one block per action, an Add a key button (click it, then press the key; Esc cancels, Backspace clears the action) and, once there are keys, a trash that clears them; click a key chip to remove just that key. Actions: an engine Accelerates (required) and Reverses; a wheel Steers left, Steers right and Brakes (all optional: a wheel with no steering key just keeps going straight, a wheel with no brake key never brakes); a rotor switches on / off, a piston goes out / back, a thruster fires and a turbo boosts. Thrusters, turbos, brakes, accelerating and steering work while the key is held; rotors and pistons switch with each press. An action can have several keys (W and ↑, say), and parts with the same key work together, so give a group the same key and a single part its own. With several parts selected the inspector sets the keys of each kind of action at once, and Copy these keys gives one part\'s keys to all of its kind. Only R (restart), P (play / stop), H (help) and M (mute) are kept by the game; the editing keys (I, B, C...) can be used. The bell at the top right counts the parts with a required action that has no key, and lists them; the Controls panel shows each key with what it runs.' },
           { keys: ['R'], text: 'Restart the simulation from your build (also the Reset button next to Stop).' },
           { keys: ['P'], text: 'Play, and stop again (the same as the Play / Stop button); Esc stops too.' },
-          { text: 'Wheels are driven only by the engines mounted on their body. An engine pushes the vehicle towards its front, the side with the fan: turned around it reverses W / S, and sideways it does nothing. Wheels on a body with no engine roll freely. (Games saved before the engine existed still drive every wheel.)' },
+          { text: 'Wheels are driven only by the engines mounted on their body, and each engine has its own throttle (its Accelerate and Reverse keys), so engines on different keys work apart; a wheel takes the throttle of the engines of its body, weighted by their power. An engine pushes the vehicle towards its front, the side with the fan: turned around, its Accelerate key drives the other way, and sideways it does nothing. Steering is differential: a wheel with a steering key slows (or reverses) when its key says the vehicle should turn towards its side and speeds up for the other side. Wheels on a body with no engine roll freely. (Games saved before the engine existed still drive every wheel, with W / S and A / D.)' },
         ],
       },
     ],
@@ -167,9 +162,7 @@ export const HELP_TABS: HelpTab[] = [
       {
         heading: 'Play mode',
         rows: [
-          { keys: ['W', 'A', 'S', 'D'], text: 'Drive (the arrow keys work too). I/B/E/R switch modes and W/A/S/D only rotate the part to place while building.' },
-          { keys: ['Q', 'E'], text: 'Yaw left / right while the vehicle is in the air (W / S pitch and A / D roll then too).' },
-          { text: 'The keys you gave to rotors, pistons, thrusters, turbos and brakes (see the Controls panel at the bottom left).' },
+          { text: 'The keys you gave to the parts drive and run the vehicle (see the Controls panel at the bottom left); W / A / S / D only rotate and tilt the part to place while building.' },
           { keys: ['R'], text: 'Restart.' },
           { keys: ['P', 'Esc'], text: 'Stop and go back to building.' },
         ],

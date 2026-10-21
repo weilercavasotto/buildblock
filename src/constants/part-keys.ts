@@ -1,49 +1,84 @@
 import { Part, PartType } from '../types';
 
 /**
- * Keys of the parts. No part comes with a key: the player gives each mobility part its own (`Part.key`, a `KeyboardEvent.code`,
- * set in the part inspector), so one key can run a whole group of parts or a single one. A part that needs a key and has none is
- * listed by the alerts panel (the bell at the top right). Parts with the same key move together.
+ * Keys of the parts. No part comes with a key, and nothing that moves works until the player gives it one (a rule of the game, not just
+ * of the parts that exist today): every mobility part has one or more **actions** (`PART_ACTIONS`), and the player assigns each action
+ * one or more keys (`Part.keys`, `KeyboardEvent.code`s, in the part inspector). Parts with the same key work together, so one key can
+ * run a whole group or a single part. A part with a required action that has no key is listed by the alerts panel (the bell).
  */
 
-/** How a key runs a part: `hold` = active while the key is held, `toggle` = each press switches it on or off. Decided per type of part. */
+/** How a key runs an action: `hold` = active while a key is held, `toggle` = each press switches it on or off. Decided per action. */
 export type KeyMode = 'hold' | 'toggle';
 
+/** One thing a part can be told to do: what the key does, how, and whether leaving it without a key is an alert (`required`). */
+export interface KeyAction {
+  id: string;
+  /** What it does, as the inspector and the Controls panel name it. */
+  label: string;
+  mode: KeyMode;
+  required: boolean;
+}
+
+const run = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'hold', required: true }];
+const toggle = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'toggle', required: true }];
+
 /**
- * The types of part that are run by a key, how (`mode`) and whether a missing key is an alert (`required`). A wheel's key is its
- * brake's: every wheel has a brake, but a wheel with no key is fine (it just does not brake), so the bell does not count it. The
- * engine needs no key (W / S / A / D drive it).
+ * The actions of each kind of part that takes keys. An engine accelerates / reverses the wheels of its body (its own throttle, so
+ * engines on different keys work apart); a wheel steers (differential drive: a wheel with no steering key keeps going straight) and
+ * brakes, both optional; a rotor and a piston switch on and off with each press; a thruster fires and a turbo boosts while held.
  */
-export const PART_KEYS: Partial<Record<PartType, { mode: KeyMode; required: boolean }>> = {
-  wheel: { mode: 'hold', required: false },
-  bigWheel: { mode: 'hold', required: false },
-  thruster: { mode: 'hold', required: true },
-  turbo: { mode: 'hold', required: true },
-  rotor: { mode: 'toggle', required: true },
-  piston: { mode: 'toggle', required: true },
+export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
+  engine: [
+    { id: 'forward', label: 'Accelerate', mode: 'hold', required: true },
+    { id: 'reverse', label: 'Reverse', mode: 'hold', required: false },
+  ],
+  wheel: [
+    { id: 'steerLeft', label: 'Steer left', mode: 'hold', required: false },
+    { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
+    { id: 'brake', label: 'Brake', mode: 'hold', required: false },
+  ],
+  bigWheel: [
+    { id: 'steerLeft', label: 'Steer left', mode: 'hold', required: false },
+    { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
+    { id: 'brake', label: 'Brake', mode: 'hold', required: false },
+  ],
+  thruster: run('Thrust'),
+  turbo: run('Turbo boost'),
+  rotor: toggle('Rotors on / off'),
+  piston: toggle('Pistons out / back'),
 };
 
-/** Does this part take a key (a rotor, piston, thruster, turbo or a wheel's brake)? */
-export const isKeyed = (part: Pick<Part, 'type'>): boolean => PART_KEYS[part.type] !== undefined;
+/** The most keys one action can have. */
+export const MAX_KEYS_PER_ACTION = 4;
+
+/** The actions of a part (none for a block). */
+export const actionsOf = (part: Pick<Part, 'type'>): KeyAction[] => PART_ACTIONS[part.type] ?? [];
+
+/** Does this part take keys? */
+export const isKeyed = (part: Pick<Part, 'type'>): boolean => PART_ACTIONS[part.type] !== undefined;
+
+/** The keys the player gave to an action of a part (empty when none). */
+export const keysOf = (part: Pick<Part, 'keys'>, action: string): readonly string[] => part.keys?.[action] ?? [];
+
+/** The required actions of a part that have no key yet. */
+export const missingActions = (part: Pick<Part, 'type' | 'keys'>): KeyAction[] => actionsOf(part).filter((a) => a.required && keysOf(part, a.id).length === 0);
+
+/** The optional actions of a part that have no key yet (the alerts panel lists them, the bell does not count them). */
+export const unassignedOptional = (part: Pick<Part, 'type' | 'keys'>): KeyAction[] => actionsOf(part).filter((a) => !a.required && keysOf(part, a.id).length === 0);
 
 /** Does this part need a key it does not have yet (what the alerts count)? */
-export const lacksKey = (part: Pick<Part, 'type' | 'key'>): boolean => PART_KEYS[part.type]?.required === true && !part.key;
+export const lacksKey = (part: Pick<Part, 'type' | 'keys'>): boolean => missingActions(part).length > 0;
 
-/** The mode of a keyed part's key. */
-export const keyModeOf = (part: Pick<Part, 'type'>): KeyMode => PART_KEYS[part.type]?.mode ?? 'hold';
-
-/** The keys that cannot be given to a part, because the game uses them while playing (driving, flying, restarting, stopping...). */
+/** The keys that cannot be given to a part, because the game uses them while playing (restart, play / stop, help, mute). */
 export const RESERVED_KEYS: ReadonlySet<string> = new Set([
-  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', // drive and steer
-  'KeyQ', 'KeyE', // yaw in the air
   'KeyR', // restart
   'KeyP', // play / stop
   'KeyH', // help
   'KeyM', // mute
 ]);
 
-/** The keys that can be a part's key if they are not reserved: letters, digits, the numeric pad, Space, Shift and the punctuation keys. */
-const ASSIGNABLE = /^(Key[A-Z]|Digit\d|Numpad\w+|Space|ShiftLeft|ShiftRight|Minus|Equal|Bracket(Left|Right)|Semicolon|Quote|Comma|Period|Slash|Backslash|Backquote|IntlBackslash|Insert|Home|End|PageUp|PageDown)$/;
+/** The keys that can be an action's key if they are not reserved: letters, digits, the arrows, the numeric pad, Space, Shift and the punctuation keys. */
+const ASSIGNABLE = /^(Key[A-Z]|Digit\d|Arrow(Up|Down|Left|Right)|Numpad\w+|Space|ShiftLeft|ShiftRight|Minus|Equal|Bracket(Left|Right)|Semicolon|Quote|Comma|Period|Slash|Backslash|Backquote|IntlBackslash|Insert|Home|End|PageUp|PageDown)$/;
 
 /** Why a key cannot be given to a part: `reserved` (the game uses it) or `unsupported` (not a key that works for this), else null. */
 export const keyProblem = (code: string): 'reserved' | 'unsupported' | null => {
@@ -75,6 +110,7 @@ export function keyLabel(code: string): string {
   if (code.startsWith('Digit')) return code.slice(5);
   if (code.startsWith('Numpad')) return `Num ${code.slice(6)}`;
   if (code.startsWith('Shift')) return 'Shift';
+  if (code.startsWith('Arrow')) return { Up: '↑', Down: '↓', Left: '←', Right: '→' }[code.slice(5)] ?? code;
   const names: Record<string, string> = {
     Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/',
     Backslash: '\\', Backquote: '`', IntlBackslash: '\\', PageUp: 'Page Up', PageDown: 'Page Down',

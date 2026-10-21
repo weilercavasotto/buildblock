@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, BRAKE, isKeyed, isValidKey } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, BRAKE, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -219,17 +219,36 @@ export class Grid {
   }
 
   /**
-   * Gives the key (a `KeyboardEvent.code`, see `Part.key`) to the parts at `cells`, or takes their key off with `null`. Only parts that
-   * take a key (`isKeyed`) change. Returns false, changing nothing, when no part changes.
+   * Changes the keys of an action (see `Part.keys`) of the parts at `cells`: `edit` gets the keys the part has for it and returns the
+   * new list (cleaned: valid, no repeats, at most `MAX_KEYS_PER_ACTION`). Only parts that have that action change. Returns false,
+   * changing nothing, when no part changes.
    */
-  setKey(cells: ReadonlyArray<Vec3>, key: string | null): boolean {
-    if (key !== null && !isValidKey(key)) return false;
+  editKeys(cells: ReadonlyArray<Vec3>, action: string, edit: (keys: readonly string[]) => readonly string[]): boolean {
     let changed = false;
     for (const cell of cells) {
       const part = this.get(cell);
-      if (!part || !isKeyed(part) || (part.key ?? null) === key) continue;
-      const { key: _old, ...rest } = part;
-      this.parts.set(cellKey(part.cell), key === null ? rest : { ...rest, key });
+      if (!part || !actionsOf(part).some((a) => a.id === action)) continue;
+      const before = keysOf(part, action);
+      const after = cleanKeys(edit(before));
+      if (after.length === before.length && after.every((k, i) => k === before[i])) continue;
+      this.parts.set(cellKey(part.cell), withKeys(part, { ...part.keys, [action]: after }));
+      changed = true;
+    }
+    if (changed) this.emit();
+    return changed;
+  }
+
+  /** Gives `keys` (all the actions of a part at once, see `Part.keys`) to the parts at `cells`: only the actions each part has are kept. */
+  assignKeys(cells: ReadonlyArray<Vec3>, keys: Part['keys']): boolean {
+    let changed = false;
+    for (const cell of cells) {
+      const part = this.get(cell);
+      if (!part || !isKeyed(part)) continue;
+      const next: Record<string, string[]> = {};
+      for (const action of actionsOf(part)) next[action.id] = cleanKeys(keys?.[action.id] ?? []);
+      const updated = withKeys(part, next);
+      if (JSON.stringify(updated.keys ?? null) === JSON.stringify(part.keys ?? null)) continue;
+      this.parts.set(cellKey(part.cell), updated);
       changed = true;
     }
     if (changed) this.emit();
@@ -433,12 +452,25 @@ export class Grid {
  * Cleans a part from a save: drops what its type does not allow (a bad or forbidden paint / suspension / tire / weight) and
  * converts older shapes. Returns null for a part that cannot be kept.
  */
+/** The keys of an action, cleaned: only valid keys, each once, at most `MAX_KEYS_PER_ACTION`. */
+function cleanKeys(keys: ReadonlyArray<unknown>): string[] {
+  return [...new Set(keys.filter(isValidKey))].slice(0, MAX_KEYS_PER_ACTION);
+}
+
+/** The part with `keys` (empty actions dropped; no `keys` at all when none is left). */
+function withKeys(part: Part, keys: Record<string, string[] | undefined>): Part {
+  const { keys: _old, ...rest } = part;
+  const kept = Object.fromEntries(Object.entries(keys).filter(([, list]) => list && list.length > 0));
+  return Object.keys(kept).length > 0 ? { ...rest, keys: kept as Part['keys'] } : rest;
+}
+
 function sanitize(part: Part, legacyFormat: boolean): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, speed, stroke, brake, key, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+  const { color, suspension, tire: savedTire, weight, power, speed, stroke, brake, key, keys, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
     layers?: number;
     rotation?: number;
     pitch?: number;
     front?: Vec3;
+    key?: string;
   };
   const info = PART_INFO[part.type];
   if (!info) return null; // a type this version does not know
@@ -461,7 +493,17 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   if (stroke !== undefined && typeof stroke === 'number' && info.hasStroke) out.stroke = clampStroke(stroke);
   if (brake !== undefined && typeof brake === 'number' && isWheelType(part.type) && clampBrake(brake) !== BRAKE.default) out.brake = clampBrake(brake);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
-  if (isValidKey(key) && isKeyed(part)) out.key = key;
+  // Keys: saved per action. A game saved with one `key` per part (before actions) gets it on the part's first action (a wheel's brake).
+  if (isKeyed(part)) {
+    const saved: Record<string, unknown> = typeof keys === 'object' && keys !== null ? (keys as Record<string, unknown>) : {};
+    if (isValidKey(key) && Object.keys(saved).length === 0) saved[part.type === 'wheel' || part.type === 'bigWheel' ? 'brake' : actionsOf(part)[0].id] = [key];
+    const clean: Record<string, string[]> = {};
+    for (const action of actionsOf(part)) {
+      const list = cleanKeys(Array.isArray(saved[action.id]) ? (saved[action.id] as unknown[]) : []);
+      if (list.length > 0) clean[action.id] = list;
+    }
+    if (Object.keys(clean).length > 0) out.keys = clean;
+  }
   if (isMountedType(part.type) && !part.face) return null; // wheels and engines are always mounted on a block
   // Orientation: the same fields for every part. Wheels and engines saved before that had `rotation` / `pitch` / `front`.
   const fromLegacy = isMountedType(part.type) && (rotation !== undefined || pitch !== undefined || front !== undefined || (legacyFormat && studs === undefined && spin === undefined));
