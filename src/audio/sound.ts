@@ -23,6 +23,13 @@ class SoundEngine {
       void this.context()?.resume();
     };
     for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, wake, { capture: true, passive: true });
+    // A tab that is hidden (another tab, a minimised window) must be silent: the vehicle voices run on the audio clock, not on the
+    // page's, so nothing else would stop them.
+    document.addEventListener('visibilitychange', () => {
+      if (!this.ctx) return;
+      if (document.hidden) void this.ctx.suspend();
+      else void this.ctx.resume();
+    });
   }
 
   get muted(): boolean {
