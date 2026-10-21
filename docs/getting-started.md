@@ -35,7 +35,7 @@ category) and a card with a 3D preview for each part:
 
 ## Zoom control
 
-In the **top-left corner, right under the home button**, there is a **zoom control** made of three parts stacked vertically: the `+` button on top (in its own panel), the
+In the **top-left corner, right under the home button**, there is a **zoom control** made of three parts stacked vertically: the `+` button on top (a key like the home and help buttons), the
 bar in the middle, with no card around it (the zoom percentage at its top and a vertical slider below it, top = closest) and the `−` button
 at the bottom. The percentage is the slider position: **0%** at the farthest zoom and **100%** at the closest (the zoom itself is logarithmic, as before). It works together with the mouse
 wheel: scrolling moves the slider, and dragging the slider or pressing the buttons zooms the camera. Zoom is limited

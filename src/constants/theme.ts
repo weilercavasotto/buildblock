@@ -1,6 +1,6 @@
 import { ALPHA, COLORS, OVERLAYS } from './colors';
 import { MOTION, OPACITY, SHADOW, Z_INDEX } from './effects';
-import { BORDER, RADIUS, SIZE, SPACE } from './spacing';
+import { BORDER, BUTTON, RADIUS, SIZE, SPACE } from './spacing';
 import { FONT_FAMILY, FONT_SIZE, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT } from './typography';
 
 type Tokens = { readonly [key: string]: string | number | Tokens | readonly unknown[] };
@@ -33,6 +33,7 @@ export function applyTheme(root: HTMLElement = document.documentElement): void {
   flatten(RADIUS, '--radius', 'px', vars);
   flatten(BORDER, '--border', 'px', vars);
   flatten(SIZE, '--size', 'px', vars);
+  flatten(BUTTON, '--button', 'px', vars);
   flatten(FONT_SIZE, '--font-size', 'px', vars);
   flatten(FONT_WEIGHT, '--font-weight', '', vars);
   flatten(LETTER_SPACING, '--letter-spacing', 'px', vars);

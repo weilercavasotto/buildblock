@@ -27,6 +27,14 @@ export const COLORS = {
     vignette: '#0a0e18',
   },
 
+  /** The darker lower edge ("lip") of a raised button, one per kind of button (the key look, see the button skin in `main.css`). */
+  button: {
+    lip: '#10141c',
+    lipHighlight: '#b8890f',
+    lipDanger: '#7c241d',
+    lipAccent: '#1d6c38',
+  },
+
   accent: {
     primary: '#2e9d55',
     primaryHover: '#38b765',
@@ -144,4 +152,7 @@ export const OVERLAYS = {
   vignetteOuter: withAlpha(COLORS.surface.vignette, ALPHA.vignetteOuter),
   /** Dimmed layer behind modal dialogs. */
   backdrop: withAlpha(COLORS.black, ALPHA.backdrop),
+  /** The light sheen on the top of a raised button, and the thin light line along its top edge. */
+  sheen: withAlpha(COLORS.white, 0.12),
+  sheenEdge: withAlpha(COLORS.white, 0.16),
 } as const;

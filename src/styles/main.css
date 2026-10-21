@@ -736,35 +736,29 @@ body[data-cursor-mode='remove'] > canvas {
   gap: var(--space-sm);
   user-select: none;
 }
-/* Three separate panels, same width: [+] on top, the bar (zoom % and slider) in the middle, [-] at the bottom. */
+/* Three parts of the same width: [+] on top, the bar (zoom % and slider) in the middle, [-] at the bottom. The [+] and [-] are keys of
+   their own, like the home and help buttons (no card behind them); the bar has no card either: the % label and the slider sit directly
+   on the scene (the label gets a text shadow). */
 .zoom-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  padding: var(--space-sm);
-  border-radius: var(--radius-lg);
-  background: var(--overlay-panel);
-}
-/* The bar itself has no card: the % label and the slider sit directly on the scene (the label gets a text shadow). */
-#zoom #zoom-bar {
-  background: none;
-  padding: 0;
 }
 #zoom button {
-  width: var(--size-zoom-button);
-  height: var(--size-zoom-button);
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
   padding: 0;
   border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-control);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-panel);
   color: var(--color-text-primary);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   cursor: pointer;
 }
 #zoom button:hover {
-  background: var(--color-surface-control-hover);
+  background: var(--overlay-panel-hover);
 }
 #zoom-slider {
   /* Vertical slider: maximum (zoomed in) at the top. */
@@ -1485,5 +1479,161 @@ body[data-cursor-mode='remove'] > canvas {
 @media (prefers-reduced-motion: reduce) {
   .switch-knob {
     transition: none;
+  }
+}
+
+/*
+ * ---- Button skin ----
+ * Every button is a raised key: a light sheen on top, a darker lower edge (the lip, `--lip`, set per kind of button) and a soft shadow
+ * under it. A hover lifts it a little and brightens it, a press sinks it onto its lip, the keyboard focus draws a yellow ring. The
+ * size, colour and layout of each button stay with its own rule above; this only adds the depth and the motion.
+ */
+#btn-menu,
+#btn-saves,
+#help-button,
+#btn-settings,
+#btn-sound,
+#top-bar button,
+#zoom button,
+#menu button,
+#catalog-button,
+.slot,
+#part-inspector .move-pad button,
+.catalog-action,
+.dialog-button,
+.slider-reset,
+.help-close,
+.save-item button {
+  --lip: var(--color-button-lip);
+  background-image: linear-gradient(180deg, var(--overlay-sheen), transparent 55%);
+  box-shadow:
+    inset 0 var(--border-hairline) 0 var(--overlay-sheen-edge),
+    0 var(--button-lip) 0 var(--lip),
+    0 calc(var(--button-lip) + 3px) 10px rgba(0, 0, 0, 0.28);
+  transition:
+    transform var(--motion-fast) ease-out,
+    box-shadow var(--motion-fast) ease-out,
+    background-color var(--motion-fast) ease-out;
+}
+#btn-menu:hover:not(:disabled),
+#btn-saves:hover:not(:disabled),
+#help-button:hover:not(:disabled),
+#btn-settings:hover:not(:disabled),
+#btn-sound:hover:not(:disabled),
+#top-bar button:hover:not(:disabled),
+#zoom button:hover:not(:disabled),
+#menu button:hover:not(:disabled),
+#catalog-button:hover:not(:disabled),
+.slot:hover:not(:disabled),
+#part-inspector .move-pad button:hover:not(:disabled),
+.catalog-action:hover:not(:disabled),
+.dialog-button:hover:not(:disabled),
+.slider-reset:hover:not(:disabled),
+.help-close:hover:not(:disabled),
+.save-item button:hover:not(:disabled) {
+  transform: translateY(calc(var(--button-lift) * -1));
+  box-shadow:
+    inset 0 var(--border-hairline) 0 var(--overlay-sheen-edge),
+    0 calc(var(--button-lip) + var(--button-lift)) 0 var(--lip),
+    0 calc(var(--button-lip) + 5px) 14px rgba(0, 0, 0, 0.32);
+}
+#btn-menu:active:not(:disabled),
+#btn-saves:active:not(:disabled),
+#help-button:active:not(:disabled),
+#btn-settings:active:not(:disabled),
+#btn-sound:active:not(:disabled),
+#top-bar button:active:not(:disabled),
+#zoom button:active:not(:disabled),
+#menu button:active:not(:disabled),
+#catalog-button:active:not(:disabled),
+.slot:active:not(:disabled),
+#part-inspector .move-pad button:active:not(:disabled),
+.catalog-action:active:not(:disabled),
+.dialog-button:active:not(:disabled),
+.slider-reset:active:not(:disabled),
+.help-close:active:not(:disabled),
+.save-item button:active:not(:disabled) {
+  transform: translateY(var(--button-press));
+  box-shadow:
+    inset 0 var(--border-hairline) 0 var(--overlay-sheen-edge),
+    0 calc(var(--button-lip) - var(--button-press)) 0 var(--lip),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+}
+/*
+ * The square buttons are square counting their lip: the face is as tall as it is wide minus the lip, so the key as a whole (face and
+ * lip) is exactly the width of the button and the layout does not move.
+ */
+#btn-menu,
+#btn-saves,
+#help-button,
+#btn-settings,
+#btn-sound {
+  height: calc(var(--size-icon-button) - var(--button-lip));
+}
+#zoom button {
+  height: calc(var(--size-icon-button) - var(--button-lip));
+  margin-bottom: var(--button-lip); /* the lip takes room under the face, so the gap to the next part stays the same */
+}
+.slot,
+#catalog-button {
+  height: calc(var(--size-hotbar-slot) - var(--button-lip));
+}
+/* The colours of the lip: yellow for the main buttons, red for the dangerous ones, green for the accent ones. */
+#menu button.primary,
+.dialog-button.primary,
+.catalog-action.primary {
+  --lip: var(--color-button-lip-highlight);
+}
+.catalog-action.danger,
+.dialog-button.danger,
+#menu button.danger:hover {
+  --lip: var(--color-button-lip-danger);
+}
+/* The chosen mode and the chosen hotbar slot keep a yellow edge. A disabled button keeps its relief (it is only dimmed and does not react). */
+#mode-switch button.active,
+.slot.selected {
+  --lip: var(--color-button-lip-highlight);
+}
+/* A slot a part is dragged over swells instead of lifting. */
+.slot.drop-hover,
+.slot.drop-hover:hover:not(:disabled),
+.slot.drop-hover:active:not(:disabled) {
+  transform: scale(1.08);
+}
+/* A clear ring for the keyboard. */
+button:focus-visible {
+  outline: var(--button-ring) solid var(--color-accent-highlight);
+  outline-offset: var(--button-ring-offset);
+}
+@media (prefers-reduced-motion: reduce) {
+  #btn-menu,
+  #btn-saves,
+  #help-button,
+  #btn-settings,
+  #btn-sound,
+  #top-bar button,
+  #zoom button,
+  #menu button,
+  #catalog-button,
+.slot,
+  #part-inspector .move-pad button,
+  .catalog-action,
+  .dialog-button,
+  .slider-reset,
+  .help-close,
+  .save-item button {
+    transition: none;
+  }
+  #btn-menu:hover,
+  #btn-saves:hover,
+  #help-button:hover,
+  #btn-settings:hover,
+  #btn-sound:hover,
+  #top-bar button:hover,
+  #zoom button:hover,
+  #menu button:hover,
+  .catalog-action:hover,
+  .dialog-button:hover {
+    transform: none;
   }
 }

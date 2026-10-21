@@ -26,7 +26,7 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/parts/part-defs.ts`: visuals/dimensions of every part
 - `src/menu/`: main-menu background (`menu-scene.ts`: random car + orbiting camera, `random-build.ts`: coupe / pickup / propeller / rocket kinds with random paint; keep new builds valid: `Grid.add` drops what does not fit, mind the stud lattice for 0.5-wide parts; the menu autopilot drives rotors, pistons and thrusters)
 - `src/constants/`: design tokens and tunables (colours, spacing, typography, physics, game, text); `theme.ts` publishes them as CSS variables
-- `src/styles/main.css`: all CSS, tokens only
+- `src/styles/main.css`: all CSS, tokens only; buttons get their raised look from the **Button skin** section at the end (add a new button's selector to its lists; tokens `BUTTON`, `COLORS.button`, `OVERLAYS.sheen`)
 - `src/frame-limiter.ts`: 60 FPS cap (`FRAME_LIMIT`); the main loop returns early when `shouldRender` is false
 - `src/build/history.ts`: undo/redo (`begin`/`commit`/`run`); wrap every user edit of the grid in one step (Ctrl/Cmd+Z / Y)
 - `src/ui/loading-screen.ts`: loading overlay (mark + name + progress bar + label) for scene changes; wrap such transitions in `loading.run([{ label, run }, …])` (`main.ts` does it for menu ⇄ build and at boot); timings in `LOADING`, strings in `TEXT.loading`

@@ -22,6 +22,16 @@ export const BORDER = {
   regular: 2,
 } as const;
 
+/** Raised buttons: how thick the lower edge is, how far a press sinks it and how far a hover lifts it (px). */
+export const BUTTON = {
+  lip: 3,
+  press: 2,
+  lift: 1,
+  /** The focus ring: thickness and distance from the button. */
+  ring: 2,
+  ringOffset: 2,
+} as const;
+
 /** Fixed component dimensions in px. */
 export const SIZE = {
   logo: 110,
@@ -31,8 +41,6 @@ export const SIZE = {
   dialogWidth: 380,
   /** Icon buttons (the help button). */
   iconButton: 44,
-  /** The + / − buttons of the zoom control (with the panel padding they are as wide as an icon button). */
-  zoomButton: 28,
   icon: 24,
   helpWidth: 640,
   helpPanelHeight: 380,

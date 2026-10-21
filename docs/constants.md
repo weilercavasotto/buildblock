@@ -6,6 +6,7 @@ Every colour, size, spacing, font, physics number and user-facing string lives i
 | File | Contents |
 |---|---|
 | `colors.ts` | `COLORS` (text, surface, accent, scene, part), `ALPHA`, `OVERLAYS` (colours with alpha baked in), helpers `hexToNumber` (for Three.js) and `withAlpha` |
+| `spacing.ts` | also `BUTTON` (lip thickness, press, lift and focus ring of the raised buttons) |
 | `spacing.ts` | `SPACE` (4 px scale: xs 4, sm 8, md 12, lg 16, xl 20, xxl 32, huge 64), `RADIUS` (sm 8, md 12, lg 16), `BORDER`, `SIZE` (logo, panel width, ...) |
 | `typography.ts` | `FONT_FAMILY`, `FONT_SIZE`, `FONT_WEIGHT`, `LETTER_SPACING`, `LINE_HEIGHT` |
 | `effects.ts` | `SHADOW` (CSS shadows), `OPACITY`, `Z_INDEX` (stacking of fixed layers) and `MOTION` (transition durations) |

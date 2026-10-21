@@ -354,7 +354,7 @@ export class PartInspector {
     ends.append(text('span', '', o.low), reset, text('span', '', o.high));
     const all: HTMLElement[] = [];
     if (o.applyAll) {
-      const apply = text('button', 'catalog-action', o.applyAll.label) as HTMLButtonElement;
+      const apply = text('button', 'catalog-action primary', o.applyAll.label) as HTMLButtonElement;
       apply.type = 'button';
       apply.onclick = o.applyAll.run;
       all.push(apply);
