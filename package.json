@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package:mac:dev": "mkdir -p release && cd release && npx -y pake-cli http://localhost:5173 --name \"BlockLab Dev\" --icon ../packaging/icon.png --identifier com.weilercavasotto.blocklab.dev --width 1280 --height 800 --wasm --disabled-web-shortcuts --app-version $npm_package_version",
+    "package:mac": "npm run build && mkdir -p release && cd release && npx -y pake-cli ../dist/index.html --use-local-file --name BlockLab --icon ../packaging/icon.png --identifier com.weilercavasotto.blocklab --width 1280 --height 800 --wasm --disabled-web-shortcuts --app-version $npm_package_version"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",

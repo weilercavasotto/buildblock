@@ -9,6 +9,7 @@ grid, mount wheels on them, then press **Play** to drive your creation under sim
 | [architecture.md](architecture.md) | Modules, data flow and conventions |
 | [constants.md](constants.md) | Design tokens and constants (colours, spacing, typography, physics, text) and how they reach CSS |
 | [physics.md](physics.md) | How Play mode turns the grid into rigid bodies and motors, plus tuning constants |
+| [packaging.md](packaging.md) | Building a desktop app (macOS `.dmg`) with Pake |
 | [adding-a-part.md](adding-a-part.md) | Step-by-step guide to adding a new kind of part |
 | [roadmap.md](roadmap.md) | Known limitations and ideas for next steps |
 
