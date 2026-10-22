@@ -1262,6 +1262,14 @@ body[data-cursor-mode='remove'] > canvas {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-xs);
 }
+#part-inspector .move-ground {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  margin-top: var(--space-xs);
+}
 #part-inspector .move-pad button {
   display: flex;
   align-items: center;

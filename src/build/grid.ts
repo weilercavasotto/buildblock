@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, BRAKE, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -64,10 +64,12 @@ export class Grid {
       if (part.type === 'engine') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
         if (studsOf(part)[1] === -1) return false;
+      } else if (part.type === 'propeller') {
+        if (frontOf(part).every((v, i) => v === -part.face![i])) return false; // its blades would be inside the block
       } else if (isHeaded(part.type)) {
         if (studsOf(part).some((v, i) => v !== part.face![i])) return false; // the head (its studs, local up) must point away from the block: the part is never turned for the player
       } else if (part.type !== 'turbo' && part.type !== 'thruster' && part.face[1] !== 0) {
-        return false; // a turbo, a thruster, a rotor and a piston go on any face, like the engine; the wheels only on the sides
+        return false; // a turbo, a thruster, a propeller, a rotor and a piston go on any face, like the engine; the wheels only on the sides
       }
       return this.hostOf(part) !== null;
     }
@@ -255,6 +257,33 @@ export class Grid {
     return changed;
   }
 
+  /**
+   * Sets how far the hinge at `cell` opens (`HINGE.min` to `HINGE.max` steps of `HINGE.angleStep` degrees); the default is stored as
+   * "not set". Returns false, changing nothing, when there is no such part or nothing changes.
+   */
+  setAngle(cell: Vec3, angle: number): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasAngle || !Number.isFinite(angle)) return false;
+    const value = clampHingeAngle(angle);
+    if (hingeAngleOf(part) === value) return false;
+    const { angle: _old, ...rest } = part;
+    this.parts.set(cellKey(part.cell), value === HINGE.default ? rest : { ...rest, angle: value });
+    this.emit();
+    return true;
+  }
+
+  /** Sets the servo strength (`HINGE.strengthMin` to `HINGE.strengthMax`) of the hinge at `cell`; the default is stored as "not set". Returns false, changing nothing, when there is no such part or nothing changes. */
+  setStrength(cell: Vec3, strength: number): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasAngle || !Number.isFinite(strength)) return false;
+    const value = clampHingeStrength(strength);
+    if (hingeStrengthOf(part) === value) return false;
+    const { strength: _old, ...rest } = part;
+    this.parts.set(cellKey(part.cell), value === HINGE.strengthDefault ? rest : { ...rest, strength: value });
+    this.emit();
+    return true;
+  }
+
   /** The parts of `type` mounted on the same rigid body as the block or mounted part at `cell` (itself included); [] when there is none. */
   mountedOfTypeOnBody(cell: Vec3, type: Part['type']): Part[] {
     const part = this.get(cell);
@@ -272,6 +301,11 @@ export class Grid {
   /** The thrusters mounted on the same rigid body as the block or thruster at `cell` (the thruster itself included); [] when there is none. */
   thrustersOnBody(cell: Vec3): Part[] {
     return this.mountedOfTypeOnBody(cell, 'thruster');
+  }
+
+  /** The propellers mounted on the same rigid body as the block or propeller at `cell` (the propeller itself included); [] when there is none. */
+  propellersOnBody(cell: Vec3): Part[] {
+    return this.mountedOfTypeOnBody(cell, 'propeller');
   }
 
   /** The turbos mounted on the same rigid body as the block or turbo at `cell` (the turbo itself included); [] when there is none. */
@@ -399,7 +433,7 @@ export class Grid {
   connectedWeight(cell: Vec3): number {
     const blocks = this.connectedBlockParts(cell);
     if (blocks.length === 0) return 0;
-    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : 0), 0);
+    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : m.type === 'propeller' ? PROPELLER.mass : 0), 0);
     const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + mountedMass * WEIGHT.default;
     return Math.round(sum * 10) / 10;
   }
@@ -465,7 +499,7 @@ function withKeys(part: Part, keys: Record<string, string[] | undefined>): Part 
 }
 
 function sanitize(part: Part, legacyFormat: boolean): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, speed, stroke, brake, key, keys, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+  const { color, suspension, tire: savedTire, weight, power, speed, stroke, angle, brake, key, keys, strength, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
     layers?: number;
     rotation?: number;
     pitch?: number;
@@ -491,6 +525,8 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   if (power !== undefined && typeof power === 'number' && info.hasPower) out.power = clampPower(power);
   if (speed !== undefined && typeof speed === 'number' && info.hasSpeed) out.speed = clampRotorSpeed(speed);
   if (stroke !== undefined && typeof stroke === 'number' && info.hasStroke) out.stroke = clampStroke(stroke);
+  if (angle !== undefined && typeof angle === 'number' && info.hasAngle && clampHingeAngle(angle) !== HINGE.default) out.angle = clampHingeAngle(angle);
+  if (strength !== undefined && typeof strength === 'number' && info.hasAngle && clampHingeStrength(strength) !== HINGE.strengthDefault) out.strength = clampHingeStrength(strength);
   if (brake !== undefined && typeof brake === 'number' && isWheelType(part.type) && clampBrake(brake) !== BRAKE.default) out.brake = clampBrake(brake);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   // Keys: saved per action. A game saved with one `key` per part (before actions) gets it on the part's first action (a wheel's brake).

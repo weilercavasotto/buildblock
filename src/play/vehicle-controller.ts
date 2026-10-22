@@ -24,6 +24,8 @@ const clamp1 = (v: number): number => Math.max(-1, Math.min(1, v));
 
 interface DrivenWheel {
   wheel: WheelDrive;
+  /** False when no engine pushes this wheel along the travel line: it only turns to steer. */
+  driven: boolean;
   /** +1 / -1: the direction that rolls this wheel towards the vehicle's forward when its engines push forward. 0: not aligned or not powered, free-rolling. */
   roll: number;
   /** +1 right side, -1 left side, 0 centre. */
@@ -75,7 +77,8 @@ export class VehicleController {
       .map((v) => v / Math.max(wheels.length, 1)) as Vec3;
 
     this.driven = wheels.map((wheel) => {
-      let roll = Math.sign(dot(cross(wheel.axis, [0, 1, 0]), forward));
+      const roll = Math.sign(dot(cross(wheel.axis, [0, 1, 0]), forward));
+      let driven = true;
       let power = 1;
       let dir = 1;
       const engines: DrivenWheel['engines'] = [];
@@ -88,15 +91,19 @@ export class VehicleController {
           push += (m.power / ENGINE.default) * along;
           if (Math.abs(along) > 0.01) engines.push({ part: m.part, weight: (m.power / ENGINE.default) * Math.abs(along), sign: Math.sign(along) });
         }
-        if (push === 0) roll = 0;
-        else dir = Math.sign(push);
+        if (push === 0) {
+          // No engine pushes along the travel line: the wheel is not driven, but it can still be turned by its steering keys (a
+          // propeller or thruster vehicle steers with its wheels); `driven` false keeps it free-rolling while it is not steering.
+          driven = false;
+        } else dir = Math.sign(push);
         power = Math.min(ENGINE.maxShare, (Math.abs(push) * ENGINE.wheelsPerEngine) / wheel.wheelCount);
       }
       return {
         wheel,
         roll,
+        driven,
         side: Math.sign(Math.round(dot([wheel.cell[0] - centre[0], 0, wheel.cell[2] - centre[2]], right) * 100)),
-        power,
+        power: driven ? power : 1,
         dir,
         engines,
       };
@@ -169,7 +176,7 @@ export class VehicleController {
 
   /** How many wheels are driven (an engine pushes them along the travel line). */
   get poweredWheels(): number {
-    return this.driven.filter((d) => d.roll !== 0 && d.power > 0).length;
+    return this.driven.filter((d) => d.driven && d.roll !== 0 && d.power > 0).length;
   }
 
   dispose(): void {
@@ -225,7 +232,7 @@ export class VehicleController {
     const legacyThrottle = Number(this.legacyPressed.forward) - Number(this.legacyPressed.back);
     const legacySteer = Number(this.legacyPressed.right) - Number(this.legacyPressed.left);
 
-    for (const { wheel, roll, side, power, dir, engines } of this.driven) {
+    for (const { wheel, roll, driven, side, power, dir, engines } of this.driven) {
       const steer = wheel.engines === null ? (this.autopilot?.steer ?? legacySteer) : this.steerInput(wheel.part);
       // The wheel's throttle: what the engines of its body are asked, weighted by their power and the way they push.
       let throttle: number;
@@ -246,6 +253,10 @@ export class VehicleController {
       if (this.isOn(wheel.part, 'brake')) {
         this.wheelBraking = true;
         wheel.joint.configureMotorVelocity(0, VEHICLE.idleBrake + VEHICLE.brakeStrength * wheel.brake); // on top of the light hold of a wheel at rest
+        continue;
+      }
+      if (!driven && steer === 0) {
+        wheel.joint.configureMotorVelocity(0, VEHICLE.freeWheel); // let go of the wheel: the last steering command must not keep turning it
         continue;
       }
       if (roll === 0) continue;

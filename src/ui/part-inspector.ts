@@ -1,4 +1,4 @@
-import { MOVE_ICONS, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, actionsOf, isKeyed, keyLabel, keysOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MOVE_ICONS, HINGE, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, hingeAngleOf, hingeDegrees, hingeStrengthOf, actionsOf, isKeyed, keyLabel, keysOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
 import { Part, Vec3, axleOf, frontOf, isHostType, isWheelType, isStructural, partCells, studsOf, subVec } from '../types';
@@ -11,6 +11,8 @@ export interface InspectorHandlers {
   onRemoveMany(parts: ReadonlyArray<Part>): void;
   /** Moves the whole selection one step in a direction seen from the camera. */
   onMove(direction: MoveDirection): void;
+  /** Moves the whole selection down until it rests on the ground. */
+  onMoveToGround(): void;
   /** Sets the suspension strength (0-100) of a wheel. */
   onSuspension(part: Part, strength: number): void;
   /** Sets the tire (0 speed tires … 100 traction tires, see `TIRE`) of a wheel, or of all the wheels on its body with `wholeBody`. */
@@ -21,6 +23,10 @@ export interface InspectorHandlers {
   onSpeed(part: Part, speed: number): void;
   /** Sets how far a piston goes out (steps of half a cell, see `PISTON`). */
   onStroke(part: Part, stroke: number): void;
+  /** Sets how far a hinge opens (steps of `HINGE.angleStep` degrees, see `HINGE`). */
+  onAngle(part: Part, angle: number): void;
+  /** Sets the strength (1-10) of a hinge's servo (see `HINGE`). */
+  onStrength(part: Part, strength: number): void;
   /** Sets the power (an integer, see `ENGINE`) of an engine, or of all the engines on its body with `connected`. */
   onPower(part: Part, power: number, connected: boolean): void;
   /** Sets the brake strength (1-10) of a wheel, or of every wheel on its body with `wholeBody`. */
@@ -92,12 +98,15 @@ export class PartInspector {
     const body = el('div', 'inspector-body');
     body.append(
       summary,
+      ...this.moveSection(),
       ...this.keySection(part),
       ...this.tireSection(part),
       ...this.brakeSection(part),
       ...this.powerSection(part),
       ...this.speedSection(part),
       ...this.strokeSection(part),
+      ...this.angleSection(part),
+      ...this.strengthSection(part),
       ...this.weightSection(part),
       ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
@@ -128,10 +137,7 @@ export class PartInspector {
     body.append(
       text('h3', 'inspector-name', TEXT.inspector.selectedCount(parts.length)),
       ...this.keySectionMany(parts),
-      text('h4', 'inspector-heading', TEXT.inspector.move),
-      this.movePad(),
-      text('p', 'inspector-status', TEXT.inspector.moveHint),
-      this.mouseMoves(),
+      ...this.moveSection(),
       this.rows([...counts].map(([type, n]) => [PART_INFO[type as keyof typeof PART_INFO].name, String(n)] as [string, string])),
       text('p', 'inspector-status', TEXT.inspector.removeHint),
       text('p', 'inspector-status', TEXT.inspector.multiHint),
@@ -165,6 +171,19 @@ export class PartInspector {
       box.append(line);
     }
     return box;
+  }
+
+  /** The position controls of a selection of one part or more: the arrows, the button that puts it on the ground, and how to move it with the mouse. */
+  private moveSection(): HTMLElement[] {
+    const ground = el('button', 'catalog-action move-ground') as HTMLButtonElement;
+    ground.type = 'button';
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) icon.setAttribute(name, value);
+    icon.innerHTML = MOVE_ICONS.ground; // trusted constant (src/constants/cursor-modes.ts)
+    ground.append(icon, text('span', '', TEXT.inspector.moveGround));
+    ground.title = TEXT.inspector.moveGroundLabel;
+    ground.onclick = () => this.handlers.onMoveToGround();
+    return [text('h4', 'inspector-heading', TEXT.inspector.move), this.movePad(), ground, text('p', 'inspector-status', TEXT.inspector.moveHint), this.mouseMoves()];
   }
 
   /** The buttons that move the selection: up / forward / down above left / back / right. */
@@ -393,7 +412,8 @@ export class PartInspector {
   private powerSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasPower) return [];
     const turbo = part.type === 'turbo';
-    const thruster = part.type === 'thruster';
+    const propeller = part.type === 'propeller';
+    const thruster = part.type === 'thruster' || propeller;
     const engines = this.grid.mountedOfTypeOnBody(part.cell, part.type).length;
     const t = TEXT.inspector;
     return this.sliderSection({
@@ -405,9 +425,9 @@ export class PartInspector {
       defaultValue: ENGINE.default,
       low: thruster ? t.thrustLow : turbo ? t.boostLow : t.powerLow,
       high: thruster ? t.thrustHigh : turbo ? t.boostHigh : t.powerHigh,
-      hint: thruster ? t.thrustHint : turbo ? t.boostHint : t.powerHint,
+      hint: propeller ? t.propellerHint : thruster ? t.thrustHint : turbo ? t.boostHint : t.powerHint,
       onCommit: (value) => this.handlers.onPower(part, value, false),
-      applyAll: engines > 1 ? { label: thruster ? t.thrustApplyAll(engines) : turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
+      applyAll: engines > 1 ? { label: propeller ? t.propellerApplyAll(engines) : thruster ? t.thrustApplyAll(engines) : turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
     });
   }
 
@@ -447,6 +467,43 @@ export class PartInspector {
     });
   }
 
+  /** Strength slider of a hinge's servo: how stiffly it holds the angle (a weak one sags under a heavy lid). */
+  private strengthSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasAngle) return [];
+    const t = TEXT.inspector;
+    return this.sliderSection({
+      heading: t.servoStrength,
+      min: HINGE.strengthMin,
+      max: HINGE.strengthMax,
+      step: 1,
+      value: hingeStrengthOf(part),
+      defaultValue: HINGE.strengthDefault,
+      low: t.servoWeak,
+      high: t.servoStrong,
+      hint: t.servoHint,
+      onCommit: (value) => this.handlers.onStrength(part, value),
+    });
+  }
+
+  /** Angle slider of a hinge: how far the head swings open, in degrees. */
+  private angleSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasAngle) return [];
+    const t = TEXT.inspector;
+    return this.sliderSection({
+      heading: t.angle,
+      min: HINGE.min,
+      max: HINGE.max,
+      step: HINGE.step,
+      value: hingeAngleOf(part),
+      defaultValue: HINGE.default,
+      low: t.angleLow,
+      high: t.angleHigh,
+      hint: t.angleHint,
+      format: (steps) => t.angleValue(steps * HINGE.angleStep),
+      onCommit: (value) => this.handlers.onAngle(part, value),
+    });
+  }
+
   /** Weight slider (blocks only), with a shortcut to give the same weight to every block welded to this one. */
   private weightSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasWeight) return [];
@@ -481,6 +538,8 @@ export class PartInspector {
     high: string;
     hint: string;
     onCommit(value: number): void;
+    /** How the value is written beside the slider (default: the number). */
+    format?(value: number): string;
     /** Optional button below the slider that applies the current value to the related parts (see `Grid.setWeight` / `setTire`). */
     applyAll?: { label: string; run(): void };
   }): HTMLElement[] {
@@ -492,12 +551,13 @@ export class PartInspector {
     slider.step = String(o.step);
     slider.value = String(o.value);
     slider.setAttribute('aria-label', o.heading);
-    const readout = text('span', 'slider-value', String(o.value));
+    const show = (value: number) => (o.format ? o.format(value) : String(value));
+    const readout = text('span', 'slider-value', show(o.value));
     // The yellow part of the track (see the sliders in main.css).
     const fill = () => slider.style.setProperty('--fill', String((Number(slider.value) - o.min) / (o.max - o.min)));
     fill();
     slider.oninput = () => {
-      readout.textContent = slider.value;
+      readout.textContent = show(Number(slider.value));
       fill();
     };
     slider.onchange = () => o.onCommit(Number(slider.value));
@@ -535,7 +595,10 @@ export class PartInspector {
     } else if (part.face) {
       const host = this.grid.hostOf(part);
       rows.push([TEXT.inspector.mountedOn, host ? `${PART_INFO[host.type].name} at ${coords(host.cell)}` : '-']);
-      if (part.type === 'piston') {
+      if (part.type === 'hinge') {
+        rows.push([TEXT.inspector.angle, TEXT.inspector.angleValue(hingeDegrees(part))]);
+        rows.push([TEXT.inspector.servoStrength, String(hingeStrengthOf(part))]);
+      } else if (part.type === 'piston') {
         rows.push([TEXT.inspector.stroke, TEXT.inspector.strokeValue(strokeOf(part))]);
       } else if (part.type === 'rotor') {
         rows.push([TEXT.inspector.speed, TEXT.inspector.speedValue(rotorSpeedOf(part))]);
@@ -547,6 +610,10 @@ export class PartInspector {
         rows.push([TEXT.inspector.front, TEXT.inspector.frontValue(frontOf(part))]);
         rows.push([TEXT.inspector.thrust, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyThrusters, String(this.grid.thrustersOnBody(part.cell).length)]);
+      } else if (part.type === 'propeller') {
+        rows.push([TEXT.inspector.front, TEXT.inspector.frontAnyValue(frontOf(part))]);
+        rows.push([TEXT.inspector.thrust, String(powerOf(part))]);
+        rows.push([TEXT.inspector.bodyPropellers, String(this.grid.propellersOnBody(part.cell).length)]);
       } else if (part.type === 'turbo') {
         rows.push([TEXT.inspector.boost, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyTurbos, String(this.grid.turbosOnBody(part.cell).length)]);

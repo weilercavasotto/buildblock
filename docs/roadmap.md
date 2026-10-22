@@ -4,12 +4,12 @@
 
 - Wheels can only be mounted on the **side** faces of blocks; the car steers by differential drive (no steering axle).
 - Only the wheels parallel to the majority axle are driven; every driven wheel gets the same torque.
-- Wheels, engines, turbos, thrusters, rotors and pistons are mounted on blocks (not on plates or brackets); no joint can bend to an angle yet (hinge) and nothing is aerodynamic (no lift).
+- Wheels, engines, turbos, thrusters, rotors, pistons and hinges are mounted on blocks (not on plates or brackets); the hinge swings its head like a lid on a pin along one edge (no free joints that bend in both directions) and only the wings are aerodynamic (no fuselage or tail model, no wind).
 - No export/import of saves and no rename of existing saves; the undo history is per session (not saved).
 - Blocks have no joints that can break; a structure never falls apart.
 - Scenery in Play mode is fixed (ramps, a kicker, walls, pillars and whoops built from catalog parts: `SCENERY_PARTS`). Every part of a creation is a body that can be pushed: there is no part fixed to the ground.
 - **Nothing moves without keys the player assigns** (a rule of the game): engines, wheels, rotors, pistons, thrusters and turbos have actions with player-chosen keys, and there are no fixed driving keys.
-- **No in-air attitude control.** It used to exist (W / S pitch, A / D roll, Q / E yaw while no wheel or block touched the ground) and was removed when the keys stopped being fixed. It is to come back with the propellers and wings, as actions of those parts (e.g. elevators / ailerons / rudder on the wings, a propeller's pitch), not as fixed keys. **To recover the old code: it is in git at commit `70596ad` (the last commit that still has it; the commit that removed it is the next one, "Assignable actions per part...")**: `git show 70596ad:src/play/physics-world.ts` (`fly`, `buildFlight`, `noses`), `git show 70596ad:src/constants/physics.ts` (`FLIGHT`), `git show 70596ad:src/play/vehicle-controller.ts` (`pilot`), and the *Flying* section of `git show 70596ad:docs/getting-started.md`.
+- **In-air attitude control is the wings' control surfaces**: the old fixed pitch / roll / yaw keys (W / S, A / D, Q / E, removed when the keys became assignable; the code is in git at commit `70596ad`) were replaced by the optional *Pitch*, *Roll* and *Yaw* actions of every wing, which the player gives keys to; each wing moves its surface the way that turns the plane as asked from where it is. There is no autopilot, trim or stability assist: a badly balanced plane tips or stalls.
 
 ## Ideas
 
@@ -36,8 +36,8 @@ Chosen from the brainstorm (the numbers are the ones of that list); **not starte
 
 | # | Part | Effort | Notes |
 |---|---|---|---|
-| 1 | **Hinge with servo** | medium | Turns to an angle and stops (a key toggles it, or an angle in the inspector). Reuses the head with studs and the joint of the rotor. |
-| 3 | **Propeller and wings with lift** | large | The propeller pushes the air by its rotation; the thin wedge plates become wings with lift that grows with speed (aeroplanes, helicopters). The part that touches the physics most. **Also brings back the in-air attitude control** (pitch / roll / yaw) that was removed when the keys became assignable: as player-keyed actions of these parts (control surfaces), never as fixed keys. |
+| 1 | ~~**Hinge with servo**~~ | done | Swings open like a lid to an angle (inspector) on a key press and closes on the next. Built on the head with studs and the joint of the rotor / piston. |
+| 3 | ~~**Propeller and wings with lift**~~ | done | The **Propeller** (a motor with blades, switched on / off by a key, thrust that fades with air speed) and the **Wings** (left and right swept plates, 4x3 and 8x6: lift and drag from the air at each wing, control surfaces with pitch / roll / yaw keys, helicopter blades on a rotor). See the *Propeller and wings* section of getting-started.md. |
 | 4 | **Spring / damper** | medium | An elastic part between two bodies, like the wheels' suspension but placed anywhere. |
 | 5 | **Parachute and air brake** | low | A key opens it and it slows the fall or the speed (a force against the velocity). |
 | 6 | **Detachable stage** | medium | An explosive bolt that drops a part of the body on a key (two-stage rockets). |
@@ -65,9 +65,9 @@ Left out for now: 1 (an anchor block fixed to the ground).
 
 1. Ballast, tiles, glass and headlights (no physics change).
 2. Wheels of other sizes, skids and the parachute.
-3. Hinge, then the spring and the detachable stage (same base: a body joined to a block by a joint).
+3. The spring and the detachable stage (the hinge is done) (same base: a body joined to a block by a joint).
 4. Seat and driver.
 5. Round parts, corner slopes, arches and plates with a hole (shapes that are not boxes).
-6. Propeller and wings with lift.
+6. ~~Propeller and wings with lift~~ (done).
 
 Every new part follows [adding-a-part.md](adding-a-part.md) (and the rules of `AGENTS.md`: tokens in `constants/`, `help-content.ts`, `PART_ACTIONS` when it takes keys, a sound recipe if it should make one).

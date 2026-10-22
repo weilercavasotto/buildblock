@@ -60,5 +60,7 @@ export const MOVE_ICONS = {
   forward: '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
   back: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
   up: '<path d="M5 3h14"/><path d="m18 13-6-6-6 6"/><path d="M12 7v14"/>',
+  /** The selection to the floor: an arrow into two ground lines. */
+  ground: '<path d="M4 20h16"/><path d="M4 16h16"/><path d="M12 3v9"/><path d="m8 9 4 4 4-4"/>',
   down: '<path d="M5 21h14"/><path d="m6 11 6 6 6-6"/><path d="M12 17V3"/>',
 } as const;

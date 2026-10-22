@@ -7,7 +7,7 @@ import { BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, hexToNumb
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isHostType, isStructural, isWheelType, partCentre, roundCoord } from '../types';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isHostType, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -368,6 +368,21 @@ export class BuildMode {
     this.history.run(() => void this.moveSelection(step as Vec3));
   }
 
+  /**
+   * Moves the selection down until its lowest part (the wheels and other parts mounted on its blocks included) rests on the floor: one undo
+   * step, and nothing moves when it is already there or something is in the way.
+   */
+  moveSelectionToGround(): void {
+    let lowest = Infinity;
+    for (const part of this.selection) {
+      const current = this.grid.get(part.cell);
+      if (!current) continue;
+      for (const p of [current, ...(isHostType(current.type) ? this.grid.mountedOn(current.cell) : [])]) lowest = Math.min(lowest, partBox(p).min[1]);
+    }
+    if (!Number.isFinite(lowest) || lowest - GROUND_Y < EPS) return;
+    this.history.run(() => void this.moveSelection([0, roundCoord(GROUND_Y - lowest), 0]));
+  }
+
   /** Slides the selection after the pointer while a move drag is on, as far as the parts can go (each axis on its own when both together are blocked). */
   private dragSelection(e: PointerLike): void {
     const drag = this.dragMove;
@@ -588,7 +603,8 @@ export class BuildMode {
       }
     }
     // Beside a part with its studs up: level with the bottom of the part it is next to.
-    if (axis !== 1 && turn.studs[1] === 1) cell[1] = target.min[1] - low;
+    // (A wing, held by its root edge, goes where the pointer is instead, at any height of the face.)
+    if (axis !== 1 && turn.studs[1] === 1 && !isWing(type)) cell[1] = target.min[1] - low;
     return shape(cell);
   }
 

@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, HEADED_PARTS, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, Vec3, axleOf, isCompactMounted, isHexColor, isStructural, isWheelType, orientationOfPart, partCentre } from '../types';
+import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { Part, PartType, Vec3, axleOf, frontOf, isCompactMounted, isHexColor, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
+import { createPropellerModel, propellerHousing } from './propeller-model';
 import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
 import { partBox } from './part-geometry';
@@ -40,6 +41,45 @@ const wedgeGeo = (() => {
   return geometry;
 })();
 const wedgeEdgeGeo = new THREE.EdgesGeometry(wedgeGeo, 20);
+/**
+ * A flat shape with a convex outline (`ShapeBox.polygon`, x and z in cells) of the given thickness, centred on the origin: the top and the
+ * bottom are fans, the sides quads. In real size (not scaled), cached by outline.
+ */
+const polygonCache = new Map<string, { geometry: THREE.BufferGeometry; edges: THREE.BufferGeometry }>();
+function polygonGeometry(polygon: ReadonlyArray<readonly [number, number]>, thickness: number): { geometry: THREE.BufferGeometry; edges: THREE.BufferGeometry } {
+  const key = `${polygon.join(';')}|${thickness}`;
+  let made = polygonCache.get(key);
+  if (!made) {
+    const h = thickness / 2;
+    const centre = polygon.reduce(([cx, cz], [x, z]) => [cx + x / polygon.length, cz + z / polygon.length], [0, 0]);
+    const positions: number[] = [];
+    const at = ([x, z]: readonly [number, number], y: number): THREE.Vector3 => new THREE.Vector3(x, y, z);
+    // A triangle whose front (counter-clockwise) side faces `outward`, whichever way the outline runs.
+    const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, outward: THREE.Vector3) => {
+      const normal = b.clone().sub(a).cross(c.clone().sub(a));
+      positions.push(...a.toArray(), ...(normal.dot(outward) < 0 ? [...c.toArray(), ...b.toArray()] : [...b.toArray(), ...c.toArray()]));
+    };
+    const up = new THREE.Vector3(0, 1, 0);
+    const down = new THREE.Vector3(0, -1, 0);
+    for (let i = 1; i < polygon.length - 1; i++) {
+      tri(at(polygon[0], h), at(polygon[i], h), at(polygon[i + 1], h), up);
+      tri(at(polygon[0], -h), at(polygon[i], -h), at(polygon[i + 1], -h), down);
+    }
+    for (let i = 0; i < polygon.length; i++) {
+      const a = polygon[i];
+      const b = polygon[(i + 1) % polygon.length];
+      const outward = new THREE.Vector3((a[0] + b[0]) / 2 - centre[0], 0, (a[1] + b[1]) / 2 - centre[1]);
+      tri(at(a, -h), at(b, -h), at(b, h), outward);
+      tri(at(a, -h), at(b, h), at(a, h), outward);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.computeVertexNormals();
+    made = { geometry, edges: new THREE.EdgesGeometry(geometry, 20) };
+    polygonCache.set(key, made);
+  }
+  return made;
+}
 // The connectors: round studs on a face, `STUD.pitch` apart, merged into one mesh per box (one draw call). They are built for
 // the top of a box (a grid of `across` x `along` studs around its centre, pointing up) and cached by that size.
 const studsCache = new Map<string, THREE.BufferGeometry>();
@@ -94,10 +134,12 @@ const blockMat = new THREE.MeshStandardMaterial({
   polygonOffsetFactor: 1,
   polygonOffsetUnits: 1,
 });
+/** The default material of a wing. */
+const wingMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.wing), roughness: ROUGHNESS.block, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const key = paint.toLowerCase();
   let pair = paintCache.get(key);
   if (!pair) {
@@ -324,8 +366,59 @@ export function createPistonRod(): THREE.Mesh {
   return rod;
 }
 
+const hingeBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hinge), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
+const hingePinMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hingePin), roughness: ROUGHNESS.rim * 0.6, metalness: METALNESS.rim });
+const hingeHeadMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hingeHead), roughness: ROUGHNESS.block, metalness: METALNESS.rim * 0.5 });
+
+/**
+ * The base of a hinge in its own frame (axis +Y, centred on the base, the block at the bottom, the pin along x at the back edge, -z):
+ * a flat plate and the pin, tangent to its top, that the head swings round.
+ */
+function hingeBaseGroup(): THREE.Group {
+  const V = HINGE_VISUAL;
+  const group = new THREE.Group();
+  const width = HINGE_BODY.width - 2 * V.baseInset;
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(width, V.baseDepth, width), hingeBaseMat);
+  plate.castShadow = plate.receiveShadow = true;
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(V.pinRadius, V.pinRadius, HINGE_BODY.width - 2 * V.pinInset, V.segments).rotateZ(Math.PI / 2), hingePinMat);
+  pin.position.set(0, V.baseDepth / 2 - V.pinRadius, -HINGE_BODY.width / 2 + V.pinRadius);
+  pin.castShadow = true;
+  group.add(plate, pin);
+  return group;
+}
+
+/** The head of a hinge in its own frame (axis +Y, centred on the head): a thin teal plate with the 2 x 2 studs on top, or painted. */
+function hingeHeadGroup(paint?: string): THREE.Group {
+  const material = isHexColor(paint) ? blockMaterials(paint).face : hingeHeadMat;
+  const group = new THREE.Group();
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(HINGE_BODY.width, HINGE_VISUAL.headDepth, HINGE_BODY.width), material);
+  plate.castShadow = plate.receiveShadow = true;
+  group.add(plate, studsMesh(material, [HINGE_BODY.width, HINGE_VISUAL.headDepth, HINGE_BODY.width], [0, 1, 0]));
+  return group;
+}
+
+/**
+ * Where the head of a placed hinge turns: the point on its pin (at the back edge, `-front`, tangent to the top of the base) and the axis
+ * (along the pin, signed so that a positive angle lifts the head's front away from the block), both in the world. The pin is along the
+ * part's local x and the front is its local z, whatever way it is turned.
+ */
+export function hingePivot(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): { point: Vec3; axis: Vec3 } {
+  const centre = partCentre(part);
+  const face = part.face ?? [0, 1, 0];
+  const { baseDepth, headDepth } = HEADED_PARTS.hinge;
+  const interface_ = (baseDepth - headDepth) / 2; // where the base meets the head, from the centre of the part, along the face
+  const lift = interface_ - HINGE_VISUAL.pinRadius;
+  const back = HINGE_BODY.width / 2 - HINGE_VISUAL.pinRadius;
+  const front = frontOf(part);
+  const axle = axleOf(part);
+  return {
+    point: [0, 1, 2].map((i) => centre[i] + face[i] * lift - front[i] * back) as Vec3,
+    axis: axle.map((v) => (v === 0 ? 0 : -v)) as Vec3,
+  };
+}
+
 /** Where, along its axis, the centres of the base and of the head are from the centre of a rotor or a piston (cells; the head is on the +Y side). */
-const headedOffsets = (type: 'rotor' | 'piston'): { base: number; head: number } => {
+const headedOffsets = (type: 'rotor' | 'piston' | 'hinge'): { base: number; head: number } => {
   const { baseDepth, headDepth } = HEADED_PARTS[type];
   const depth = baseDepth + headDepth;
   return { base: -(depth - baseDepth) / 2, head: (depth - headDepth) / 2 };
@@ -335,7 +428,7 @@ const headedOffsets = (type: 'rotor' | 'piston'): { base: number; head: number }
 export function headedCentres(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): { base: Vec3; head: Vec3 } {
   const centre = partCentre(part);
   const face = part.face ?? [0, 1, 0];
-  const offsets = headedOffsets(part.type as 'rotor' | 'piston');
+  const offsets = headedOffsets(part.type as 'rotor' | 'piston' | 'hinge');
   const at = (offset: number): Vec3 => [centre[0] + face[0] * offset, centre[1] + face[1] * offset, centre[2] + face[2] * offset];
   return { base: at(offsets.base), head: at(offsets.head) };
 }
@@ -344,7 +437,7 @@ export function headedCentres(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs
 export function createHeadedBaseObject(part: Pick<Part, 'type' | 'studs' | 'spin'>): THREE.Group {
   const holder = new THREE.Group();
   holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-  holder.add(part.type === 'piston' ? pistonBaseGroup() : rotorBaseGroup());
+  holder.add(part.type === 'piston' ? pistonBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup());
   return holder;
 }
 
@@ -352,7 +445,7 @@ export function createHeadedBaseObject(part: Pick<Part, 'type' | 'studs' | 'spin
 export function createHeadedHeadObject(part: Pick<Part, 'type' | 'studs' | 'spin' | 'color'>): THREE.Group {
   const holder = new THREE.Group();
   holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-  holder.add(part.type === 'piston' ? pistonHeadGroup(part.color) : rotorHeadGroup(part.color));
+  holder.add(part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color));
   return holder;
 }
 
@@ -372,29 +465,33 @@ export function createPartObject(
     for (const box of SHAPES[part.type].boxes) {
       const group = new THREE.Group();
       group.position.set(...box.offset);
-      const mesh = new THREE.Mesh(box.wedge ? wedgeGeo : blockGeo, mats.face);
+      const flatShape = box.polygon ? polygonGeometry(box.polygon, box.size[1]) : null;
+      const mesh = new THREE.Mesh(flatShape ? flatShape.geometry : box.wedge ? wedgeGeo : blockGeo, mats.face);
       mesh.castShadow = mesh.receiveShadow = true;
-      mesh.scale.set(...box.size);
+      if (!flatShape) mesh.scale.set(...box.size);
       group.add(mesh);
-      const edges = new THREE.LineSegments(box.wedge ? wedgeEdgeGeo : edgeGeo, mats.edge);
+      const edges = new THREE.LineSegments(flatShape ? flatShape.edges : box.wedge ? wedgeEdgeGeo : edgeGeo, mats.edge);
       Object.assign(edges, noRaycast);
-      edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
+      if (!flatShape) edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
       group.add(edges);
       if (!box.wedge) group.add(studsMesh(mats.face, box.size, box.studs)); // a slope has no studs on it, only sockets underneath
-      group.add(socketsMesh(box.size, box.studs));
+      if (!box.polygon) group.add(socketsMesh(box.size, box.studs)); // the sockets of a swept wing would stick out of its outline: not drawn
       root.add(group);
     }
-  } else if (part.type === 'rotor' || part.type === 'piston') {
-    // The rotor / piston in its own frame: the base against the block (-y) and the head with its studs on the outside (+y).
+  } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge') {
+    // The rotor / piston / hinge in its own frame: the base against the block (-y) and the head with its studs on the outside (+y).
     const offsets = headedOffsets(part.type);
-    const base = part.type === 'piston' ? pistonBaseGroup() : rotorBaseGroup();
+    const base = part.type === 'piston' ? pistonBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup();
     base.position.y = offsets.base;
-    const head = part.type === 'piston' ? pistonHeadGroup(part.color) : rotorHeadGroup(part.color);
+    const head = part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color);
     head.position.y = offsets.head;
     root.add(base, head);
   } else if (part.type === 'thruster') {
     // The thruster in its own frame: the jet along z, the bell at the back.
     root.add(createThrusterModel(blockMaterials(part.color, 'thruster').face));
+  } else if (part.type === 'propeller') {
+    // The propeller in its own frame: the motor at the back, the blades in front (+z, the way it pushes).
+    root.add(createPropellerModel(blockMaterials(part.color, 'propeller').face));
   } else if (part.type === 'turbo') {
     // The turbo in its own frame: the bottle along z, the nozzle at the back.
     root.add(createTurboModel(blockMaterials(part.color, 'turbo').face));
