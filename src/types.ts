@@ -34,7 +34,7 @@ export const STRUCTURAL_TYPES = [
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /** Every kind of part in the catalog. */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge' | 'spring';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -56,10 +56,10 @@ export const isMountHost = (type: PartType): boolean => isHostType(type) || isFl
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
 
 /** The parts with a compact body against their host block (`MOUNTED_BODY`): the engine, the turbo, the thruster and the rotor. */
-export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge' | 'spring' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
+export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
 
 /** The wings: thin flat plates with studs, the only aerodynamic parts (lift and drag from the air they move through, see `WING`). */
 export const WING_TYPES = ['wing', 'wingLarge'] as const;

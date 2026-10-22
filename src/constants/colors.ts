@@ -115,6 +115,11 @@ export const COLORS = {
     propeller: '#7b858f',
     propellerSpinner: '#c3ccd6',
     propellerBlade: '#c98a4b',
+    /** The parachute: a steel pack with a dark cap; its canopy is red unless painted, with pale lines. */
+    parachute: '#7b858f',
+    parachuteCap: '#2c323a',
+    parachuteCanopy: '#e5484d',
+    parachuteLine: '#e9edf2',
     /** The wings: a pale grey plate unless painted. */
     wing: '#d9dee5',
     tire: '#23262d',

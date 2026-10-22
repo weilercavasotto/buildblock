@@ -13,6 +13,7 @@ import {
   HINGE_VISUAL,
   PISTON,
   PISTON_VISUAL,
+  PARACHUTE,
   PROPELLER,
   ROTOR,
   ROTOR_VISUAL,
@@ -51,6 +52,7 @@ import {
 import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, createSpringCoil, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
 import { matrixOf, orientationOfPart } from '../parts/orientation';
 import { PROPELLER_BLADES } from '../parts/propeller-model';
+import { PARACHUTE_CANOPY } from '../parts/parachute-model';
 import { partBox, relativeBoxes, studsEngaged, wedgePoints } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
 import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isStructural, isWheelType, isWing, partCentre, subVec } from '../types';
@@ -69,6 +71,8 @@ export interface AudioState {
   thrusters: number;
   /** How fast each propeller's blades turn, 0 (stopped) to 1 (full speed). */
   propellers: number[];
+  /** How far open each parachute is, 0 (folded) to 1 (open). */
+  parachutes: number[];
   turbos: number;
   /** False for an old save, where every wheel is driven without engines. */
   engineDrive: boolean;
@@ -140,6 +144,8 @@ export class PhysicsWorld {
   private thrusters: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number }> = [];
   /** The propellers: the body each pushes, where (in the body's frame), along which direction, with what static force, how fast the blades turn now (0-1) and the blades to spin. */
   private propellers: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number; spin: number; blades: THREE.Object3D | null }> = [];
+  /** The parachutes: the body each drags, where (in the body's frame), its canopy size (1 = default), how far open it is now (0-1) and the canopy to scale. */
+  private parachutes: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; size: number; open: number; canopy: THREE.Object3D | null; object: THREE.Object3D; time: number }> = [];
   /** The wings: the body each is on, where and how it is turned (in the body's frame), its area (cells²), the flap now (-1..1) and the visual to tilt with it. */
   private wings: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; up: Vec3; front: Vec3; area: number; lift: 1 | -1; flap: number; object: THREE.Object3D; rest: THREE.Quaternion; pitch: number; roll: number; yaw: number }> = [];
   /** The engines: the body each is mounted on, where (in the body's frame), where it faces and its power (see `ENGINE.leverage`). */
@@ -181,12 +187,13 @@ export class PhysicsWorld {
     const q = new THREE.Quaternion();
     // A force applied at a point also adds a torque, and Rapier keeps both until they are reset: clear both, or the torque of a
     // thruster that is off the centre would go on spinning the body after the key is released.
-    for (const body of new Set([...this.thrusters, ...this.pushers, ...this.propellers, ...this.wings].map((t) => t.body))) {
+    for (const body of new Set([...this.thrusters, ...this.pushers, ...this.propellers, ...this.parachutes, ...this.wings].map((t) => t.body))) {
       body.resetForces(true);
       body.resetTorques(true);
     }
     this.applyEngines(q);
     this.applyPropellers(q, dt);
+    this.applyParachutes(q, dt);
     this.applyWings(q, dt);
     for (const t of this.thrusters) {
       if (!this.isOn(t.part, 'run')) continue;
@@ -229,6 +236,51 @@ export class PhysicsWorld {
       const push = p.thrust * p.spin * Math.max(0, 1 - Math.max(0, velocity.dot(direction)) / PROPELLER.maxAirSpeed);
       p.body.addForceAtPoint({ x: direction.x * push, y: direction.y * push, z: direction.z * push }, { x: at.x, y: at.y, z: at.z }, true);
     }
+  }
+
+  /**
+   * The parachutes (see `PARACHUTE`): the canopy opens while the part is switched on and folds when it is not; while it is open it drags
+   * its body, at the place where it is mounted, against the velocity there, never by more than it takes to stop that body in one step.
+   */
+  private applyParachutes(q: THREE.Quaternion, dt: number): void {
+    for (const c of this.parachutes) {
+      const goal = this.isOn(c.part, 'run') ? 1 : 0;
+      c.open += Math.max(-dt / PARACHUTE.openTime, Math.min(dt / PARACHUTE.openTime, goal - c.open));
+      const { at, velocity } = this.pointOf(c.body, q, c.point);
+      if (c.canopy) this.animateCanopy(c, q, velocity, dt);
+      if (c.open <= 0) continue;
+      const speed = velocity.length();
+      if (speed < 0.05) continue;
+      const wanted = PARACHUTE.drag * c.size * c.open * Math.min(speed, PARACHUTE.maxSpeed) ** 2;
+      const push = Math.min(wanted, (PARACHUTE.stopFraction * c.body.mass() * speed) / dt);
+      const force = velocity.multiplyScalar(-push / speed);
+      c.body.addForceAtPoint({ x: force.x, y: force.y, z: force.z }, { x: at.x, y: at.y, z: at.z }, true);
+    }
+  }
+
+  /**
+   * The look of an open canopy (`PARACHUTE.billow*`, `PARACHUTE.sway*`): it swells and shrinks a little as the wind fills it, sways about, and
+   * trails behind the movement of its body (turning slowly towards where the air comes from, more the faster it moves) instead of staying rigid.
+   */
+  private animateCanopy(c: { open: number; canopy: THREE.Object3D | null; object: THREE.Object3D; time: number }, q: THREE.Quaternion, velocity: THREE.Vector3, dt: number): void {
+    const canopy = c.canopy!;
+    canopy.visible = c.open > 0.01;
+    const speed = velocity.length();
+    const wind = Math.min(1, speed / PARACHUTE.windSpeed);
+    c.time += dt * (1 + wind * 2);
+    const t = c.time;
+    const billow = Math.sin(t * PARACHUTE.billowRate) * PARACHUTE.billow * (0.4 + wind);
+    const open = Math.max(0.01, c.open);
+    canopy.scale.set(open * (1 + billow), open * (1 + billow * 0.7), open * (1 - billow * 0.8));
+    // Towards where the air comes from (against the velocity), in the frame of the part, eased in with the speed.
+    const target = new THREE.Quaternion();
+    if (speed > 0.5) {
+      const local = velocity.clone().multiplyScalar(-1 / speed).applyQuaternion(q.clone().invert()).applyQuaternion(c.object.quaternion.clone().invert());
+      target.setFromUnitVectors(new THREE.Vector3(0, 0, 1), local);
+      target.slerp(new THREE.Quaternion(), 1 - wind);
+    }
+    const sway = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(t * PARACHUTE.swayRate) * PARACHUTE.sway * wind, Math.cos(t * PARACHUTE.swayRate * 0.8) * PARACHUTE.sway * wind, 0));
+    canopy.quaternion.slerp(target.multiply(sway), 1 - Math.exp(-PARACHUTE.follow * dt));
   }
 
   /**
@@ -374,6 +426,7 @@ export class PhysicsWorld {
       engines: this.engineFx.length,
       thrusters: this.thrusterFx.length,
       propellers: this.propellers.map((p) => p.spin),
+      parachutes: this.parachutes.map((c) => c.open),
       turbos: this.turboFx.length,
       engineDrive: this.engineDrive,
       rotors: this.rotors.map((r) => {
@@ -757,7 +810,7 @@ export class PhysicsWorld {
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
           .setTranslation(...local)
-          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : engine.type === 'propeller' ? PROPELLER.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
+          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : engine.type === 'propeller' ? PROPELLER.mass : engine.type === 'parachute' ? PARACHUTE.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -772,6 +825,10 @@ export class PhysicsWorld {
       }
       if (engine.type === 'propeller') {
         this.propellers.push({ part: engine, body: host.body, point: local, direction: frontOf(engine), thrust: (PROPELLER.thrust * powerOf(engine)) / ENGINE.default, spin: 0, blades: obj.getObjectByName(PROPELLER_BLADES) ?? null });
+        continue;
+      }
+      if (engine.type === 'parachute') {
+        this.parachutes.push({ part: engine, body: host.body, point: local, size: powerOf(engine) / ENGINE.default, open: 0, canopy: obj.getObjectByName(PARACHUTE_CANOPY) ?? null, object: obj, time: Math.random() * 10 });
         continue;
       }
       if (engine.type === 'turbo') {

@@ -193,6 +193,10 @@ bounce anything); a part you **remove** (right click, remove mode, the inspector
 
 The **Thruster** (catalog, *Mobility*) is a small jet (a steel tube with an intake on the front, a flared dark bell nozzle and a glowing orange ring at the back) that you **mount on a face of a block**, like the engine, without taking the place of a block. Turn it freely (`A` / `D`, `W` / `S`): it pushes towards its **front** and the flame leaves the bell at the back. In Play, **holding its key** (see *Part keys*) every thruster pushes the **body it is mounted on** with a force along its front, applied **where it is mounted**, so one away from the centre of the body also turns it. It works on the ground or in the air, with or without an engine, and the wheels do not matter. A symmetric vehicle goes straight: while you do not steer (`A` / `D`) an upright vehicle holds its heading (a small driving assist; strong collisions, flips and steering switch it off), and an air drag above 10 m/s limits the top speed of a thruster car. The inspector has a **Thrust** slider (1-10, default 5, plus "apply to all the thrusters on this body"); the thrusts of a body's thrusters add up. One default thruster has a force of 100, enough to just lift a light 2 × 2 body (about 90 with the world's gravity); four of them lift it fast. A thruster weighs half a block. The flame is orange, bigger than the turbo's.
 
+### Parachute and air brake
+
+The **Parachute** (catalog, *Mobility*) is a steel pack with a folded red canopy that you **mount on a face of a block**, like the propeller, turned (`A` / `D`, `W` / `S`) so that its front, the side the canopy opens towards, does not point into the block. Give it a key in the inspector: each press opens the canopy (about 0.35 s) or folds it again. While it is open it drags the body against its velocity, harder the faster the body goes (the square of the speed): in the air it slows a fall to a steady speed, on the ground it works as an air brake that stops a fast car or a landing plane. The **Canopy** slider (1-10, default 5) sets its size; the drags of all the parachutes on a body add up and one away from the centre also turns the body. Paint takes the pack and, once painted, the canopy. Once open, the canopy swells and sways a little as if the wind filled it and trails towards where the air comes from; opening and folding make a short sound.
+
 ### Propeller and wings
 
 The **Propeller** (catalog, *Mobility*) is a motor with spinning blades (a steel housing, a light spinner and two wooden blades; paint takes the housing and, once painted, the blades) that you **mount on a face of a block**, like the thruster, without taking the place of a block. Turn it (`A` / `D`, `W` / `S`) so the blades, its **front**, face the way it should pull; the front may not point into its block (the ghost turns red). Give it a key (*Propellers on / off*, a press switches it): while it is on the blades spin up in about a second and it pushes the body it is mounted on along its front, from where it is mounted (so one off the centre also turns the body). Like a real propeller it pushes hardest standing still and **less the faster the air already moves along its front**, falling to nothing at 45 m/s, which is the top speed of a plane it pulls. The inspector has a **Thrust** slider (1-10, default 5, plus "apply to all the propellers on this body"); one default propeller has a static thrust of 110, and the thrusts of a body's propellers add up. A propeller weighs 0.6 block.
@@ -306,6 +310,7 @@ bottom) and click. The face you click defines the wheel's axle.
 | **Piston** | *Pistons out / back* (press) |
 | **Thruster** | *Thrust* (held) |
 | **Propeller** | *Propellers on / off* (press) |
+| **Parachute** | *Parachutes open / closed* (press) |
 | **Wing** (4x3 and 8x6) | *Pitch up / down*, *Roll left / right*, *Yaw left / right* (held, all optional): each wing moves its control surface the way that turns the plane that way from where it is |
 | **Turbo** | *Turbo boost* (held) |
 
@@ -325,7 +330,7 @@ The vehicle moves only with the keys you gave to its parts (see *Part keys* abov
 | Key | Action |
 |---|---|
 | `R` | Restart the simulation from the build (also the **Reset** button, left of Stop in the top bar) |
-| *your keys* | The keys you gave to the **Engines** (accelerate / reverse), **Wheels** (steer, brake), **Rotors**, **Pistons**, **Propellers**, **Wings** (pitch / roll / yaw), **Thrusters** and **Turbos** (see *Part keys*): held actions work while the key is down, rotors and pistons switch on / out and off / back with each press. Nothing moves without keys: `W` `A` `S` `D` and the arrows have no fixed meaning |
+| *your keys* | The keys you gave to the **Engines** (accelerate / reverse), **Wheels** (steer, brake), **Rotors**, **Pistons**, **Propellers**, **Parachutes** (open / close), **Wings** (pitch / roll / yaw), **Thrusters** and **Turbos** (see *Part keys*): held actions work while the key is down, rotors and pistons switch on / out and off / back with each press. Nothing moves without keys: `W` `A` `S` `D` and the arrows have no fixed meaning |
 | `P` / `Esc` | Stop and return to build mode (the same as **Stop**); `P` in build mode starts Play (an open dialog takes the `Esc` first) |
 | **Stop** | Return to build mode; the build is untouched |
 

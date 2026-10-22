@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PARACHUTE, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partBoxes, partsOverlap, studsEngaged } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, isMountHost, canHost, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -64,8 +64,8 @@ export class Grid {
       if (part.type === 'engine') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
         if (studsOf(part)[1] === -1) return false;
-      } else if (part.type === 'propeller') {
-        if (frontOf(part).every((v, i) => v === -part.face![i])) return false; // its blades would be inside the block
+      } else if (part.type === 'propeller' || part.type === 'parachute') {
+        if (frontOf(part).every((v, i) => v === -part.face![i])) return false; // its blades (or canopy) would be inside the block
       } else if (isHeaded(part.type)) {
         if (studsOf(part).some((v, i) => v !== part.face![i])) return false; // the head (its studs, local up) must point away from the block: the part is never turned for the player
       } else if (part.type !== 'turbo' && part.type !== 'thruster' && part.face[1] !== 0) {
@@ -320,6 +320,11 @@ export class Grid {
     return this.mountedOfTypeOnBody(cell, 'propeller');
   }
 
+  /** The parachutes mounted on the same rigid body as the block or parachute at `cell` (the parachute itself included); [] when there is none. */
+  parachutesOnBody(cell: Vec3): Part[] {
+    return this.mountedOfTypeOnBody(cell, 'parachute');
+  }
+
   /** The turbos mounted on the same rigid body as the block or turbo at `cell` (the turbo itself included); [] when there is none. */
   turbosOnBody(cell: Vec3): Part[] {
     return this.mountedOfTypeOnBody(cell, 'turbo');
@@ -445,7 +450,7 @@ export class Grid {
   connectedWeight(cell: Vec3): number {
     const blocks = this.connectedBlockParts(cell);
     if (blocks.length === 0) return 0;
-    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : m.type === 'propeller' ? PROPELLER.mass : 0), 0);
+    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : m.type === 'propeller' ? PROPELLER.mass : m.type === 'parachute' ? PARACHUTE.mass : 0), 0);
     const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + mountedMass * WEIGHT.default;
     return Math.round(sum * 10) / 10;
   }

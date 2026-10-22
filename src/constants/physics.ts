@@ -220,6 +220,29 @@ export const PROPELLER = {
 } as const;
 
 /**
+ * The parachute / air brake (`Part.power` as the size of its canopy, on the same 1-10 scale as the engine's): a part mounted on a face of a
+ * block whose key (a toggle) opens a canopy (in `openTime` s) or folds it again. While it is open it drags the body it is mounted on, at
+ * the place where it is mounted, against the velocity of the body there, `drag * canopy * speed^2` (a real canopy: quadratic in the speed, so
+ * it slows a fall to a steady speed and a car on the ground to a stop); `canopy` is `power / ENGINE.default`, so 10 is twice the default.
+ * `maxSpeed` caps the speed the formula sees. The force never exceeds what would stop that body in one step (`stopFraction` of it), so a
+ * strong canopy on a light body brakes it hard without reversing it. A parachute weighs `mass` blocks of the default weight.
+ */
+export const PARACHUTE = {
+  drag: 1.1,
+  openTime: 0.35,
+  maxSpeed: 70,
+  stopFraction: 0.9,
+  mass: 0.4,
+  /** Looks only: the canopy swells by `billow` (a fraction) at `billowRate` rad/s, sways by `sway` rad at `swayRate`, follows the air at `follow` per second, and all of it grows with the speed up to `windSpeed` m/s. */
+  billow: 0.07,
+  billowRate: 6,
+  sway: 0.09,
+  swayRate: 2.3,
+  follow: 4,
+  windSpeed: 8,
+} as const;
+
+/**
  * The wings (the thin wedge plates, `isWing`): each one is a surface that feels the air it moves through. From the velocity of the
  * body at the wing (turns included, so a spinning blade is a rotor blade) the lift and the drag of the plate are applied at its centre:
  * `lift * area * speed^2 * C` along its up (lift) and against its air velocity (drag), with the angle of attack `a` (between its chord,

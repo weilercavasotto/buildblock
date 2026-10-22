@@ -256,8 +256,34 @@ export const PROPELLER_VISUAL = {
   segments: 24,
 } as const;
 
+/**
+ * The parachute body: the pack against a face of a block, like the thruster's (`width` across the face, `depth` out of it), in cells.
+ * The canopy opens in front of it and is only drawn: it collides with nothing.
+ */
+export const PARACHUTE_BODY = {
+  width: 0.6,
+  depth: 0.6,
+} as const;
+
+/**
+ * The parachute model (`parts/parachute-model.ts`): a pack at the back (-z) and, in front of it (+z, where it opens), `lineCount` lines
+ * to a dome canopy, in its own frame. `restScale` is the size of the canopy while building (it is drawn folded away in Play until the
+ * key opens it). Lengths in cells.
+ */
+export const PARACHUTE_VISUAL = {
+  packRadius: 0.24,
+  packLength: 0.5,
+  capRadius: 0.17,
+  /** The canopy at full size: the radius of its rim, how far in front of the pack the rim is and how many lines hold it. */
+  canopyRadius: 1.2,
+  canopyDistance: 2,
+  lineCount: 8,
+  restScale: 0.4,
+  segments: 24,
+} as const;
+
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

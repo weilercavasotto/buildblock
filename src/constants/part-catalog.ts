@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { ENGINE_BODY, HINGE_BODY, PISTON_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { CHASSIS, ENGINE, HINGE, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, HINGE_BODY, PISTON_BODY, PARACHUTE_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { CHASSIS, ENGINE, HINGE, PARACHUTE, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -426,6 +426,37 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'A propeller away from the centre of the body also turns it: put pairs on both sides to push straight.',
     ],
   },
+  parachute: {
+    type: 'parachute',
+    name: 'Parachute',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: true,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: false,
+    tagline: 'Parachute and air brake: slows a fall or a run.',
+    description:
+      'A pack with a canopy that you mount on a face of a block, like the engine. Give it a key in the inspector: each press opens the canopy or folds it again. While it is open it drags the body it is mounted on against its velocity, from where it sits, harder the faster it goes: in the air it slows a fall to a steady, gentle speed, and on the ground it works as an air brake that stops a fast car or a landing plane. The drags of all the parachutes on a body add up.',
+    properties: [
+      { label: 'Size', value: `${PARACHUTE_BODY.width} × ${PARACHUTE_BODY.width} × ${PARACHUTE_BODY.depth} cells, against the block, with the canopy opening in front of it` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block. Its front may not point into the block' },
+      { label: 'Front', value: 'The side the canopy opens towards. A / D turn it, W / S tilt it, in every direction' },
+      { label: 'Canopy', value: 'Adjustable in the inspector (1-10, default 5): a bigger canopy drags more' },
+      { label: 'Control', value: 'A key chosen in the inspector opens and closes it' },
+      { label: 'Mass', value: `${PARACHUTE.mass} block of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the pack takes the colour (and the canopy, once painted)' },
+    ],
+    tips: [
+      'Mount it on the top of a body with its front pointing up, so the canopy opens above what it holds.',
+      'Mount one at the back of a car, pointing backwards, as a drag-racing brake.',
+      'A parachute away from the centre of the body also turns it: put pairs on both sides to brake straight.',
+    ],
+  },
   piston: {
     type: 'piston',
     name: 'Piston',
@@ -698,6 +729,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'engine',
   'thruster',
   'propeller',
+  'parachute',
   'wing',
   'wingLarge',
   'turbo',

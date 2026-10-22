@@ -76,6 +76,9 @@ export const SFX = {
   // Play
   thud: [tone('sine', 140, 45, 0.2, 0.8), noise('lowpass', 700, 200, 0.14, 0.5)],
   pistonStart: [noise('highpass', 3200, 1600, 0.32, 0.25)],
+  // A canopy opening: a soft whoomph of noise that swells and fades, and closing: a short flap.
+  chuteOpen: [noise('lowpass', 300, 1100, 0.35, 0.4, 0.8), noise('bandpass', 900, 500, 0.3, 0.2, 1, 0.1)],
+  chuteClose: [noise('lowpass', 900, 300, 0.18, 0.25, 0.8)],
   pistonEnd: [tone('sine', 95, 60, 0.16, 0.6), noise('lowpass', 520, 260, 0.09, 0.3)],
 } as const satisfies Record<string, ReadonlyArray<SfxLayer>>;
 export type SfxName = keyof typeof SFX;

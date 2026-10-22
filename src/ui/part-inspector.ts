@@ -416,21 +416,22 @@ export class PartInspector {
     if (!PART_INFO[part.type].hasPower) return [];
     const turbo = part.type === 'turbo';
     const propeller = part.type === 'propeller';
+    const chute = part.type === 'parachute';
     const thruster = part.type === 'thruster' || propeller;
     const engines = this.grid.mountedOfTypeOnBody(part.cell, part.type).length;
     const t = TEXT.inspector;
     return this.sliderSection({
-      heading: thruster ? t.thrust : turbo ? t.boost : t.power,
+      heading: chute ? t.chute : thruster ? t.thrust : turbo ? t.boost : t.power,
       min: ENGINE.min,
       max: ENGINE.max,
       step: ENGINE.step,
       value: powerOf(part),
       defaultValue: ENGINE.default,
-      low: thruster ? t.thrustLow : turbo ? t.boostLow : t.powerLow,
-      high: thruster ? t.thrustHigh : turbo ? t.boostHigh : t.powerHigh,
-      hint: propeller ? t.propellerHint : thruster ? t.thrustHint : turbo ? t.boostHint : t.powerHint,
+      low: chute ? t.chuteLow : thruster ? t.thrustLow : turbo ? t.boostLow : t.powerLow,
+      high: chute ? t.chuteHigh : thruster ? t.thrustHigh : turbo ? t.boostHigh : t.powerHigh,
+      hint: chute ? t.chuteHint : propeller ? t.propellerHint : thruster ? t.thrustHint : turbo ? t.boostHint : t.powerHint,
       onCommit: (value) => this.handlers.onPower(part, value, false),
-      applyAll: engines > 1 ? { label: propeller ? t.propellerApplyAll(engines) : thruster ? t.thrustApplyAll(engines) : turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
+      applyAll: engines > 1 ? { label: chute ? t.chuteApplyAll(engines) : propeller ? t.propellerApplyAll(engines) : thruster ? t.thrustApplyAll(engines) : turbo ? t.boostApplyAll(engines) : t.powerApplyAll(engines), run: () => this.handlers.onPower(part, powerOf(part), true) } : undefined,
     });
   }
 
@@ -639,6 +640,10 @@ export class PartInspector {
         rows.push([TEXT.inspector.front, TEXT.inspector.frontAnyValue(frontOf(part))]);
         rows.push([TEXT.inspector.thrust, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyPropellers, String(this.grid.propellersOnBody(part.cell).length)]);
+      } else if (part.type === 'parachute') {
+        rows.push([TEXT.inspector.front, TEXT.inspector.frontAnyValue(frontOf(part))]);
+        rows.push([TEXT.inspector.chute, String(powerOf(part))]);
+        rows.push([TEXT.inspector.bodyParachutes, String(this.grid.parachutesOnBody(part.cell).length)]);
       } else if (part.type === 'turbo') {
         rows.push([TEXT.inspector.boost, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyTurbos, String(this.grid.turbosOnBody(part.cell).length)]);

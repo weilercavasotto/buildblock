@@ -5,6 +5,7 @@ import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
 import { createPropellerModel, propellerHousing } from './propeller-model';
+import { createParachuteModel, parachutePack } from './parachute-model';
 import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
 import { partBox } from './part-geometry';
@@ -139,7 +140,7 @@ const wingMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.wing),
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const key = paint.toLowerCase();
   let pair = paintCache.get(key);
   if (!pair) {
@@ -535,6 +536,9 @@ export function createPartObject(
   } else if (part.type === 'propeller') {
     // The propeller in its own frame: the motor at the back, the blades in front (+z, the way it pushes).
     root.add(createPropellerModel(blockMaterials(part.color, 'propeller').face));
+  } else if (part.type === 'parachute') {
+    // The parachute in its own frame: the pack at the back, the canopy in front (+z, where it opens).
+    root.add(createParachuteModel(blockMaterials(part.color, 'parachute').face));
   } else if (part.type === 'turbo') {
     // The turbo in its own frame: the bottle along z, the nozzle at the back.
     root.add(createTurboModel(blockMaterials(part.color, 'turbo').face));
