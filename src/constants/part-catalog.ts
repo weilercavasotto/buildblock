@@ -548,7 +548,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     properties: [
       { label: 'Size', value: `${SPRING_BODY.width} × ${SPRING_BODY.width} × ${SPRING_BODY.depth} cells folded, against the block` },
       { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
-      { label: 'Placement', value: 'On any face of a block or of a flat plate (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Placement', value: 'On any face of a block, plate or L bracket that has material there (top, bottom or sides); it does not take the place of a block' },
       { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red' },
       { label: 'Length', value: 'Adjustable in the inspector (0.5 to 3 cells, default 1 cell): how far the head is when nothing presses on it' },
       { label: 'Stiffness', value: 'Adjustable in the inspector (1-10, default 5): a soft spring sinks under a load, a stiff one barely moves' },

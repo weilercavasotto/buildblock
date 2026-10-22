@@ -1,7 +1,7 @@
 import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
-import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isMountHost, canHost, frontOf, studsOf, subVec, StructuralType } from '../types';
+import { EPS, partBox, partBoxes, partsOverlap, studsEngaged } from '../parts/part-geometry';
+import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, isMountHost, canHost, frontOf, studsOf, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -485,9 +485,11 @@ export class Grid {
     const point = [0, 1, 2].map((i) => part.cell[i] - face[i] / 2);
     for (const host of this.parts.values()) {
       if (!canHost(host.type, part.type)) continue;
-      const box = partBox(host);
-      if (Math.abs((face[axis] > 0 ? box.max[axis] : box.min[axis]) - point[axis]) > EPS) continue;
-      if ([0, 1, 2].every((i) => i === axis || (point[i] >= box.min[i] - EPS && point[i] <= box.max[i] + EPS))) return host;
+      // A block is one box; another flat part (a bracket does not fill its bounding box) is checked box by box.
+      for (const box of isHostType(host.type) ? [partBox(host)] : partBoxes(host)) {
+        if (Math.abs((face[axis] > 0 ? box.max[axis] : box.min[axis]) - point[axis]) > EPS) continue;
+        if ([0, 1, 2].every((i) => i === axis || (point[i] >= box.min[i] - EPS && point[i] <= box.max[i] + EPS))) return host;
+      }
     }
     return null;
   }

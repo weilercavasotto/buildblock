@@ -7,7 +7,7 @@ import { BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, hexToNumb
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, canHost, isMountHost, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, canHost, isHostType, isMountHost, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -538,8 +538,9 @@ export class BuildMode {
     if (isWheelType(this.tool) && p.normal[1] !== 0) return null; // wheels go on the sides (the rest on any face)
     // The part's cell is the unit cell against the face. Across the face it is centred on a face that is not wider than a cell (a plain
     // block: its middle), else it follows the pointer in half-cell steps, kept inside the face.
-    const box = partBox(p.part);
     const axis = p.normal.findIndex((v) => v !== 0);
+    // A block is one box; a bracket or plate is asked for the box that was pointed at.
+    const box = isHostType(p.part.type) ? partBox(p.part) : pointedBox(partBoxes(p.part), p.point, axis, p.normal[axis]);
     const cell: Vec3 = [0, 0, 0];
     for (let i = 0; i < 3; i++) {
       if (i === axis) {

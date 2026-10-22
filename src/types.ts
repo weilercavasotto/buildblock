@@ -43,14 +43,14 @@ export const isStructural = (type: PartType): type is StructuralType => (STRUCTU
 export const HOST_TYPES = ['block', 'blockQuarter', 'blockLowQuarter', 'blockTallQuarter', 'blockHalf', 'blockLong', 'blockLow', 'blockTall', 'blockBeam', 'blockBeamLow', 'blockLarge'] as const;
 export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly string[]).includes(type);
 
-/** The flat plates: only springs are mounted on them (they are too thin for the rest). */
-export const isPlateType = (type: PartType): boolean => type.startsWith('plate');
+/** Structural parts made of flat boxes (plates, L brackets, every block): not the wedges (slopes) and the swept wings, whose faces are slanted or outlines. */
+export const isFlatStructural = (type: PartType): boolean => isStructural(type) && !isWing(type) && !type.startsWith('slope');
 
-/** Can `part` be mounted on a `host`? Any mounted part goes on a block (`HOST_TYPES`); a spring also on a plate. */
-export const canHost = (host: PartType, part: PartType): boolean => isHostType(host) || (part === 'spring' && isPlateType(host));
+/** Can `part` be mounted on a `host`? Any mounted part goes on a block (`HOST_TYPES`); a spring on any flat structural part (plates, brackets), on the faces of its boxes. */
+export const canHost = (host: PartType, part: PartType): boolean => isHostType(host) || (part === 'spring' && isFlatStructural(host));
 
-/** Can anything be mounted on a part of this type (a block, or a plate for a spring)? */
-export const isMountHost = (type: PartType): boolean => isHostType(type) || isPlateType(type);
+/** Can anything be mounted on a part of this type? */
+export const isMountHost = (type: PartType): boolean => isHostType(type) || isFlatStructural(type);
 
 /** The engine: mounted on a face of a block like a wheel, it drives the wheels of the body. */
 export const isEngine = (type: PartType): boolean => type === 'engine';
