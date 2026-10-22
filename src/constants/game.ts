@@ -144,10 +144,30 @@ export const PISTON_BODY = {
   depth: PISTON_VISUAL.baseDepth + PISTON_VISUAL.headDepth,
 } as const;
 
-/** The parts with a head that moves (turns or slides) on a joint: how deep their base and their head are (cells). */
+/**
+ * The hinge (a part mounted on a face of a block whose head swings open like a lid): a flat base against the block with a pin along
+ * one edge (`pinRadius`, tangent to the top of the base; the head turns round its centre) and, on top, the head, a thin square plate
+ * with studs. `width` across, `depth` = base + head, closed; in cells. Which edge has the pin comes from how the part is turned.
+ */
+export const HINGE_VISUAL = {
+  baseDepth: 0.3,
+  headDepth: PLATE.thickness,
+  pinRadius: 0.1,
+  /** The base is a little narrower than the cell, the pin a little shorter than the width. */
+  baseInset: 0.03,
+  pinInset: 0.02,
+  segments: 24,
+} as const;
+export const HINGE_BODY = {
+  width: 1,
+  depth: HINGE_VISUAL.baseDepth + HINGE_VISUAL.headDepth,
+} as const;
+
+/** The parts with a head that moves (turns, slides or swings) on a joint: how deep their base and their head are (cells). */
 export const HEADED_PARTS = {
   rotor: { baseDepth: ROTOR_VISUAL.baseDepth, headDepth: ROTOR_VISUAL.headDepth, width: ROTOR_BODY.width },
   piston: { baseDepth: PISTON_VISUAL.baseDepth, headDepth: PISTON_VISUAL.headDepth, width: PISTON_BODY.width },
+  hinge: { baseDepth: HINGE_VISUAL.baseDepth, headDepth: HINGE_VISUAL.headDepth, width: HINGE_BODY.width },
 } as const;
 
 /**
@@ -183,8 +203,35 @@ export const THRUSTER_VISUAL = {
   segments: 28,
 } as const;
 
+/**
+ * The propeller body: the motor housing against a face of a block, like the thruster's (`width` across the face, `depth` out of it), in
+ * cells. The blades turn in front of it and are only drawn: they collide with nothing.
+ */
+export const PROPELLER_BODY = {
+  width: 0.6,
+  depth: 0.6,
+} as const;
+
+/**
+ * The propeller model (`parts/propeller-model.ts`): a motor housing at the back (-z) with a spinner and `bladeCount` blades in front
+ * of it (+z, the way it pushes), in its own frame. The blades turn about z (`PhysicsWorld` spins them while it runs). Lengths in cells.
+ */
+export const PROPELLER_VISUAL = {
+  housingRadius: 0.26,
+  housingLength: 0.28,
+  spinnerRadius: 0.16,
+  spinnerLength: 0.22,
+  bladeCount: 2,
+  /** Distance from the axis to the tip, the width of a blade at its widest, its thickness and how far it is twisted (rad). */
+  bladeRadius: 0.85,
+  bladeWidth: 0.2,
+  bladeThickness: 0.035,
+  bladeTwist: 0.5,
+  segments: 24,
+} as const;
+
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

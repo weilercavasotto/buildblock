@@ -1,5 +1,5 @@
 import { CELL_SIZE, HEADED_PARTS, MOUNTED_BODY, SHAPES, STUD } from '../constants';
-import { Part, Vec3, addVec, roundCoord, applyMatrix, isCompactMounted, isHeaded, isStructural, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
+import { Part, Vec3, addVec, roundCoord, applyMatrix, isCompactMounted, isHeaded, isHostType, isStructural, isWing, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
 
 /** Axis-aligned box, in world units. */
 export interface Box {
@@ -50,13 +50,17 @@ export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): Stud
 
 /**
  * The corners of each wedge of a structural part, relative to its `cell` (turned by its orientation): the six points of the
- * triangular prism, three at each end of its width. One entry per box of the shape: `null` for a box that is not a wedge.
+ * triangular prism, three at each end of its width (a swept wing's half: the outline's corners at both faces). One entry per box of the shape: `null` for a box that is not a wedge.
  */
 export function wedgePoints(part: Pick<Part, 'type' | 'studs' | 'spin'>): Array<Vec3[] | null> {
   if (!isStructural(part.type)) return [];
   const m = matrixOf(orientationOfPart(part));
   return SHAPES[part.type].boxes.map((box) => {
     if (!box.wedge) return null;
+    if (box.polygon) {
+      const h = box.size[1] / 2;
+      return box.polygon.flatMap(([x, z]) => [-h, h].map((y) => applyMatrix(m, [box.offset[0] + x, box.offset[1] + y, box.offset[2] + z]).map((v) => roundCoord(v)) as Vec3));
+    }
     const [w, h, d] = box.size.map((v) => v / 2);
     const profile: Array<[number, number]> = [[-d, -h], [d, -h], [-d, h]]; // z, y: the back foot, the front foot and the back top
     return [-w, w].flatMap((x) => profile.map(([z, y]) => applyMatrix(m, [box.offset[0] + x, box.offset[1] + y, box.offset[2] + z]).map((v) => roundCoord(v)) as Vec3));
@@ -87,6 +91,8 @@ export function headOf(part: Shape): StudBox | null {
 
 /** The boxes whose studs engage the studs of other parts: those of a structural part, or the head of a rotor or a piston. */
 function studBoxesOf(part: Shape): StudBox[] {
+  // A wing has sockets on both of its faces (it is held from below or, turned over, from above), so it counts as two boxes facing opposite ways.
+  if (isWing(part.type)) return partBoxes(part).flatMap((box) => [box, { ...box, studs: box.studs.map((v) => (v === 0 ? 0 : -v)) as Vec3 }]);
   if (isStructural(part.type)) return partBoxes(part);
   const head = headOf(part);
   return head ? [head] : [];
@@ -149,7 +155,7 @@ export function studsEngaged(a: Shape, b: Shape): number {
   const [boxesA, boxesB] = [studBoxesOf(a), studBoxesOf(b)];
   if (boxesA.length === 0 || boxesB.length === 0) return 0;
   if (!boxesOverlapOrTouch(partBox(a), partBox(b))) return 0;
-  let count = 0;
+  let count = rootContact(a, b) + rootContact(b, a);
   for (const boxA of boxesA) {
     for (const boxB of boxesB) {
       if (boxA.studs.some((v, i) => v !== boxB.studs[i])) continue;
@@ -169,6 +175,27 @@ export function studsEngaged(a: Shape, b: Shape): number {
     }
   }
   return count;
+}
+
+/**
+ * Is the root edge of the wing `wing` (the long straight edge of a swept wing, where it meets the body) against a side of the block `block`?
+ * Then it is held by it, without studs (a wing is mounted on the side of a block like a wheel, or sits on top of it on its studs): 1, else 0.
+ * Only the root counts, so the wing has to be turned until its root faces the block (the placement ghost is red until then).
+ */
+function rootContact(wing: Shape, block: Shape): number {
+  if (!isWing(wing.type) || !isHostType(block.type)) return 0;
+  const shape = SHAPES[wing.type].boxes[0];
+  const root = shape.polygon!;
+  const m = matrixOf(orientationOfPart(wing));
+  const normal = applyMatrix(m, [Math.sign(root[0][0]), 0, 0]); // out of the wing, through its root
+  const axis = normal.findIndex((v) => v !== 0);
+  // The root edge as a box in the world: the two ends of its outline at the bottom and the top of the plate.
+  const h = shape.size[1] / 2;
+  const ends = [applyMatrix(m, [root[0][0], -h, root[0][1]]), applyMatrix(m, [root[1][0], h, root[1][1]])].map((p) => addVec(wing.cell, p));
+  const edge: Box = { min: ends[0].map((v, i) => Math.min(v, ends[1][i])) as Vec3, max: ends[0].map((v, i) => Math.max(v, ends[1][i])) as Vec3 };
+  const other = partBox(block);
+  if (Math.abs(edge.min[axis] - (normal[axis] > 0 ? other.min[axis] : other.max[axis])) > EPS) return 0;
+  return [0, 1, 2].every((i) => i === axis || Math.min(edge.max[i], other.max[i]) - Math.max(edge.min[i], other.min[i]) > EPS) ? 1 : 0;
 }
 
 /** True when the boxes overlap or touch (a quick test before comparing the boxes of two parts). */

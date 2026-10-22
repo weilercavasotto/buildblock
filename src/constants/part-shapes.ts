@@ -19,6 +19,11 @@ export interface ShapeBox {
    * face) but its underside has sockets, like any box: parts below it hold it, nothing is built on it.
    */
   wedge?: true;
+  /**
+   * A flat swept shape instead of a box: a convex outline (x, z, in cells, relative to the centre of the box) extruded over the box's height.
+   * Like a wedge it has no studs on top (`wedge` is set with it): only sockets underneath, and its bounding box is what it occupies.
+   */
+  polygon?: ReadonlyArray<readonly [number, number]>;
 }
 
 export interface Shape {
@@ -30,6 +35,26 @@ export interface Shape {
 
 const flat = (width: number, depth: number): ShapeBox => ({ size: [width, PLATE.thickness, depth], offset: [0, 0, 0], studs: [0, 1, 0] });
 const solid = (width: number, height: number, depth: number): ShapeBox => ({ size: [width, height, depth], offset: [0, 0, 0], studs: [0, 1, 0] });
+/**
+ * A swept wing, a thin flat plate `span` wide (x) and `depth` deep (z), the thin edge that leads being +z: the root edge, on the body side
+ * (`root`: -1 is the -x side, a wing on the left of a plane that flies towards +z), is `rootChord` of the depth long and starts at the front;
+ * the tip, on the other side, is `tipChord` long and at the very back, so both the leading and the trailing edge sweep back towards the
+ * tip (a plan view like an airliner's wing). Turned over (a half turn about the front, +z) it is the mirror image: a wing is a flat plate, the same on both faces, with sockets on both, so the same part serves both sides of a plane.
+ */
+const swept = (span: number, depth: number, root: 1 | -1): ReadonlyArray<ShapeBox> => {
+  const rootChord = 0.55 * depth;
+  const tipChord = 0.29 * depth;
+  const x = (span / 2) * root;
+  return [
+    {
+      size: [span, PLATE.thickness, depth],
+      offset: [0, 0, 0],
+      studs: [0, 1, 0],
+      wedge: true,
+      polygon: [[x, depth / 2], [x, depth / 2 - rootChord], [-x, -depth / 2], [-x, -depth / 2 + tipChord]],
+    },
+  ];
+};
 const wedge = (width: number, height: number, depth: number): ShapeBox => ({ ...solid(width, height, depth), wedge: true });
 
 /**
@@ -94,6 +119,10 @@ export const SHAPES: Record<StructuralType, Shape> = {
   slopePlate: { boxes: [wedge(1, PLATE.thickness, 1)], spins: 4 },
   /** The same, 1 x 2 (a longer, gentler taper). */
   slopePlateLong: { boxes: [wedge(1, PLATE.thickness, 2)], spins: 4 },
+  /** A swept wing, 2 x 1.5: the root at -x (the left wing of a plane that flies towards +z), the tip at +x. Flat and the same on both faces, so turned over it is its own mirror image (the wing of the other side). No studs on top. */
+  wing: { boxes: swept(2, 1.5, -1), spins: 4 },
+  /** The big wing: 4 x 3. */
+  wingLarge: { boxes: swept(4, 3, -1), spins: 4 },
   /** Two plates at a right angle (8 studs). */
   bracket: { boxes: bracket(1), spins: 4 },
   /** The same L, half as wide (4 studs). */
@@ -106,4 +135,8 @@ export const SHAPES: Record<StructuralType, Shape> = {
 
 /** Volume of a structural part relative to a block (what makes a plate light at the same weight setting). */
 export const partVolume = (part: { type: StructuralType }): number =>
-  SHAPES[part.type].boxes.reduce((sum, box) => sum + (box.size[0] * box.size[1] * box.size[2]) / (box.wedge ? 2 : 1), 0);
+  SHAPES[part.type].boxes.reduce((sum, box) => sum + (box.polygon ? polygonArea(box.polygon) * box.size[1] : (box.size[0] * box.size[1] * box.size[2]) / (box.wedge ? 2 : 1)), 0);
+
+/** The area (square cells) of a convex outline (`ShapeBox.polygon`). */
+export const polygonArea = (polygon: ReadonlyArray<readonly [number, number]>): number =>
+  Math.abs(polygon.reduce((sum, [x, z], i) => sum + x * polygon[(i + 1) % polygon.length][1] - polygon[(i + 1) % polygon.length][0] * z, 0)) / 2;

@@ -8,16 +8,26 @@ import {
   GROUND_COLLIDER,
   BRAKE,
   ENGINE,
+  HINGE,
+  HINGE_BODY,
+  HINGE_VISUAL,
   PISTON,
   PISTON_VISUAL,
+  PROPELLER,
   ROTOR,
   ROTOR_VISUAL,
   THRUSTER,
   TURBO,
   VEHICLE,
+  WING,
   brakeOf,
+  hingeDamping,
+  hingeRadians,
+  hingeStiffness,
   ROUGHNESS,
   SCENERY_PARTS,
+  SHAPES,
+  polygonArea,
   SPAWN_CLEARANCE,
   SPAWN_LIFT,
   SUSPENSION,
@@ -35,11 +45,12 @@ import {
   weightOf,
   wheelSizeOf,
 } from '../constants';
-import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, faceQuaternion, headedCentres, orientationQuaternion } from '../parts/part-defs';
-import { orientationOfPart } from '../parts/orientation';
+import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
+import { matrixOf, orientationOfPart } from '../parts/orientation';
+import { PROPELLER_BLADES } from '../parts/propeller-model';
 import { partBox, relativeBoxes, studsEngaged, wedgePoints } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
-import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isStructural, isWheelType, partCentre, subVec } from '../types';
+import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isStructural, isWheelType, isWing, partCentre, subVec } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -53,6 +64,8 @@ export interface AudioState {
   wheels: number;
   engines: number;
   thrusters: number;
+  /** How fast each propeller's blades turn, 0 (stopped) to 1 (full speed). */
+  propellers: number[];
   turbos: number;
   /** False for an old save, where every wheel is driven without engines. */
   engineDrive: boolean;
@@ -122,12 +135,18 @@ export class PhysicsWorld {
   private thrusterFx: ThrusterFx[] = [];
   /** The thrusters: the body each pushes, where (in the body's frame), along which direction and with what force. */
   private thrusters: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number }> = [];
+  /** The propellers: the body each pushes, where (in the body's frame), along which direction, with what static force, how fast the blades turn now (0-1) and the blades to spin. */
+  private propellers: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number; spin: number; blades: THREE.Object3D | null }> = [];
+  /** The wings: the body each is on, where and how it is turned (in the body's frame), its area (cells²), the flap now (-1..1) and the visual to tilt with it. */
+  private wings: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; up: Vec3; front: Vec3; area: number; lift: 1 | -1; flap: number; object: THREE.Object3D; rest: THREE.Quaternion; pitch: number; roll: number; yaw: number }> = [];
   /** The engines: the body each is mounted on, where (in the body's frame), where it faces and its power (see `ENGINE.leverage`). */
   private pushers: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; front: Vec3; power: number }> = [];
   /** The direction the vehicle drives in (in the body's frame), the same one the vehicle controller uses. */
   private forward = new THREE.Vector3(0, 0, -1);
   /** The rotors: the hinge between the body of the block and the head (with what it holds) and the signed speed it is driven to (rad/s). */
   private rotors: Array<{ part: Part; joint: RAPIER.RevoluteImpulseJoint; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
+  /** The hinges: the joint between the body of the block and the head, how far it opens (rad), where the servo is aiming now (rad), and the two bodies. */
+  private hinges: Array<{ part: Part; joint: RAPIER.RevoluteImpulseJoint; open: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
   /** The pistons: the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
   private pistons: Array<{ part: Part; joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh }> = [];
   private effects: PlayEffects;
@@ -135,6 +154,10 @@ export class PhysicsWorld {
   private chassis = new Set<RAPIER.RigidBody>();
   /** The heading each of those bodies holds while the player does not steer (see `straighten`). */
   private heldYaw = new Map<RAPIER.RigidBody, number>();
+  /** The bodies that carry wings: the way their wings lead (in the body's frame) and the total area of the wings. */
+  private wingFrames = new Map<RAPIER.RigidBody, { forward: THREE.Vector3; area: number }>();
+  /** The bodies that carry wings or propellers: the air drag assist leaves them alone. */
+  private aero = new Set<RAPIER.RigidBody>();
   /** The bodies of the vehicle that can be flown (the ones that carry wheels or thrusters), where each one's nose is, and the colliders that tell whether it touches the ground. */
   private craft = new Set<RAPIER.RigidBody>();
   private groundColliders: RAPIER.Collider[] = [];
@@ -151,15 +174,17 @@ export class PhysicsWorld {
    * Pushes the bodies that have thrusters: every step the force of each thruster is applied to its body at the place where it is
    * mounted, along its direction turned by the body's rotation (nothing while its key is not held).
    */
-  private applyThrust(): void {
+  private applyThrust(dt: number): void {
     const q = new THREE.Quaternion();
     // A force applied at a point also adds a torque, and Rapier keeps both until they are reset: clear both, or the torque of a
     // thruster that is off the centre would go on spinning the body after the key is released.
-    for (const body of new Set([...this.thrusters, ...this.pushers].map((t) => t.body))) {
+    for (const body of new Set([...this.thrusters, ...this.pushers, ...this.propellers, ...this.wings].map((t) => t.body))) {
       body.resetForces(true);
       body.resetTorques(true);
     }
     this.applyEngines(q);
+    this.applyPropellers(q, dt);
+    this.applyWings(q, dt);
     for (const t of this.thrusters) {
       if (!this.isOn(t.part, 'run')) continue;
       const r = t.body.rotation();
@@ -168,6 +193,85 @@ export class PhysicsWorld {
       const position = t.body.translation();
       const point = new THREE.Vector3(...t.point).applyQuaternion(q).add(new THREE.Vector3(position.x, position.y, position.z));
       t.body.addForceAtPoint({ x: direction.x, y: direction.y, z: direction.z }, { x: point.x, y: point.y, z: point.z }, true);
+    }
+  }
+
+
+  /** Where a point of `body` (given in its frame) is in the world, and how fast that point moves (the body's velocity plus its turn about the centre of mass). */
+  private pointOf(body: RAPIER.RigidBody, q: THREE.Quaternion, local: Vec3): { at: THREE.Vector3; velocity: THREE.Vector3 } {
+    const r = body.rotation();
+    q.set(r.x, r.y, r.z, r.w);
+    const position = body.translation();
+    const at = new THREE.Vector3(...local).applyQuaternion(q).add(new THREE.Vector3(position.x, position.y, position.z));
+    const com = body.worldCom();
+    const v = body.linvel();
+    const w = body.angvel();
+    const velocity = new THREE.Vector3(w.x, w.y, w.z).cross(at.clone().sub(new THREE.Vector3(com.x, com.y, com.z))).add(new THREE.Vector3(v.x, v.y, v.z));
+    return { at, velocity };
+  }
+
+  /**
+   * The propellers (see `PROPELLER`): the blades speed up while the part is switched on and slow down when it is not; the push along the
+   * front, at the place where the propeller is mounted, is the static thrust times the blade speed times how much of the way to
+   * `maxAirSpeed` the air along the front has not gone.
+   */
+  private applyPropellers(q: THREE.Quaternion, dt: number): void {
+    for (const p of this.propellers) {
+      const goal = this.isOn(p.part, 'run') ? 1 : 0;
+      p.spin += Math.max(-dt / PROPELLER.spoolTime, Math.min(dt / PROPELLER.spoolTime, goal - p.spin));
+      if (p.blades) p.blades.rotation.z += p.spin * PROPELLER.maxSpin * dt;
+      if (p.spin <= 0) continue;
+      const { at, velocity } = this.pointOf(p.body, q, p.point);
+      const direction = new THREE.Vector3(...p.direction).applyQuaternion(q);
+      const push = p.thrust * p.spin * Math.max(0, 1 - Math.max(0, velocity.dot(direction)) / PROPELLER.maxAirSpeed);
+      p.body.addForceAtPoint({ x: direction.x * push, y: direction.y * push, z: direction.z * push }, { x: at.x, y: at.y, z: at.z }, true);
+    }
+  }
+
+  /**
+   * The wings (see `WING`): from the velocity of the air at each wing (the opposite of the velocity of the wing there, in the plane of
+   * its chord and its up) the lift (perpendicular to the air, towards the wing's up) and the drag (against it) of a flat cambered plate
+   * are applied at the wing's centre, so a wing far from the centre of mass also turns the body. The pitch / roll / yaw keys move the wing's control surface
+   * (its incidence, and the wing itself, a little, so it shows; see `buildWingControls`), and every wing damps the turn of its body (`WING.damping`) unless it is on a rotor head.
+   */
+  private applyWings(q: THREE.Quaternion, dt: number): void {
+    const heads = new Set(this.rotors.map((r) => r.head));
+    // The fuselage and the tail are not modelled, so a body with wings gets their main effect: a torque that turns its nose (the way its
+    // wings lead) towards the way it is moving, which keeps a plane pointing where it flies instead of tumbling nose over tail.
+    for (const [body, frame] of this.wingFrames) {
+      if (heads.has(body)) continue;
+      const r = body.rotation();
+      q.set(r.x, r.y, r.z, r.w);
+      const v = body.linvel();
+      const velocity = new THREE.Vector3(v.x, v.y, v.z);
+      const speed = Math.min(velocity.length(), WING.maxSpeed);
+      if (speed < 1) continue;
+      const nose = frame.forward.clone().applyQuaternion(q);
+      const torque = nose.cross(velocity.normalize()).multiplyScalar(WING.stability * frame.area * speed * speed);
+      body.addTorque({ x: torque.x, y: torque.y, z: torque.z }, true);
+    }
+    for (const wing of this.wings) {
+      const on = (action: string) => Number(this.isOn(wing.part, action));
+      const target = Math.max(-1, Math.min(1, (on('pitchUp') - on('pitchDown')) * wing.pitch + (on('rollRight') - on('rollLeft')) * wing.roll + (on('yawRight') - on('yawLeft')) * wing.yaw));
+      wing.flap += Math.max(-WING.flapRate * dt, Math.min(WING.flapRate * dt, target - wing.flap));
+      wing.object.quaternion.copy(wing.rest).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -wing.lift * wing.flap * WING.flapAngle));
+      const { at, velocity } = this.pointOf(wing.body, q, wing.point);
+      const up = new THREE.Vector3(...wing.up).applyQuaternion(q);
+      const chord = new THREE.Vector3(...wing.front).applyQuaternion(q);
+      const along = velocity.dot(chord);
+      const across = velocity.dot(up);
+      const speed = Math.hypot(along, across);
+      if (speed < 0.1) continue;
+      const alpha = Math.atan2(-across, along) + (along > 0 ? WING.camber : 0) + wing.flap * WING.flapAngle;
+      const air = chord.clone().multiplyScalar(along / speed).addScaledVector(up, across / speed); // the wing's direction of travel, in its plane
+      const lift = up.clone().addScaledVector(air, -up.dot(air)).normalize();
+      const pressure = WING.lift * wing.area * Math.min(speed, WING.maxSpeed) ** 2;
+      const force = lift.multiplyScalar(pressure * Math.sin(2 * alpha)).addScaledVector(air, -pressure * (WING.baseDrag + WING.stallDrag * Math.sin(alpha) ** 2));
+      wing.body.addForceAtPoint({ x: force.x, y: force.y, z: force.z }, { x: at.x, y: at.y, z: at.z }, true);
+      if (heads.has(wing.body)) continue; // a rotor blade is meant to spin
+      const turn = wing.body.angvel();
+      const damping = -WING.damping * wing.area * Math.min(velocity.length(), WING.maxSpeed);
+      wing.body.addTorque({ x: turn.x * damping, y: turn.y * damping, z: turn.z * damping }, true);
     }
   }
 
@@ -199,6 +303,7 @@ export class PhysicsWorld {
   /** Air drag (see `VEHICLE.airDrag`): an impulse against the velocity of every body that carries wheels, growing with the square of the speed above `VEHICLE.dragFreeSpeed`. */
   private drag(dt: number): void {
     for (const body of this.chassis) {
+      if (this.aero.has(body)) continue; // the wings and the propellers already make the drag and the top speed of a plane
       const v = body.linvel();
       const speed = Math.hypot(v.x, v.y, v.z);
       const excess = speed - VEHICLE.dragFreeSpeed;
@@ -265,6 +370,7 @@ export class PhysicsWorld {
       wheels: this.wheels.length,
       engines: this.engineFx.length,
       thrusters: this.thrusterFx.length,
+      propellers: this.propellers.map((p) => p.spin),
       turbos: this.turboFx.length,
       engineDrive: this.engineDrive,
       rotors: this.rotors.map((r) => {
@@ -272,7 +378,9 @@ export class PhysicsWorld {
         const b = r.host.angvel();
         return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
       }),
-      pistonsMoving: this.pistons.filter((p) => Math.abs((this.isOn(p.part, 'run') ? p.stroke : 0) - p.target) > 1e-3).length,
+      pistonsMoving:
+        this.hinges.filter((h) => Math.abs((this.isOn(h.part, 'run') ? h.open : 0) - h.target) > 1e-3).length +
+        this.pistons.filter((p) => Math.abs((this.isOn(p.part, 'run') ? p.stroke : 0) - p.target) > 1e-3).length,
       impact,
     };
   }
@@ -287,10 +395,21 @@ export class PhysicsWorld {
     }
   }
 
+  /** Swings the hinges: the target of each servo moves towards open (the angle) or closed (0) at `HINGE.speed` and the motor follows it. */
+  private driveHinges(dt: number): void {
+    for (const hinge of this.hinges) {
+      const goal = this.isOn(hinge.part, 'run') ? hinge.open : 0;
+      const step = HINGE.speed * dt;
+      hinge.target += Math.max(-step, Math.min(step, goal - hinge.target));
+      hinge.joint.configureMotorPosition(hinge.target, hingeStiffness(hinge.part), hingeDamping(hinge.part));
+    }
+  }
+
   step(dt: number): void {
-    this.applyThrust();
+    this.applyThrust(dt);
     this.driveRotors();
     this.drivePistons(dt);
+    this.driveHinges(dt);
     this.accumulator = Math.min(this.accumulator + dt, WORLD.maxFrameTime);
     this.airborne = this.craft.size > 0 && !this.touchingGround();
     while (this.accumulator >= WORLD.step) {
@@ -347,7 +466,8 @@ export class PhysicsWorld {
    * and the colliders whose contacts with the ground are checked, and the direction the vehicle drives in.
    */
   private buildGroundSensors(): void {
-    for (const t of this.thrusters) this.craft.add(t.body);
+    for (const t of [...this.thrusters, ...this.propellers]) this.craft.add(t.body);
+    for (const t of [...this.propellers, ...this.wings]) this.aero.add(t.body);
     for (const body of this.chassis) this.craft.add(body);
     const onX = this.wheels.filter((w) => w.axis[0] !== 0).length;
     this.forward.copy(new THREE.Vector3(...(onX >= this.wheels.length - onX ? [0, 0, -1] : [1, 0, 0])));
@@ -424,7 +544,8 @@ export class PhysicsWorld {
       const host = hostBody(part);
       if (!host) continue;
       const piston = part.type === 'piston';
-      const look = piston ? PISTON_VISUAL : ROTOR_VISUAL;
+      const hinge = part.type === 'hinge';
+      const look = piston ? PISTON_VISUAL : hinge ? HINGE_VISUAL : ROTOR_VISUAL;
       const face = part.face!;
       const axisIndex = face.findIndex((v) => v !== 0);
       const centres = headedCentres(part);
@@ -432,12 +553,12 @@ export class PhysicsWorld {
       const halves = (depth: number, width: number): Vec3 => [0, 1, 2].map((i) => (i === axisIndex ? depth : width) / 2) as Vec3;
 
       // The base stays with the block.
-      const baseHalf = halves(look.baseDepth, look.flangeRadius * 2);
+      const baseHalf = halves(look.baseDepth, hinge ? HINGE_BODY.width : (look as typeof ROTOR_VISUAL).flangeRadius * 2);
       const baseLocal = subVec(centres.base, host.origin);
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(...baseHalf)
           .setTranslation(...baseLocal)
-          .setDensity((CHASSIS.density * (piston ? PISTON.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
+          .setDensity((CHASSIS.density * (piston ? PISTON.mass : hinge ? HINGE.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -465,9 +586,12 @@ export class PhysicsWorld {
       }
       const headLocal = subVec(centres.head, head.origin);
       const turned = faceQuaternion(face); // the cylinder's axis (Y) along the part's axis
+      const headHalf = halves(HINGE_VISUAL.headDepth, HINGE_BODY.width);
       this.world.createCollider(
-        RAPIER.ColliderDesc.cylinder(look.headDepth / 2, look.headRadius)
-          .setRotation({ x: turned.x, y: turned.y, z: turned.z, w: turned.w })
+        (hinge
+          ? RAPIER.ColliderDesc.cuboid(...headHalf) // a flat plate, as wide as the cell
+          : RAPIER.ColliderDesc.cylinder(look.headDepth / 2, (look as typeof ROTOR_VISUAL).headRadius).setRotation({ x: turned.x, y: turned.y, z: turned.z, w: turned.w })
+        )
           .setTranslation(...headLocal)
           .setDensity(CHASSIS.density)
           .setFriction(CHASSIS.friction)
@@ -504,6 +628,21 @@ export class PhysicsWorld {
         rod.visible = false;
         host.visual.add(rod);
         this.pistons.push({ part, joint, stroke, target: 0, host: host.body, head: head.body, pivot, headLocal, face, rod });
+        continue;
+      }
+      if (hinge) {
+        // The head swings on the pin along its back edge: the pivot is on the pin, the same point in the frame of each body.
+        const { point, axis: pin } = hingePivot(part);
+        const onHost = subVec(point, host.origin);
+        const onHead = subVec(point, head.origin);
+        const data = RAPIER.JointData.revolute({ x: onHost[0], y: onHost[1], z: onHost[2] }, { x: onHead[0], y: onHead[1], z: onHead[2] }, { x: pin[0], y: pin[1], z: pin[2] });
+        data.limitsEnabled = true;
+        data.limits = [0, Math.PI];
+        const joint = this.world.createImpulseJoint(data, host.body, head.body, true) as RAPIER.RevoluteImpulseJoint;
+        joint.setContactsEnabled(false);
+        joint.configureMotorModel(RAPIER.MotorModel.AccelerationBased);
+        joint.configureMotorPosition(0, hingeStiffness(part), hingeDamping(part));
+        this.hinges.push({ part, joint, open: hingeRadians(part), target: 0, host: host.body, head: head.body });
         continue;
       }
       const joint = this.world.createImpulseJoint(RAPIER.JointData.revolute(anchors[0], anchors[1], axis), host.body, head.body, true) as RAPIER.RevoluteImpulseJoint;
@@ -570,6 +709,16 @@ export class PhysicsWorld {
         const obj = createPartObject(p);
         obj.position.set(...local);
         visual.add(obj);
+        if (isWing(p.type)) {
+          // A wing is a surface at the centre of its box (a wing on the left and one on the right answer the roll keys the opposite way).
+          const m = matrixOf(orientationOfPart(p));
+          relativeBoxes(p).forEach((box, i) => {
+            const shape = SHAPES[p.type as keyof typeof SHAPES].boxes[i];
+            const half = obj.children[i];
+            const centre = box.min.map((v, k) => (v + box.max[k]) / 2) as Vec3;
+            this.wings.push({ part: p, body, point: [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]], up: m[1][1] < -0.5 ? (m[1].map((v) => -v) as Vec3) : m[1], front: m[2], lift: m[1][1] < -0.5 ? -1 : 1, area: polygonArea(shape.polygon!), flap: 0, object: half, rest: half.quaternion.clone(), pitch: 0, roll: 0, yaw: 0 });
+          });
+        }
         bodyOfBlock.set(cellKey(p.cell), { body, origin, visual });
       }
       this.group.add(visual);
@@ -591,7 +740,7 @@ export class PhysicsWorld {
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
           .setTranslation(...local)
-          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
+          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : engine.type === 'propeller' ? PROPELLER.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -602,6 +751,10 @@ export class PhysicsWorld {
       if (engine.type === 'thruster') {
         this.thrusters.push({ part: engine, body: host.body, point: local, direction: frontOf(engine), thrust: (THRUSTER.thrust * powerOf(engine)) / ENGINE.default });
         this.thrusterFx.push({ part: engine, object: obj });
+        continue;
+      }
+      if (engine.type === 'propeller') {
+        this.propellers.push({ part: engine, body: host.body, point: local, direction: frontOf(engine), thrust: (PROPELLER.thrust * powerOf(engine)) / ENGINE.default, spin: 0, blades: obj.getObjectByName(PROPELLER_BLADES) ?? null });
         continue;
       }
       if (engine.type === 'turbo') {
@@ -702,6 +855,42 @@ export class PhysicsWorld {
       this.pairs.push({ body: hub, object: caliper });
     }
 
+    this.buildWingControls();
     this.buildGroundSensors();
+  }
+
+  /**
+   * How each wing answers the pitch, roll and yaw keys (see `WING.controlArm`): the frame of each body that has wings (the way its wings
+   * lead, `forward`, and their up, area-weighted), and for every wing, for each of the three turns, how much its lift has to change to
+   * make the body turn that way: the torque of a change of lift `up` at the wing's place about the centre of mass, along the axis of
+   * the turn (nose up: `right`; roll right: `forward`; yaw right: down), over `controlArm`, from -1 (the control surface moves the
+   * other way) to 1. A wing near the centre of mass changes nothing, so every wing can be given the same keys and each does its part.
+   */
+  private buildWingControls(): void {
+    const frames = new Map<RAPIER.RigidBody, { forward: THREE.Vector3; up: THREE.Vector3 }>();
+    for (const wing of this.wings) {
+      const frame = frames.get(wing.body) ?? { forward: new THREE.Vector3(), up: new THREE.Vector3() };
+      this.wingFrames.set(wing.body, { forward: frame.forward, area: (this.wingFrames.get(wing.body)?.area ?? 0) + wing.area });
+      frame.forward.addScaledVector(new THREE.Vector3(...wing.front), wing.area);
+      frame.up.addScaledVector(new THREE.Vector3(...wing.up), wing.area);
+      frames.set(wing.body, frame);
+    }
+    for (const frame of frames.values()) {
+      frame.forward.normalize();
+      frame.up.addScaledVector(frame.forward, -frame.up.dot(frame.forward));
+      if (frame.up.lengthSq() < 1e-6) frame.up.set(0, 1, 0).addScaledVector(frame.forward, -frame.forward.y);
+      frame.up.normalize();
+    }
+    for (const wing of this.wings) {
+      const { forward, up } = frames.get(wing.body)!;
+      const right = forward.clone().cross(up);
+      const com = wing.body.localCom();
+      const arm = new THREE.Vector3(...wing.point).sub(new THREE.Vector3(com.x, com.y, com.z));
+      const torque = arm.cross(new THREE.Vector3(...wing.up)); // of one unit of lift at the wing
+      const clamp = (v: number) => Math.max(-1, Math.min(1, v / WING.controlArm));
+      wing.pitch = clamp(torque.dot(right));
+      wing.roll = clamp(torque.dot(forward));
+      wing.yaw = clamp(-torque.dot(up));
+    }
   }
 }

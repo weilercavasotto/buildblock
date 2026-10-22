@@ -20,12 +20,21 @@ export interface KeyAction {
 }
 
 const run = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'hold', required: true }];
+/** The flight controls of a wing: its control surface moves for whichever of these turns the plane the way it is asked, wherever the wing is (see `PhysicsWorld.applyWings`). */
+const surfaces = (): KeyAction[] => [
+  { id: 'pitchUp', label: 'Pitch up (nose up)', mode: 'hold', required: false },
+  { id: 'pitchDown', label: 'Pitch down (nose down)', mode: 'hold', required: false },
+  { id: 'rollLeft', label: 'Roll left', mode: 'hold', required: false },
+  { id: 'rollRight', label: 'Roll right', mode: 'hold', required: false },
+  { id: 'yawLeft', label: 'Yaw left', mode: 'hold', required: false },
+  { id: 'yawRight', label: 'Yaw right', mode: 'hold', required: false },
+];
 const toggle = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'toggle', required: true }];
 
 /**
  * The actions of each kind of part that takes keys. An engine accelerates / reverses the wheels of its body (its own throttle, so
  * engines on different keys work apart); a wheel steers (differential drive: a wheel with no steering key keeps going straight) and
- * brakes, both optional; a rotor and a piston switch on and off with each press; a thruster fires and a turbo boosts while held.
+ * brakes, both optional; a rotor and a piston switch on and off with each press; a thruster fires and a turbo boosts while held; a propeller switches on and off; a wing moves its control surface while one of its pitch / roll / yaw keys is held, all optional.
  */
 export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
   engine: [
@@ -44,8 +53,12 @@ export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
   ],
   thruster: run('Thrust'),
   turbo: run('Turbo boost'),
+  propeller: toggle('Propellers on / off'),
+  wing: surfaces(),
+  wingLarge: surfaces(),
   rotor: toggle('Rotors on / off'),
   piston: toggle('Pistons out / back'),
+  hinge: toggle('Hinges open / close'),
 };
 
 /** The most keys one action can have. */

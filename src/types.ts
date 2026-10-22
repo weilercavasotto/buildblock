@@ -29,10 +29,12 @@ export const STRUCTURAL_TYPES = [
   'slopeLong',
   'slopePlate',
   'slopePlateLong',
+  'wing',
+  'wingLarge',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /** Every kind of part in the catalog. */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'rotor' | 'piston';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -45,10 +47,14 @@ export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly s
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'rotor' || type === 'piston';
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge';
 
 /** The parts with a compact body against their host block (`MOUNTED_BODY`): the engine, the turbo, the thruster and the rotor. */
-export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'rotor' | 'piston' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'rotor' || type === 'piston';
+export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge';
+
+/** The wings: thin flat plates with studs, the only aerodynamic parts (lift and drag from the air they move through, see `WING`). */
+export const WING_TYPES = ['wing', 'wingLarge'] as const;
+export const isWing = (type: PartType): type is (typeof WING_TYPES)[number] => (WING_TYPES as readonly string[]).includes(type);
 
 /** The rotor: mounted on a block face, its head (with the parts welded to its studs) turns on the axis of the face. */
 export const isRotor = (type: PartType): boolean => type === 'rotor';
@@ -56,8 +62,11 @@ export const isRotor = (type: PartType): boolean => type === 'rotor';
 /** The piston: mounted on a block face, its head (with the parts welded to its studs) slides out along the face. */
 export const isPiston = (type: PartType): boolean => type === 'piston';
 
-/** Parts with a head that moves on a joint (the rotor turns it, the piston slides it): the parts built on the studs of the head move with it. */
-export const isHeaded = (type: PartType): boolean => type === 'rotor' || type === 'piston';
+/** The hinge: mounted on a block face, its head (with the parts welded to its studs) swings open like a lid on a pin along one edge. */
+export const isHinge = (type: PartType): boolean => type === 'hinge';
+
+/** Parts with a head that moves on a joint (the rotor turns it, the piston slides it, the hinge swings it): the parts built on the studs of the head move with it. */
+export const isHeaded = (type: PartType): boolean => type === 'rotor' || type === 'piston' || type === 'hinge';
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
@@ -116,6 +125,10 @@ export interface Part {
    * parts with a required action left empty). Read them through `keysOf()` and show them with `keyLabel()`.
    */
   keys?: Partial<Record<string, string[]>>;
+  /** Hinges only (`PART_INFO[type].hasAngle`): how far the head swings open, in steps of `HINGE.angleStep` degrees (an integer, `HINGE.min` to `HINGE.max`). Missing = `HINGE.default`. Read it through `hingeAngleOf()`. */
+  angle?: number;
+  /** Hinges only (`PART_INFO[type].hasAngle`): the servo's strength, an integer 1-10 (see `HINGE`). Missing = `HINGE.strengthDefault`. Read it through `hingeStrengthOf()`. */
+  strength?: number;
   /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
   weight?: number;
 }

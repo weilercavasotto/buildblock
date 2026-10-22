@@ -98,10 +98,20 @@ export const COLORS = {
     pistonCollar: '#c3ccd6',
     pistonRod: '#d5dbe2',
     pistonHead: '#9fb0c0',
+    /** The hinge: a dark steel base with a light pin; its flat head (the part with studs) is teal unless painted. */
+    hinge: '#3f4650',
+    hingePin: '#c3ccd6',
+    hingeHead: '#2aa7a0',
     /** The thruster: a steel tube with a dark bell nozzle and a glowing orange ring. */
     thruster: '#7b858f',
     thrusterBell: '#2c323a',
     thrusterGlow: '#ff8a2b',
+    /** The propeller: a steel motor housing with a light spinner; its blades are wood-coloured unless painted. */
+    propeller: '#7b858f',
+    propellerSpinner: '#c3ccd6',
+    propellerBlade: '#c98a4b',
+    /** The wings: a pale grey plate unless painted. */
+    wing: '#d9dee5',
     tire: '#23262d',
     rim: '#dfe3ea',
     /** The placement ghost turns this colour when the part cannot be placed (otherwise it is the part itself, translucent). */

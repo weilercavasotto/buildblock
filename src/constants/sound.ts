@@ -111,6 +111,8 @@ export const VEHICLE_SOUND = {
   /** The turbos: a spray, a hiss of high noise (above `hissFreq`) while the boost is held. */
   turbo: { hissGain: 0.16, hissFreq: 3800 },
   /** A rotor: a saw whose pitch follows its speed (rad/s), chopped as its blades pass; `perRadian` Hz for each rad/s. */
+  /** A propeller: a saw whose pitch follows how fast the blades turn (0-1), chopped as they pass; `bladeHz` is the blade-pass rate at full speed. */
+  propeller: { base: 60, pitchRange: 140, gain: 0.12, chop: 0.6, bladeHz: 22 },
   rotor: { base: 40, perRadian: 4.5, gain: 0.13, chop: 0.55, bladeCount: 2, topSpeed: 25 },
   /** An impact is heard when the vehicle's velocity changes by more than `minChange` (m/s) in a step, loudest at `maxChange`. */
   impact: { minChange: 1.4, maxChange: 9, minGap: 0.12 },

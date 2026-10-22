@@ -203,6 +203,48 @@ export const THRUSTER = {
   mass: 0.5,
 } as const;
 
+/**
+ * The propeller (`Part.power` as its thrust, on the same 1-10 scale as the engine's): a part mounted on a face of a block that spins its
+ * blades up (in `spoolTime` s) while it is switched on and pushes its body along its front, at the place where it is mounted. Like a real
+ * propeller it pushes hardest standing still and less the faster the air already moves along its front: the push falls linearly to
+ * nothing at `maxAirSpeed` m/s, which is also the top speed of a plane it drives. `thrust` is the static force of one propeller of the
+ * `default` strength; the pushes of all the propellers on a body add up. `maxSpin` is how fast the blades turn when drawn (rad/s).
+ * A propeller weighs `mass` blocks of the default weight.
+ */
+export const PROPELLER = {
+  thrust: 110,
+  spoolTime: 1.2,
+  maxAirSpeed: 45,
+  maxSpin: 70,
+  mass: 0.6,
+} as const;
+
+/**
+ * The wings (the thin wedge plates, `isWing`): each one is a surface that feels the air it moves through. From the velocity of the
+ * body at the wing (turns included, so a spinning blade is a rotor blade) the lift and the drag of the plate are applied at its centre:
+ * `lift * area * speed^2 * C` along its up (lift) and against its air velocity (drag), with the angle of attack `a` (between its chord,
+ * the way it points, and the air) giving `C_L = sin(2a)` (a flat plate: it grows with the angle, peaks at 45 degrees and falls after a
+ * stall) and `C_D = baseDrag + stallDrag * sin(a)^2`. The wedge is a cambered wing: a built-in incidence `camber` (rad, the same for every wing,
+ * whatever its taper) is added to the angle, so it lifts a little when it flies level. `flapAngle` is how far (rad) a wing's control surface turns its whole incidence (`flapRate`
+ * is how fast, per second, from 0 to 1) in answer to the pitch / roll / yaw keys, each wing moving the way that turns the plane as asked
+ * from where it is: a wing whose lift, changed, would turn the body by `controlArm` (m, a unit of lift times the lever arm about the centre
+ * of mass along the axis of the turn) or more moves fully, one near the centre hardly at all. The rest of a plane (fuselage, tail fins) is not modelled, so each wing also damps the turn of its body, with a torque
+ * `damping * area * speed` against the angular velocity: a plane that is left alone settles instead of tumbling. `maxSpeed` caps the speed the formula sees, so a fast fall cannot make an unbounded force.
+ */
+export const WING = {
+  lift: 0.6,
+  camber: 0.15,
+  baseDrag: 0.015,
+  stallDrag: 1,
+  damping: 0.06,
+  /** The stability of a plane that has wings (see `PhysicsWorld.applyWings`): the torque that turns its nose towards where it is going, `stability * area * speed^2 * sin(angle)`. */
+  stability: 0.12,
+  controlArm: 0.5,
+  flapAngle: 0.15,
+  flapRate: 2.5,
+  maxSpeed: 60,
+} as const;
+
 export const clampPower = (value: number): number =>
   Math.min(ENGINE.max, Math.max(ENGINE.min, Math.round(Number.isFinite(value) ? value : ENGINE.default)));
 
@@ -260,6 +302,49 @@ export const strokeOf = (part: { stroke?: number }): number => clampStroke(part.
 /** How far a piston goes out, in cells. */
 export const strokeLength = (part: { stroke?: number }): number => strokeOf(part) * PISTON.strokeStep;
 
+/**
+ * The hinge (`Part.angle`, a slider in the part inspector): a part mounted on a face of a block whose head, with everything welded to
+ * its studs, swings open like a lid on a pin along one edge when it is switched on (its key toggles: open, then closed) and stays
+ * there until pressed again. `angle` is how far, in steps of `angleStep` degrees (`min` to `max` steps, `default` 6 = 90 degrees, up to
+ * 180). The target moves at `speed` rad/s and a spring-damper (`stiffness`, `damping`, acceleration based, so it does not depend on
+ * what the head carries) holds the head there, like a servo; `strength` (a slider, 1-10) sets how stiff that spring is. A hinge's base weighs `mass` blocks of the default weight.
+ */
+export const HINGE = {
+  min: 1,
+  max: 12,
+  step: 1,
+  default: 6,
+  angleStep: 15,
+  speed: 1.6,
+  /** The servo's strength (`Part.strength`, 1-10, default 5): its spring stiffness is `stiffness` at the default and scales with it; the damping keeps it critically damped. */
+  strengthMin: 1,
+  strengthMax: 10,
+  strengthDefault: 5,
+  stiffness: 4000,
+  dampingRatio: 1,
+  mass: 0.7,
+} as const;
+
+export const clampHingeStrength = (value: number): number =>
+  Math.min(HINGE.strengthMax, Math.max(HINGE.strengthMin, Math.round(Number.isFinite(value) ? value : HINGE.strengthDefault)));
+
+/** The strength of a hinge's servo (1-10): its own, or the default. */
+export const hingeStrengthOf = (part: { strength?: number }): number => clampHingeStrength(part.strength ?? HINGE.strengthDefault);
+
+/** The spring stiffness and the damping of a hinge's servo (acceleration based, 1/s² and 1/s): a weak one sags under a heavy lid and swings loosely, a strong one holds it. */
+export const hingeStiffness = (part: { strength?: number }): number => (HINGE.stiffness * hingeStrengthOf(part)) / HINGE.strengthDefault;
+export const hingeDamping = (part: { strength?: number }): number => 2 * HINGE.dampingRatio * Math.sqrt(hingeStiffness(part));
+
+export const clampHingeAngle = (value: number): number =>
+  Math.min(HINGE.max, Math.max(HINGE.min, Math.round(Number.isFinite(value) ? value : HINGE.default)));
+
+/** The opening of a hinge in slider steps: its own, or the default; an integer in `[min, max]`. */
+export const hingeAngleOf = (part: { angle?: number }): number => clampHingeAngle(part.angle ?? HINGE.default);
+
+/** How far a hinge opens, in degrees and in radians. */
+export const hingeDegrees = (part: { angle?: number }): number => hingeAngleOf(part) * HINGE.angleStep;
+export const hingeRadians = (part: { angle?: number }): number => (hingeDegrees(part) * Math.PI) / 180;
+
 export const CHASSIS = {
   friction: 0.6,
   density: 1,
@@ -283,6 +368,8 @@ export const VEHICLE = {
   maxWheelSpeed: 14,
   motorStrength: 60,
   idleBrake: 12,
+  /** The motor strength of a wheel that is let go (not steering, no engine): a strength of exactly 0 locks the wheel in Rapier, so it is a tiny one. */
+  freeWheel: 0.0001,
   /** Strength with which a wheel is held while its brake key is held, on top of `idleBrake` (times its brake strength over `BRAKE.default`). */
   brakeStrength: 22,
   /**

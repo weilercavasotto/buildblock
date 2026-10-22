@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { ENGINE_BODY, PISTON_BODY, PLATE, ROTOR_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { CHASSIS, ENGINE, PISTON, ROTOR, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, HINGE_BODY, PISTON_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { CHASSIS, ENGINE, HINGE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -32,6 +32,8 @@ export interface PartInfo {
   hasSpeed: boolean;
   /** Does it have an adjustable stroke (a piston; set in the part inspector)? */
   hasStroke: boolean;
+  /** Does it have an adjustable opening angle and servo strength (a hinge; set in the part inspector)? */
+  hasAngle: boolean;
   /** One line shown under the name. */
   tagline: string;
   description: string;
@@ -66,6 +68,7 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     hasPower: false,
     hasSpeed: false,
     hasStroke: false,
+    hasAngle: false,
     tagline: t.tagline,
     description: t.description,
     properties: [
@@ -80,6 +83,25 @@ function structural(type: StructuralType, t: StructuralText): PartInfo {
     ],
     tips: t.tips,
   };
+}
+
+/** The entry of one of the two wings (a small and a big one): the same text, the size changes. */
+function wing(type: StructuralType, name: string, [span, depth]: [number, number], big: boolean): PartInfo {
+  return structural(type, {
+    name,
+    tagline: 'A swept wing with a control surface.',
+    description: `A swept-back wing, like one wing of an airliner seen from above: a thin plate ${span} cells long and ${depth} deep, with a long straight root at the front, against the body, and a short tip at the very back, so both edges sweep back towards the tip. It is flat and the same on both faces, so one part serves both sides of a plane: turned over it is its own mirror image (the left wing of a plane that flies towards +z has its root on its -x side and its tip on +x; turn it a half turn about the front for the right one). It has no studs, only sockets on both faces: it is held by the studs of a block below it (or, turned over, above it), or by its root edge against the side of a block (like a wheel, at any height of the face; the root has to face the block, so the preview is red until it is turned right). In Play it feels the air it moves through and lifts (towards the side that is up, whichever face that is) in proportion to its area${big ? ' (four times the small wing\'s)' : ''} and the square of its speed, with a little drag; it lifts a little even when it flies level. Its front, the long straight edge, is +z: turn it so it points the way the plane flies. Every wing has a control surface that you run with keys in the inspector: Pitch up / down, Roll left / right and Yaw left / right (all optional, held). The wing moves its surface for the keys that turn the plane that way from where it sits (wings on opposite sides roll the plane opposite ways, wings behind the centre pitch it), so give every wing the same keys and the plane answers like the old fixed flight controls.`,
+    size: `${span} x ${PLATE.thickness} x ${depth} cells, swept`,
+    studs: 'None; sockets on both faces',
+    tips: [
+      STRUCTURE_TIP,
+      'Mount a wing on each side of a block with its straight root against the block (turn it with A / D, W / S until the preview is not red): a half turn about the front gives the mirror image for the other side.',
+      'Put them a little behind the centre of the body, and a small pair on a tail further back: a wing far in front of the centre tips the nose up.',
+      'Select all the wings and give them the same keys (or use Copy these keys): each wing then moves the way that turns the plane as asked.',
+      'Wings on a rotor head make a helicopter rotor.',
+    ],
+    extraProperties: [{ label: 'Control', value: 'Pitch, roll and yaw keys, chosen in the inspector (all optional)' }],
+  });
 }
 
 const STRUCTURE_TIP = 'Move the pointer over the part below to choose how much of it rests there (all the studs, half, or just one).';
@@ -269,8 +291,8 @@ export const PART_INFO: Record<PartType, PartInfo> = {
   }),
   slopePlate: structural('slopePlate', {
     name: '2x2 Slope Plate',
-    tagline: 'A thin wedge: a wing or a fairing.',
-    description: 'A 1 × 1 wedge a plate thick at the back (0.2) that tapers to nothing at the front: for wings, spoilers, fairings and the blades of a propeller. It has no studs on top; its underside holds on the studs of the parts below it.',
+    tagline: 'A thin wedge: a spoiler or a fairing.',
+    description: 'A 1 × 1 wedge a plate thick at the back (0.2) that tapers to nothing at the front: for spoilers, fairings and the blades of a propeller. It has no studs on top; its underside holds on the studs of the parts below it.',
     size: `1 x ${PLATE.thickness} x 1 cell, tapering`,
     studs: 'None on the slope; sockets underneath',
     tips: [STRUCTURE_TIP, 'The thick edge is the back: A / D turn it, W / S tilt it, so it can face any way.', 'Nothing can be built on the slope, only under it.'],
@@ -278,11 +300,13 @@ export const PART_INFO: Record<PartType, PartInfo> = {
   slopePlateLong: structural('slopePlateLong', {
     name: '2x4 Slope Plate',
     tagline: 'The wedge plate, twice as long.',
-    description: 'A 1 × 2 wedge a plate thick at the back that tapers over two cells: a longer, gentler wing or fairing. It has no studs on top; its underside holds on the studs of the parts below it.',
+    description: 'A 1 × 2 wedge a plate thick at the back that tapers over two cells: a longer, gentler fairing. It has no studs on top; its underside holds on the studs of the parts below it.',
     size: `1 x ${PLATE.thickness} x 2 cells, tapering`,
     studs: 'None on the slope; sockets underneath',
-    tips: [STRUCTURE_TIP, 'The thick edge is the back: A / D turn it, W / S tilt it.', 'Two of them side by side make a wide wing.'],
+    tips: [STRUCTURE_TIP, 'The thick edge is the back: A / D turn it, W / S tilt it.', 'Two of them side by side make a wide fairing.'],
   }),
+  wing: wing('wing', '4x3 Wing', [2, 1.5], false),
+  wingLarge: wing('wingLarge', '8x6 Wing', [4, 3], true),
   slopeHalf: structural('slopeHalf', {
     name: '1x2 Slope',
     tagline: 'A narrow 45° ramp.',
@@ -319,6 +343,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: true,
     hasSpeed: false,
     hasStroke: false,
+    hasAngle: false,
     tagline: 'Drives the wheels of its body.',
     description:
       'The engine of a vehicle, a separate unit you mount on a face of a block (like a wheel). Wheels only get acceleration when an engine is mounted on their body. The engine pushes the vehicle towards its front, the side with the fan: turn it around and its Accelerate key drives the other way. Give it a key for Accelerate (and Reverse if you want) in the inspector: it has no default key, and nothing moves until it has one. A body\'s engines add their power, and it is shared among the wheels of that body: one engine of the default power drives up to 4 wheels at full torque. Wheels on a body with no engine roll freely.',
@@ -349,6 +374,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: true,
     hasSpeed: false,
     hasStroke: false,
+    hasAngle: false,
     tagline: 'Pushes its body, no wheels needed.',
     description:
       'A small jet that you mount on a face of a block, like the engine. Give it a key in the inspector and hold it while playing: it pushes the body it is mounted on towards its front, from where it sits, with an orange flame out of the bell at the back, on the ground or in the air, with or without an engine. A thruster far from the centre of the body also turns it. The thrusts of a body\'s thrusters add up.',
@@ -367,6 +393,37 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'A thruster at the edge of the body spins it: put pairs on both sides to push straight.',
     ],
   },
+  propeller: {
+    type: 'propeller',
+    name: 'Propeller',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: true,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: false,
+    tagline: 'Pulls a plane through the air.',
+    description:
+      'A motor with a spinning propeller that you mount on a face of a block, like the engine. Give it a key in the inspector: each press switches it on or off, and while it is on the blades spin up and it pushes the body it is mounted on towards its front, from where it sits, on the ground or in the air. Like a real propeller it pushes hardest standing still and less the faster the air already moves along it, so a plane has a top speed. Put wings on the body and it flies. The pushes of a body\'s propellers add up.',
+    properties: [
+      { label: 'Size', value: `${PROPELLER_BODY.width} × ${PROPELLER_BODY.width} × ${PROPELLER_BODY.depth} cells, against the block, with the blades in front of it` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block. Its front may not point into the block' },
+      { label: 'Front', value: 'The side with the blades: it pushes the body towards it. A / D turn it, W / S tilt it, in every direction' },
+      { label: 'Thrust', value: `Adjustable in the inspector (1-10, default 5); ${PROPELLER.thrust} at the default when standing still, none at ${PROPELLER.maxAirSpeed} m/s` },
+      { label: 'Control', value: 'A key chosen in the inspector switches it on and off' },
+      { label: 'Mass', value: `${PROPELLER.mass} block of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the housing takes the colour (and the blades, once painted)' },
+    ],
+    tips: [
+      'Mount it on the nose of a plane with its blades pointing forward, or on the back pointing backwards (it pushes towards the blades).',
+      'Wings behind the centre of the body steady it; wings far in front make it nose up or down.',
+      'A propeller away from the centre of the body also turns it: put pairs on both sides to push straight.',
+    ],
+  },
   piston: {
     type: 'piston',
     name: 'Piston',
@@ -379,6 +436,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: false,
     hasSpeed: false,
     hasStroke: true,
+    hasAngle: false,
     tagline: 'Pushes up everything built on its head, and holds it there.',
     description:
       'A barrel that you mount on a face of a block, with a round silver head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play, press its key (chosen in the inspector) and the head slides out along the face, carrying it all, and stays out until you press the key again, and then it slides back. Use it for lifts, doors, hatches and launchers.',
@@ -411,6 +469,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: false,
     hasSpeed: true,
     hasStroke: false,
+    hasAngle: false,
     tagline: 'A spinning head: build propellers, fans and cranes.',
     description:
       'A round base that you mount on a face of a block, with a round orange head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play it turns with the head on the axis of the face. Press its key (chosen in the inspector) while playing to switch it on or off. Use it for propellers, fans, cranes and doors.',
@@ -432,6 +491,41 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'The head and what it holds pass through the body of the rotor, so a blade can sweep close to it.',
     ],
   },
+  hinge: {
+    type: 'hinge',
+    name: 'Hinge',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: true,
+    tagline: 'A servo hinge: opens to an angle and stays there.',
+    description:
+      'A flat base that you mount on a face of a block, with a thin teal head on top that has studs and swings open like a lid on a pin along one edge. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play it swings with the head. Press its key (chosen in the inspector) to open it to the angle you set, and again to close it. Use it for doors, hatches, ramps, folding wings and arms.',
+    properties: [
+      { label: 'Size', value: `${HINGE_BODY.width} × ${HINGE_BODY.width} × ${HINGE_BODY.depth} cells, against the block` },
+      { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red; A / D also choose which edge has the pin' },
+      { label: 'Axis', value: 'The pin along one edge of the head; the head swings away from the block round it' },
+      { label: 'Angle', value: 'Adjustable in the inspector (15° to 180°, default 90°)' },
+      { label: 'Strength', value: 'Adjustable in the inspector (1-10, default 5): how stiffly the servo holds the angle' },
+      { label: 'Control', value: 'Press its key while playing (chosen in the inspector) to open it to the angle, and again to close it' },
+      { label: 'Mass', value: `${HINGE.mass} block of the default weight (the base); the head and what it holds weigh what they are` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the head takes the colour (teal by default)' },
+    ],
+    tips: [
+      'It is never turned for you: if the preview is red, turn it (W / S, A / D) until the head points away from the block.',
+      'The pin is along one edge: turn the hinge (A / D) to put it on the side you want, e.g. the back edge of a hatch.',
+      'What is on the head must not touch the studs of the rest of the creation, or it is welded to it and cannot swing.',
+      'It holds the angle like a servo: raise its Strength for a heavy hatch, or it sags a little under the weight.',
+    ],
+  },
   turbo: {
     type: 'turbo',
     name: 'Turbo',
@@ -444,6 +538,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: true,
     hasSpeed: false,
     hasStroke: false,
+    hasAngle: false,
     tagline: 'A nitro boost for the driven wheels.',
     description:
       'A nitrous bottle that you mount on a face of a block, like the engine. Give it a key in the inspector and hold it while playing: the wheels that an engine drives, on the same body, turn faster and push harder, with a blue flame out of the nozzle. It only boosts: without an engine on the body it does nothing. The boosts of a body\'s turbos add up.',
@@ -475,6 +570,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: false,
     hasSpeed: false,
     hasStroke: false,
+    hasAngle: false,
     tagline: 'Makes your creation roll.',
     description:
       'A motorised wheel mounted on a side face of a block. Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face instead. In Play it is driven by the engines of its body (it has no key of its own to drive), and it can steer (differential drive: give it Steer left / Steer right keys) and brake (a Brake key) once you set those keys in the inspector.',
@@ -508,6 +604,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     hasPower: false,
     hasSpeed: false,
     hasStroke: false,
+    hasAngle: false,
     tagline: 'A wheel twice the size, for big machines.',
     description:
       'A wheel twice the size of the normal one: it covers 2 x 2 cells beside a block. Mount it on a side face; it fills 2 x 2 cells starting at the cell you point at, extending toward where it is turned (A / D, W / S). It turns more slowly but covers more ground and clears bigger bumps.',
@@ -531,6 +628,8 @@ export const PART_INFO: Record<PartType, PartInfo> = {
 };
 
 /** Parts in catalog order. */
+for (const type of ['wing', 'wingLarge'] as const) PART_INFO[type] = { ...PART_INFO[type], category: 'mobility' };
+
 export const PART_ORDER: ReadonlyArray<PartType> = [
   'blockLowQuarter',
   'blockQuarter',
@@ -561,9 +660,13 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'slopeLong',
   'engine',
   'thruster',
+  'propeller',
+  'wing',
+  'wingLarge',
   'turbo',
   'rotor',
   'piston',
+  'hinge',
   'wheel',
   'bigWheel',
 ];

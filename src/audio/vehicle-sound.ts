@@ -42,6 +42,10 @@ export class VehicleSound {
   private rotorGain!: GainNode;
   private chopGain!: GainNode;
   private chopLfo!: OscillatorNode;
+  private propOsc!: OscillatorNode;
+  private propFilter!: BiquadFilterNode;
+  private propGain!: GainNode;
+  private propLfo!: OscillatorNode;
   private lastImpact = -1;
   private pistons = 0;
 
@@ -132,6 +136,20 @@ export class VehicleSound {
     this.chopLfo.connect(chopDepth).connect(this.chopGain.gain);
     this.rotorOsc.connect(this.rotorFilter).connect(this.chopGain).connect(this.rotorGain).connect(out);
 
+    // The propellers: the same, with a pitch that follows the blade speed.
+    this.propOsc = osc('sawtooth');
+    this.propOsc.frequency.value = V.propeller.base;
+    this.propFilter = filter('lowpass', 700, 0.8);
+    this.propGain = gain();
+    const propChop = gain();
+    propChop.gain.value = 1 - V.propeller.chop;
+    this.propLfo = osc('sine');
+    this.propLfo.frequency.value = 1;
+    const propDepth = gain();
+    propDepth.gain.value = V.propeller.chop;
+    this.propLfo.connect(propDepth).connect(propChop.gain);
+    this.propOsc.connect(this.propFilter).connect(propChop).connect(this.propGain).connect(out);
+
     for (const s of this.sources) s.start();
   }
 
@@ -185,6 +203,13 @@ export class VehicleSound {
     to(this.chopLfo.frequency, (fastest / (2 * Math.PI)) * V.rotor.bladeCount);
     to(this.rotorFilter.frequency, 500 + 40 * fastest);
     to(this.rotorGain.gain, spinning > 0 ? V.rotor.gain * Math.min(1.5, clamp01(fastest / V.rotor.topSpeed) * 1.2 + 0.2) * Math.min(1.5, Math.sqrt(spinning)) : 0);
+
+    // Propellers: the pitch, the chop and the level follow the fastest blades.
+    const blades = Math.max(0, ...state.propellers);
+    to(this.propOsc.frequency, V.propeller.base + V.propeller.pitchRange * blades);
+    to(this.propLfo.frequency, V.propeller.bladeHz * blades);
+    to(this.propFilter.frequency, 300 + 700 * blades);
+    to(this.propGain.gain, blades > 0.02 ? V.propeller.gain * (0.3 + 0.7 * blades) * Math.min(1.5, Math.sqrt(state.propellers.length)) : 0);
 
     // One-shots: a bump, and a piston starting and stopping.
     if (state.impact > V.impact.minChange && t - this.lastImpact > V.impact.minGap) {
