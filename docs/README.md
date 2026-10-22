@@ -11,6 +11,7 @@ grid, mount wheels on them, then press **Play** to drive your creation under sim
 | [physics.md](physics.md) | How Play mode turns the grid into rigid bodies and motors, plus tuning constants |
 | [packaging.md](packaging.md) | Building a desktop app (macOS `.dmg`) with Pake |
 | [adding-a-part.md](adding-a-part.md) | Step-by-step guide to adding a new kind of part |
+| [testing.md](testing.md) | How to test a new feature in the browser (always with the game muted) |
 | [roadmap.md](roadmap.md) | Known limitations and ideas for next steps |
 
 ## Stack

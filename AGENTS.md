@@ -101,6 +101,8 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 
 ## Verifying changes
 
+Full checklist in [docs/testing.md](docs/testing.md). **Always test with the game muted** (`M`, check `#btn-sound.muted`; saved in `localStorage` `blocklab.sound`).
+
 1. `npm run build` must pass.
 2. Run `npm run dev`, open the app and exercise the feature: place blocks/wheels with real clicks, press
    Play, drive with W/S/A/D, `R` restarts, Stop returns to the intact build.
