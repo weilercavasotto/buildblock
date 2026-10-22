@@ -357,6 +357,17 @@ export const springRate = (part: { stiffness?: number }): number =>
   ((SPRING.referenceLoad * Math.abs(WORLD.gravity)) / SPRING.restSag) * 2 ** ((springStiffnessOf(part) - SPRING.stiffnessDefault) / SPRING.doubling);
 
 /**
+ * The explosive bolt (a headed part, see `HINGE`): its head, with everything welded to its studs, is fixed to the block that carries the
+ * bolt until its key is pressed, once: the joint is removed and the two bodies are pushed apart along the axis of the face so that they
+ * leave each other at `separation` m/s (relative), in proportion to their masses, and then fall and fly on their own. A bolt's base
+ * weighs `mass` blocks of the default weight.
+ */
+export const BOLT = {
+  separation: 4,
+  mass: 0.5,
+} as const;
+
+/**
  * The hinge (`Part.angle`, a slider in the part inspector): a part mounted on a face of a block whose head, with everything welded to
  * its studs, swings open like a lid on a pin along one edge when it is switched on (its key toggles: open, then closed) and stays
  * there until pressed again. `angle` is how far, in steps of `angleStep` degrees (`min` to `max` steps, `default` 6 = 90 degrees, up to

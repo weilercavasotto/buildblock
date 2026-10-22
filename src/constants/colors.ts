@@ -115,6 +115,10 @@ export const COLORS = {
     propeller: '#7b858f',
     propellerSpinner: '#c3ccd6',
     propellerBlade: '#c98a4b',
+    /** The explosive bolt: a dark steel base with an amber charge; its head (the part with studs) is amber unless painted. */
+    bolt: '#3f4650',
+    boltCharge: '#ef9f27',
+    boltHead: '#c9822b',
     /** The parachute: a steel pack with a dark cap; its canopy is red unless painted, with pale lines. */
     parachute: '#7b858f',
     parachuteCap: '#2c323a',

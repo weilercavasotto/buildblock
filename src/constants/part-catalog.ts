@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { ENGINE_BODY, HINGE_BODY, PISTON_BODY, PARACHUTE_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { CHASSIS, ENGINE, HINGE, PARACHUTE, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, PISTON_BODY, PARACHUTE_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { BOLT, CHASSIS, ENGINE, HINGE, PARACHUTE, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -559,6 +559,39 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'It holds the angle like a servo: raise its Strength for a heavy hatch, or it sags a little under the weight.',
     ],
   },
+  bolt: {
+    type: 'bolt',
+    name: 'Explosive bolt',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: false,
+    tagline: 'Drops a stage: fires once and lets go.',
+    description:
+      'A flat base that you mount on a face of a block, with a thin amber head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is held to the block by the bolt: it is one rigid creation until you fire it. Give it a key in the inspector: when you press it in Play the bolt fires, once, the joint is gone and a small push sends the two parts away from each other, each on its own from then on. Use it for two-stage rockets: the lower stage burns, the bolt drops it, and the upper stage lights its own thrusters.',
+    properties: [
+      { label: 'Size', value: `${BOLT_BODY.width} × ${BOLT_BODY.width} × ${BOLT_BODY.depth} cells, against the block` },
+      { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red' },
+      { label: 'Control', value: 'Press its key while playing (chosen in the inspector): it fires once; R restarts with the bolt whole again' },
+      { label: 'Push', value: `The two parts leave each other at ${BOLT.separation} m/s, whatever their weights` },
+      { label: 'Mass', value: `${BOLT.mass} block of the default weight (the base); the head and what it holds weigh what they are` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the head takes the colour (amber by default)' },
+    ],
+    tips: [
+      'It is never turned for you: if the preview is red, turn it (W / S, A / D) until the head points away from the block.',
+      'Put the bolt on top of the lower stage with the upper stage on its head, and give the upper stage its own thruster on another key.',
+      'The upper stage must not touch the lower one by studs anywhere else, or they stay welded together and the bolt lets go of nothing.',
+      'Several bolts on the same key fire together: use two or more to hold a heavy stage.',
+    ],
+  },
   spring: {
     type: 'spring',
     name: 'Spring',
@@ -736,6 +769,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'rotor',
   'piston',
   'hinge',
+  'bolt',
   'spring',
   'wheel',
   'bigWheel',

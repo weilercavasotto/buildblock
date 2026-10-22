@@ -570,14 +570,17 @@ export class BuildMode {
     const anchor = rel[0];
     const size = (i: number) => anchor.max[i] - anchor.min[i];
     const low = Math.min(...rel.map((b) => b.min[1]));
-    const snap = (v: number) => roundCoord(Math.round(v / STUD.pitch) * STUD.pitch);
+    // The stud lattice, per axis: the world's, until a part is pointed at; then that part's own, so a part beside one that is off the
+    // world's lattice (a block resting on a plate, 0.1 up) lines up with it instead of ending up a fraction off.
+    const lattice: Vec3 = [0, 0, 0];
+    const snap = (v: number, i: number) => roundCoord(lattice[i] + Math.round((v - lattice[i]) / STUD.pitch) * STUD.pitch);
     // `cell` coordinate along axis `i` for the pointer at `point`: the anchor's lower edge on the stud lattice. When the anchor is
     // not a whole number of pitches long there (the thin side of a plate standing as a wall) it rests on the lattice line
     // nearest to the pointer, on the side the pointer is on, so it stays in the half cell that is pointed at.
     const thin = (i: number) => Math.abs(size(i) / STUD.pitch - Math.round(size(i) / STUD.pitch)) > EPS;
     const along = (i: number, point: number) => {
-      if (!thin(i)) return snap(point - size(i) / 2) - anchor.min[i];
-      const line = snap(point);
+      if (!thin(i)) return snap(point - size(i) / 2, i) - anchor.min[i];
+      const line = snap(point, i);
       return roundCoord((point < line ? line - size(i) / 2 : line + size(i) / 2) - (anchor.min[i] + anchor.max[i]) / 2);
     };
     if (!p.part) return shape([along(0, p.point.x), GROUND_Y - low, along(2, p.point.z)]);
@@ -592,6 +595,9 @@ export class BuildMode {
     const sign = p.normal[axis];
     const target = pointedBox(boxes, p.point, axis, sign);
     const cell: Vec3 = [0, 0, 0];
+    lattice[0] = target.min[0];
+    lattice[1] = target.min[1];
+    lattice[2] = target.min[2];
     for (let i = 0; i < 3; i++) {
       if (i === axis) {
         cell[i] = sign > 0 ? target.max[i] - Math.min(...rel.map((b) => b.min[i])) : target.min[i] - Math.max(...rel.map((b) => b.max[i]));

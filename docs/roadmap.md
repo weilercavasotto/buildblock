@@ -40,7 +40,7 @@ Chosen from the brainstorm (the numbers are the ones of that list); **not starte
 | 3 | ~~**Propeller and wings with lift**~~ | done | The **Propeller** (a motor with blades, switched on / off by a key, thrust that fades with air speed) and the **Wings** (left and right swept plates, 4x3 and 8x6: lift and drag from the air at each wing, control surfaces with pitch / roll / yaw keys, helicopter blades on a rotor). See the *Propeller and wings* section of getting-started.md. |
 | 4 | ~~**Spring / damper**~~ | done | The **Spring**: a passive headed part like the piston (a coil between a base on a block and a head with studs), force-based so the load decides how far it sinks; Length and Stiffness sliders. See the *Spring* section of getting-started.md. |
 | 5 | ~~**Parachute and air brake**~~ | done | The **Parachute**: a pack with a canopy that a key opens or folds; while open it drags its body against its velocity (quadratic in the speed). See the *Parachute and air brake* section of getting-started.md. |
-| 6 | **Detachable stage** | medium | An explosive bolt that drops a part of the body on a key (two-stage rockets). |
+| 6 | ~~**Detachable stage**~~ | done | The **Explosive bolt**: a headed part whose head (and what is on its studs) is fixed to the block until its key fires it, once; a push then sends the two bodies apart (two-stage rockets). See the *Explosive bolt* section of getting-started.md. |
 | 8 | **Wheels of other sizes** | low | A small wheel (toy car) and a medium one. |
 | 9 | **Skids / skis** | low | Low-friction parts for sliding. |
 
@@ -65,7 +65,7 @@ Left out for now: 1 (an anchor block fixed to the ground).
 
 1. Ballast, tiles, glass and headlights (no physics change).
 2. Wheels of other sizes and skids (the parachute is done).
-3. The detachable stage (the hinge and the spring are done) (same base: a body joined to a block by a joint).
+3. ~~The detachable stage~~ (done).
 4. Seat and driver.
 5. Round parts, corner slopes, arches and plates with a hole (shapes that are not boxes).
 6. ~~Propeller and wings with lift~~ (done).

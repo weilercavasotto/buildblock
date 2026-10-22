@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, PartType, Vec3, axleOf, frontOf, isCompactMounted, isHexColor, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc } from './brake-model';
@@ -410,6 +410,34 @@ export function createSpringCoil(): THREE.Mesh {
   return coil;
 }
 
+const boltBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.bolt), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
+const boltChargeMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.boltCharge), roughness: ROUGHNESS.rim * 0.8, metalness: METALNESS.rim });
+const boltHeadMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.boltHead), roughness: ROUGHNESS.block, metalness: METALNESS.rim * 0.5 });
+
+/** The base of an explosive bolt in its own frame (axis +Y, centred on the base, the block at the bottom): a dark plate with the amber charge in the middle. */
+function boltBaseGroup(): THREE.Group {
+  const V = BOLT_VISUAL;
+  const group = new THREE.Group();
+  const width = BOLT_BODY.width; // as wide as the head, so the two line up
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(width, V.baseDepth, width), boltBaseMat);
+  plate.castShadow = plate.receiveShadow = true;
+  const charge = new THREE.Mesh(new THREE.CylinderGeometry(V.chargeRadius, V.chargeRadius, V.chargeHeight, V.segments), boltChargeMat);
+  charge.position.y = V.baseDepth / 2 + V.chargeHeight / 2 - 0.02;
+  charge.castShadow = true;
+  group.add(plate, charge);
+  return group;
+}
+
+/** The head of an explosive bolt in its own frame (axis +Y, centred on the head): a thin amber plate with the 2 x 2 studs on top, or painted. */
+function boltHeadGroup(paint?: string): THREE.Group {
+  const material = isHexColor(paint) ? blockMaterials(paint).face : boltHeadMat;
+  const group = new THREE.Group();
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(BOLT_BODY.width, BOLT_VISUAL.headDepth, BOLT_BODY.width), material);
+  plate.castShadow = plate.receiveShadow = true;
+  group.add(plate, studsMesh(material, [BOLT_BODY.width, BOLT_VISUAL.headDepth, BOLT_BODY.width], [0, 1, 0]));
+  return group;
+}
+
 const hingeBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hinge), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
 const hingePinMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hingePin), roughness: ROUGHNESS.rim * 0.6, metalness: METALNESS.rim });
 const hingeHeadMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hingeHead), roughness: ROUGHNESS.block, metalness: METALNESS.rim * 0.5 });
@@ -481,7 +509,7 @@ export function headedCentres(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs
 export function createHeadedBaseObject(part: Pick<Part, 'type' | 'studs' | 'spin'>): THREE.Group {
   const holder = new THREE.Group();
   holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-  holder.add(part.type === 'piston' ? pistonBaseGroup() : part.type === 'spring' ? springBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup());
+  holder.add(part.type === 'piston' ? pistonBaseGroup() : part.type === 'spring' ? springBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : part.type === 'bolt' ? boltBaseGroup() : rotorBaseGroup());
   return holder;
 }
 
@@ -489,7 +517,7 @@ export function createHeadedBaseObject(part: Pick<Part, 'type' | 'studs' | 'spin
 export function createHeadedHeadObject(part: Pick<Part, 'type' | 'studs' | 'spin' | 'color'>): THREE.Group {
   const holder = new THREE.Group();
   holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-  holder.add(part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'spring' ? springHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color));
+  holder.add(part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'spring' ? springHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : part.type === 'bolt' ? boltHeadGroup(part.color) : rotorHeadGroup(part.color));
   return holder;
 }
 
@@ -522,12 +550,12 @@ export function createPartObject(
       if (!box.polygon) group.add(socketsMesh(box.size, box.studs)); // the sockets of a swept wing would stick out of its outline: not drawn
       root.add(group);
     }
-  } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge' || part.type === 'spring') {
+  } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge' || part.type === 'spring' || part.type === 'bolt') {
     // The rotor / piston / hinge in its own frame: the base against the block (-y) and the head with its studs on the outside (+y).
     const offsets = headedOffsets(part.type);
-    const base = part.type === 'piston' ? pistonBaseGroup() : part.type === 'spring' ? springBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup();
+    const base = part.type === 'piston' ? pistonBaseGroup() : part.type === 'spring' ? springBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : part.type === 'bolt' ? boltBaseGroup() : rotorBaseGroup();
     base.position.y = offsets.base;
-    const head = part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'spring' ? springHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color);
+    const head = part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'spring' ? springHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : part.type === 'bolt' ? boltHeadGroup(part.color) : rotorHeadGroup(part.color);
     head.position.y = offsets.head;
     root.add(base, head);
   } else if (part.type === 'thruster') {

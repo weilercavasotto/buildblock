@@ -220,6 +220,7 @@ export class VehicleSound {
     if (state.pistonsMoving > 0 && this.pistons === 0) sound.play('pistonStart');
     if (state.pistonsMoving === 0 && this.pistons > 0) sound.play('pistonEnd');
     this.pistons = state.pistonsMoving;
+    if (state.boltsFired > 0) sound.play('boltFire');
     // A canopy opening or folding: one whoomph when the first starts to open, a flap when the last is folded.
     const open = state.parachutes.some((o) => o > 0.02);
     if (open !== this.chutesOpen) sound.play(open ? 'chuteOpen' : 'chuteClose');

@@ -188,12 +188,30 @@ export const HINGE_BODY = {
   depth: HINGE_VISUAL.baseDepth + HINGE_VISUAL.headDepth,
 } as const;
 
+/**
+ * The explosive bolt (a part mounted on a face of a block whose head is welded to the block until the bolt is fired): a dark base against
+ * the block with a charge (`chargeRadius`) in it and, on top, the head, a thin square plate with studs that holds the next stage. `width`
+ * across, `depth` = base + head = exactly one cell, so a block built on the head is flush with the grid (no half-cell gap, unlike the rotor and the hinge); in cells.
+ */
+export const BOLT_VISUAL = {
+  baseDepth: 1 - PLATE.thickness,
+  headDepth: PLATE.thickness,
+  chargeRadius: 0.3,
+  chargeHeight: 0.12,
+  segments: 24,
+} as const;
+export const BOLT_BODY = {
+  width: 1,
+  depth: BOLT_VISUAL.baseDepth + BOLT_VISUAL.headDepth,
+} as const;
+
 /** The parts with a head that moves (turns, slides or swings) on a joint: how deep their base and their head are (cells). */
 export const HEADED_PARTS = {
   rotor: { baseDepth: ROTOR_VISUAL.baseDepth, headDepth: ROTOR_VISUAL.headDepth, width: ROTOR_BODY.width },
   piston: { baseDepth: PISTON_VISUAL.baseDepth, headDepth: PISTON_VISUAL.headDepth, width: PISTON_BODY.width },
   hinge: { baseDepth: HINGE_VISUAL.baseDepth, headDepth: HINGE_VISUAL.headDepth, width: HINGE_BODY.width },
   spring: { baseDepth: SPRING_VISUAL.baseDepth, headDepth: SPRING_VISUAL.headDepth, width: SPRING_BODY.width },
+  bolt: { baseDepth: BOLT_VISUAL.baseDepth, headDepth: BOLT_VISUAL.headDepth, width: BOLT_BODY.width },
 } as const;
 
 /**
@@ -283,7 +301,7 @@ export const PARACHUTE_VISUAL = {
 } as const;
 
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

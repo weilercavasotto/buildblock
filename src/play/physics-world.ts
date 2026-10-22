@@ -8,6 +8,8 @@ import {
   GROUND_COLLIDER,
   BRAKE,
   ENGINE,
+  BOLT,
+  BOLT_VISUAL,
   HINGE,
   HINGE_BODY,
   HINGE_VISUAL,
@@ -79,6 +81,8 @@ export interface AudioState {
   /** How fast each rotor turns relative to its block (rad/s). */
   rotors: number[];
   pistonsMoving: number;
+  /** How many explosive bolts have fired since the last read. */
+  boltsFired: number;
   /** The strongest sudden change of velocity (m/s) since the last read. */
   impact: number;
 }
@@ -158,6 +162,10 @@ export class PhysicsWorld {
   private hinges: Array<{ part: Part; joint: RAPIER.RevoluteImpulseJoint; open: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
   /** The pistons and the springs (a passive piston: `spring` has its rest length and damping, and `stroke` is how far the head may go): the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
   private pistons: Array<{ part: Part; joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh; spring?: { rest: number; damping: number } }> = [];
+  /** The explosive bolts: the fixed joint between the body of the block and the head (until it is fired), the two bodies, the direction the head leaves in (the face) and whether it has fired. */
+  private bolts: Array<{ part: Part; joint: RAPIER.ImpulseJoint; host: RAPIER.RigidBody; head: RAPIER.RigidBody; face: Vec3; fired: boolean }> = [];
+  /** How many bolts have fired since the last `audioState` read (for the sound). */
+  private boltsFired = 0;
   private effects: PlayEffects;
   /** The bodies that carry wheels: the ones the straightening assist acts on. */
   private chassis = new Set<RAPIER.RigidBody>();
@@ -418,6 +426,8 @@ export class PhysicsWorld {
     const v = this.focus?.linvel() ?? { x: 0, y: 0, z: 0 };
     const impact = this.impactChange;
     this.impactChange = 0;
+    const boltsFired = this.boltsFired;
+    this.boltsFired = 0;
     return {
       speed: Math.hypot(v.x, v.y, v.z),
       rumble: this.effects.rumble,
@@ -434,6 +444,7 @@ export class PhysicsWorld {
         const b = r.host.angvel();
         return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
       }),
+      boltsFired,
       pistonsMoving:
         this.hinges.filter((h) => Math.abs((this.isOn(h.part, 'run') ? h.open : 0) - h.target) > 1e-3).length +
         this.pistons.filter((p) => !p.spring && Math.abs((this.isOn(p.part, 'run') ? p.stroke : 0) - p.target) > 1e-3).length,
@@ -458,6 +469,26 @@ export class PhysicsWorld {
     }
   }
 
+  /**
+   * Fires the explosive bolts whose key has been pressed (once each): the joint between the block and the head is removed, with the contacts
+   * between the two bodies back on, and an impulse along the face pushes them apart (the head's body out, the block's body back) so that they
+   * part at `BOLT.separation` m/s, whatever their masses.
+   */
+  private fireBolts(): void {
+    for (const bolt of this.bolts) {
+      if (bolt.fired || !this.isOn(bolt.part, 'run')) continue;
+      bolt.fired = true;
+      this.boltsFired++;
+      this.world.removeImpulseJoint(bolt.joint, true);
+      const reduced = (bolt.host.mass() * bolt.head.mass()) / (bolt.host.mass() + bolt.head.mass());
+      const push = reduced * BOLT.separation;
+      const r = bolt.host.rotation();
+      const out = new THREE.Vector3(...bolt.face).applyQuaternion(new THREE.Quaternion(r.x, r.y, r.z, r.w));
+      bolt.head.applyImpulse({ x: out.x * push, y: out.y * push, z: out.z * push }, true);
+      bolt.host.applyImpulse({ x: -out.x * push, y: -out.y * push, z: -out.z * push }, true);
+    }
+  }
+
   /** Swings the hinges: the target of each servo moves towards open (the angle) or closed (0) at `HINGE.speed` and the motor follows it. */
   private driveHinges(dt: number): void {
     for (const hinge of this.hinges) {
@@ -473,6 +504,7 @@ export class PhysicsWorld {
     this.driveRotors();
     this.drivePistons(dt);
     this.driveHinges(dt);
+    this.fireBolts();
     this.accumulator = Math.min(this.accumulator + dt, WORLD.maxFrameTime);
     this.airborne = this.craft.size > 0 && !this.touchingGround();
     while (this.accumulator >= WORLD.step) {
@@ -609,7 +641,8 @@ export class PhysicsWorld {
       const piston = part.type === 'piston' || part.type === 'spring';
       const spring = part.type === 'spring';
       const hinge = part.type === 'hinge';
-      const look = spring ? SPRING_VISUAL : piston ? PISTON_VISUAL : hinge ? HINGE_VISUAL : ROTOR_VISUAL;
+      const bolt = part.type === 'bolt';
+      const look = spring ? SPRING_VISUAL : piston ? PISTON_VISUAL : hinge ? HINGE_VISUAL : bolt ? BOLT_VISUAL : ROTOR_VISUAL;
       const face = part.face!;
       const axisIndex = face.findIndex((v) => v !== 0);
       const centres = headedCentres(part);
@@ -617,12 +650,12 @@ export class PhysicsWorld {
       const halves = (depth: number, width: number): Vec3 => [0, 1, 2].map((i) => (i === axisIndex ? depth : width) / 2) as Vec3;
 
       // The base stays with the block.
-      const baseHalf = halves(look.baseDepth, hinge ? HINGE_BODY.width : (look as typeof ROTOR_VISUAL).flangeRadius * 2);
+      const baseHalf = halves(look.baseDepth, hinge || bolt ? HINGE_BODY.width : (look as typeof ROTOR_VISUAL).flangeRadius * 2);
       const baseLocal = subVec(centres.base, host.origin);
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(...baseHalf)
           .setTranslation(...baseLocal)
-          .setDensity((CHASSIS.density * (spring ? SPRING.mass : piston ? PISTON.mass : hinge ? HINGE.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
+          .setDensity((CHASSIS.density * (spring ? SPRING.mass : piston ? PISTON.mass : hinge ? HINGE.mass : bolt ? BOLT.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -652,7 +685,7 @@ export class PhysicsWorld {
       const turned = faceQuaternion(face); // the cylinder's axis (Y) along the part's axis
       const headHalf = halves(HINGE_VISUAL.headDepth, HINGE_BODY.width);
       this.world.createCollider(
-        (hinge
+        (hinge || bolt
           ? RAPIER.ColliderDesc.cuboid(...headHalf) // a flat plate, as wide as the cell
           : RAPIER.ColliderDesc.cylinder(look.headDepth / 2, (look as typeof ROTOR_VISUAL).headRadius).setRotation({ x: turned.x, y: turned.y, z: turned.z, w: turned.w })
         )
@@ -698,6 +731,15 @@ export class PhysicsWorld {
           // The damping follows the real mass of the head and what it carries, so a heavy load is not left bouncing more than a light one.
           ...(spring ? { spring: { rest, damping: 2 * SPRING.dampingRatio * Math.sqrt(springRate(part) * head.body.mass()) } } : {}),
         });
+        continue;
+      }
+      if (bolt) {
+        // The head is welded to the block's body (contacts off between the two, as the head sits on the base) until the bolt fires.
+        const onHost = subVec(centres.head, host.origin);
+        const data = RAPIER.JointData.fixed({ x: onHost[0], y: onHost[1], z: onHost[2] }, { x: 0, y: 0, z: 0, w: 1 }, { x: headLocal[0], y: headLocal[1], z: headLocal[2] }, { x: 0, y: 0, z: 0, w: 1 });
+        const joint = this.world.createImpulseJoint(data, host.body, head.body, true);
+        joint.setContactsEnabled(false);
+        this.bolts.push({ part, joint, host: host.body, head: head.body, face: face as Vec3, fired: false });
         continue;
       }
       if (hinge) {
