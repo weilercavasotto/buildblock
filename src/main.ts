@@ -370,6 +370,7 @@ async function main(): Promise<void> {
         }),
       ),
     onMove: (direction) => build.moveSelectionBy(direction),
+    onMoveToGround: () => build.moveSelectionToGround(),
     onClose: () => build.select(null),
   });
   build.onSelectionChange((parts) => inspector.show(parts));

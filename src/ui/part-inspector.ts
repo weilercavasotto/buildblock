@@ -11,6 +11,8 @@ export interface InspectorHandlers {
   onRemoveMany(parts: ReadonlyArray<Part>): void;
   /** Moves the whole selection one step in a direction seen from the camera. */
   onMove(direction: MoveDirection): void;
+  /** Moves the whole selection down until it rests on the ground. */
+  onMoveToGround(): void;
   /** Sets the suspension strength (0-100) of a wheel. */
   onSuspension(part: Part, strength: number): void;
   /** Sets the tire (0 speed tires … 100 traction tires, see `TIRE`) of a wheel, or of all the wheels on its body with `wholeBody`. */
@@ -96,6 +98,7 @@ export class PartInspector {
     const body = el('div', 'inspector-body');
     body.append(
       summary,
+      ...this.moveSection(),
       ...this.keySection(part),
       ...this.tireSection(part),
       ...this.brakeSection(part),
@@ -134,10 +137,7 @@ export class PartInspector {
     body.append(
       text('h3', 'inspector-name', TEXT.inspector.selectedCount(parts.length)),
       ...this.keySectionMany(parts),
-      text('h4', 'inspector-heading', TEXT.inspector.move),
-      this.movePad(),
-      text('p', 'inspector-status', TEXT.inspector.moveHint),
-      this.mouseMoves(),
+      ...this.moveSection(),
       this.rows([...counts].map(([type, n]) => [PART_INFO[type as keyof typeof PART_INFO].name, String(n)] as [string, string])),
       text('p', 'inspector-status', TEXT.inspector.removeHint),
       text('p', 'inspector-status', TEXT.inspector.multiHint),
@@ -171,6 +171,19 @@ export class PartInspector {
       box.append(line);
     }
     return box;
+  }
+
+  /** The position controls of a selection of one part or more: the arrows, the button that puts it on the ground, and how to move it with the mouse. */
+  private moveSection(): HTMLElement[] {
+    const ground = el('button', 'catalog-action move-ground') as HTMLButtonElement;
+    ground.type = 'button';
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) icon.setAttribute(name, value);
+    icon.innerHTML = MOVE_ICONS.ground; // trusted constant (src/constants/cursor-modes.ts)
+    ground.append(icon, text('span', '', TEXT.inspector.moveGround));
+    ground.title = TEXT.inspector.moveGroundLabel;
+    ground.onclick = () => this.handlers.onMoveToGround();
+    return [text('h4', 'inspector-heading', TEXT.inspector.move), this.movePad(), ground, text('p', 'inspector-status', TEXT.inspector.moveHint), this.mouseMoves()];
   }
 
   /** The buttons that move the selection: up / forward / down above left / back / right. */

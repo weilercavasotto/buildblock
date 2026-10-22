@@ -172,7 +172,9 @@ export const TEXT = {
     removeMany: (n: number) => `Remove ${n} parts`,
     move: 'Move',
     moveLabels: { up: 'Up', down: 'Down', left: 'Left', right: 'Right', forward: 'Forward (away from the camera)', back: 'Back (towards the camera)' },
-    moveHint: 'The arrows move the selection by half a cell (a plate when going up or down) as seen from the camera. A move that does not fit does nothing.',
+    moveGround: 'To the ground',
+    moveGroundLabel: 'Move down until the lowest part rests on the ground',
+    moveHint: 'The arrows move the part or the selection by half a cell (a plate when going up or down) as seen from the camera. A move that does not fit does nothing.',
     /** Mouse moves, shown as key caps + text under the arrows: the Shift one must stand out. */
     moveMouse: [
       { keys: ['Drag'], text: 'Move along the ground' },

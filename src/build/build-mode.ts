@@ -368,6 +368,21 @@ export class BuildMode {
     this.history.run(() => void this.moveSelection(step as Vec3));
   }
 
+  /**
+   * Moves the selection down until its lowest part (the wheels and other parts mounted on its blocks included) rests on the floor: one undo
+   * step, and nothing moves when it is already there or something is in the way.
+   */
+  moveSelectionToGround(): void {
+    let lowest = Infinity;
+    for (const part of this.selection) {
+      const current = this.grid.get(part.cell);
+      if (!current) continue;
+      for (const p of [current, ...(isHostType(current.type) ? this.grid.mountedOn(current.cell) : [])]) lowest = Math.min(lowest, partBox(p).min[1]);
+    }
+    if (!Number.isFinite(lowest) || lowest - GROUND_Y < EPS) return;
+    this.history.run(() => void this.moveSelection([0, roundCoord(GROUND_Y - lowest), 0]));
+  }
+
   /** Slides the selection after the pointer while a move drag is on, as far as the parts can go (each axis on its own when both together are blocked). */
   private dragSelection(e: PointerLike): void {
     const drag = this.dragMove;
