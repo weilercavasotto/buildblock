@@ -355,6 +355,7 @@ async function main(): Promise<void> {
     onWeight: (part, weight, connected) => history.run(() => grid.setWeight(part.cell, weight, connected)),
     onTire: (part, tire, wholeBody) => history.run(() => grid.setTire(part.cell, tire, wholeBody)),
     onStroke: (part, stroke) => history.run(() => grid.setStroke(part.cell, stroke)),
+    onStiffness: (part, stiffness) => history.run(() => grid.setStiffness(part.cell, stiffness)),
     onAngle: (part, angle) => history.run(() => grid.setAngle(part.cell, angle)),
     onStrength: (part, strength) => history.run(() => grid.setStrength(part.cell, strength)),
     onSpeed: (part, speed) => history.run(() => grid.setSpeed(part.cell, speed)),

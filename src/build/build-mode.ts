@@ -7,7 +7,7 @@ import { BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, hexToNumb
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, isHostType, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, canHost, isMountHost, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -377,7 +377,7 @@ export class BuildMode {
     for (const part of this.selection) {
       const current = this.grid.get(part.cell);
       if (!current) continue;
-      for (const p of [current, ...(isHostType(current.type) ? this.grid.mountedOn(current.cell) : [])]) lowest = Math.min(lowest, partBox(p).min[1]);
+      for (const p of [current, ...(isMountHost(current.type) ? this.grid.mountedOn(current.cell) : [])]) lowest = Math.min(lowest, partBox(p).min[1]);
     }
     if (!Number.isFinite(lowest) || lowest - GROUND_Y < EPS) return;
     this.history.run(() => void this.moveSelection([0, roundCoord(GROUND_Y - lowest), 0]));
@@ -534,7 +534,7 @@ export class BuildMode {
     if (this.tool === null) return null;
     if (isStructural(this.tool)) return this.structuralTarget(this.tool, p);
     // Wheels and engines are mounted on a face of a block (`face` says which), turned as the user chose, like any part.
-    if (!p.part || !isHostType(p.part.type)) return null;
+    if (!p.part || !canHost(p.part.type, this.tool)) return null;
     if (isWheelType(this.tool) && p.normal[1] !== 0) return null; // wheels go on the sides (the rest on any face)
     // The part's cell is the unit cell against the face. Across the face it is centred on a face that is not wider than a cell (a plain
     // block: its middle), else it follows the pointer in half-cell steps, kept inside the face.

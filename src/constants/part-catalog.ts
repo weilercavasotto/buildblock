@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { ENGINE_BODY, HINGE_BODY, PISTON_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { CHASSIS, ENGINE, HINGE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { ENGINE_BODY, HINGE_BODY, PISTON_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { CHASSIS, ENGINE, HINGE, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -34,6 +34,8 @@ export interface PartInfo {
   hasStroke: boolean;
   /** Does it have an adjustable opening angle and servo strength (a hinge; set in the part inspector)? */
   hasAngle: boolean;
+  /** Does it have an adjustable stiffness (a spring; set in the part inspector)? */
+  hasStiffness?: boolean;
   /** One line shown under the name. */
   tagline: string;
   description: string;
@@ -526,6 +528,41 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'It holds the angle like a servo: raise its Strength for a heavy hatch, or it sags a little under the weight.',
     ],
   },
+  spring: {
+    type: 'spring',
+    name: 'Spring',
+    category: 'mobility',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: true,
+    hasAngle: false,
+    hasStiffness: true,
+    tagline: 'A passive spring: it pushes out and gives under a load.',
+    description:
+      'A coil that you mount on a face of a block, with a green head on top that has studs. Everything you build on the studs of the head, blocks, plates, brackets and whatever is mounted on them, is not welded to the rest of the creation: in Play it rides on the spring. The spring pushes the head out to its length and the load compresses it, the heavier the load the more; a bump makes it bounce. It has no key. Use it for suspension arms, bumpers, trampolines and shock absorbers.',
+    properties: [
+      { label: 'Size', value: `${SPRING_BODY.width} × ${SPRING_BODY.width} × ${SPRING_BODY.depth} cells folded, against the block` },
+      { label: 'Studs', value: '4 on the head (2 × 2), pointing away from the block' },
+      { label: 'Placement', value: 'On any face of a block or of a flat plate (top, bottom or sides); it does not take the place of a block' },
+      { label: 'Rotation', value: 'A / D turn, W / S tilt (90° steps): the head (with the studs) must point away from the block, or the preview turns red' },
+      { label: 'Length', value: 'Adjustable in the inspector (0.5 to 3 cells, default 1 cell): how far the head is when nothing presses on it' },
+      { label: 'Stiffness', value: 'Adjustable in the inspector (1-10, default 5): a soft spring sinks under a load, a stiff one barely moves' },
+      { label: 'Control', value: 'None: it is passive' },
+      { label: 'Mass', value: `${SPRING.mass} block of the default weight (the base); the head and what it holds weigh what they are` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the head takes the colour (green by default)' },
+    ],
+    tips: [
+      'It is never turned for you: if the preview is red, turn it (W / S, A / D) until the head points away from the block.',
+      'The spring unfolds from the block when Play starts, so leave room for its length.',
+      'Raise the Stiffness for a heavy load, or the spring sinks until it is fully compressed.',
+      'What is on the head must not touch the studs of the rest of the creation, or it is welded to it and the spring stays rigid.',
+    ],
+  },
   turbo: {
     type: 'turbo',
     name: 'Turbo',
@@ -667,6 +704,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'rotor',
   'piston',
   'hinge',
+  'spring',
   'wheel',
   'bigWheel',
 ];

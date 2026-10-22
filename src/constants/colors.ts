@@ -98,6 +98,11 @@ export const COLORS = {
     pistonCollar: '#c3ccd6',
     pistonRod: '#d5dbe2',
     pistonHead: '#9fb0c0',
+    /** The spring: a dark steel base with a light collar, a bright coil and a green head (unless painted). */
+    spring: '#3f4650',
+    springCollar: '#c3ccd6',
+    springCoil: '#d9dee4',
+    springHead: '#4fa86b',
     /** The hinge: a dark steel base with a light pin; its flat head (the part with studs) is teal unless painted. */
     hinge: '#3f4650',
     hingePin: '#c3ccd6',

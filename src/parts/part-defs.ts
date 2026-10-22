@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, PartType, Vec3, axleOf, frontOf, isCompactMounted, isHexColor, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeCaliper, createBrakeDisc } from './brake-model';
@@ -366,6 +366,49 @@ export function createPistonRod(): THREE.Mesh {
   return rod;
 }
 
+const springBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.spring), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
+const springCollarMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.springCollar), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
+const springCoilMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.springCoil), roughness: ROUGHNESS.rim * 0.6, metalness: METALNESS.rim });
+const springHeadMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.springHead), roughness: ROUGHNESS.block, metalness: METALNESS.rim * 0.5 });
+
+/** The base of a spring in its own frame (axis +Y, centred on the base, the block at the bottom): a wide flange, a short seat and a light collar where the coil starts. */
+function springBaseGroup(): THREE.Group {
+  const V = SPRING_VISUAL;
+  const group = new THREE.Group();
+  const bottom = -V.baseDepth / 2;
+  group.add(
+    disc(V.flangeRadius, V.flangeHeight, bottom, springBaseMat, V.segments),
+    disc(V.barrelRadius, V.baseDepth - V.flangeHeight - V.collarHeight, bottom + V.flangeHeight, springBaseMat, V.segments),
+    disc(V.collarRadius + 0.04, V.collarHeight, bottom + V.baseDepth - V.collarHeight, springCollarMat, V.segments),
+  );
+  return group;
+}
+
+/** The head of a spring in its own frame (axis +Y, centred on the head): a disc with the 2 x 2 studs on top, green unless painted. */
+function springHeadGroup(paint?: string): THREE.Group {
+  const material = isHexColor(paint) ? blockMaterials(paint).face : springHeadMat;
+  const group = new THREE.Group();
+  group.add(disc(SPRING_VISUAL.headRadius, SPRING_VISUAL.headDepth, -SPRING_VISUAL.headDepth / 2, material, SPRING_VISUAL.segments));
+  group.add(studsMesh(material, [SPRING_BODY.width, SPRING_VISUAL.headDepth, SPRING_BODY.width], [0, 1, 0]));
+  return group;
+}
+
+/** The coil of a spring: a helix one cell long along +Y with its base at the origin, to be scaled to the distance between the base and the head (see `PhysicsWorld`). */
+export function createSpringCoil(): THREE.Mesh {
+  const V = SPRING_VISUAL;
+  const points: THREE.Vector3[] = [];
+  const steps = V.turns * 16;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const angle = t * V.turns * Math.PI * 2;
+    points.push(new THREE.Vector3(Math.cos(angle) * V.coilRadius, t, Math.sin(angle) * V.coilRadius));
+  }
+  const coil = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), steps * 2, V.wireRadius, 8), springCoilMat);
+  coil.castShadow = true;
+  coil.raycast = () => {};
+  return coil;
+}
+
 const hingeBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hinge), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
 const hingePinMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hingePin), roughness: ROUGHNESS.rim * 0.6, metalness: METALNESS.rim });
 const hingeHeadMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.hingeHead), roughness: ROUGHNESS.block, metalness: METALNESS.rim * 0.5 });
@@ -418,7 +461,7 @@ export function hingePivot(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' |
 }
 
 /** Where, along its axis, the centres of the base and of the head are from the centre of a rotor or a piston (cells; the head is on the +Y side). */
-const headedOffsets = (type: 'rotor' | 'piston' | 'hinge'): { base: number; head: number } => {
+const headedOffsets = (type: keyof typeof HEADED_PARTS): { base: number; head: number } => {
   const { baseDepth, headDepth } = HEADED_PARTS[type];
   const depth = baseDepth + headDepth;
   return { base: -(depth - baseDepth) / 2, head: (depth - headDepth) / 2 };
@@ -428,7 +471,7 @@ const headedOffsets = (type: 'rotor' | 'piston' | 'hinge'): { base: number; head
 export function headedCentres(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): { base: Vec3; head: Vec3 } {
   const centre = partCentre(part);
   const face = part.face ?? [0, 1, 0];
-  const offsets = headedOffsets(part.type as 'rotor' | 'piston' | 'hinge');
+  const offsets = headedOffsets(part.type as keyof typeof HEADED_PARTS);
   const at = (offset: number): Vec3 => [centre[0] + face[0] * offset, centre[1] + face[1] * offset, centre[2] + face[2] * offset];
   return { base: at(offsets.base), head: at(offsets.head) };
 }
@@ -437,7 +480,7 @@ export function headedCentres(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs
 export function createHeadedBaseObject(part: Pick<Part, 'type' | 'studs' | 'spin'>): THREE.Group {
   const holder = new THREE.Group();
   holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-  holder.add(part.type === 'piston' ? pistonBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup());
+  holder.add(part.type === 'piston' ? pistonBaseGroup() : part.type === 'spring' ? springBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup());
   return holder;
 }
 
@@ -445,7 +488,7 @@ export function createHeadedBaseObject(part: Pick<Part, 'type' | 'studs' | 'spin
 export function createHeadedHeadObject(part: Pick<Part, 'type' | 'studs' | 'spin' | 'color'>): THREE.Group {
   const holder = new THREE.Group();
   holder.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-  holder.add(part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color));
+  holder.add(part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'spring' ? springHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color));
   return holder;
 }
 
@@ -478,12 +521,12 @@ export function createPartObject(
       if (!box.polygon) group.add(socketsMesh(box.size, box.studs)); // the sockets of a swept wing would stick out of its outline: not drawn
       root.add(group);
     }
-  } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge') {
+  } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge' || part.type === 'spring') {
     // The rotor / piston / hinge in its own frame: the base against the block (-y) and the head with its studs on the outside (+y).
     const offsets = headedOffsets(part.type);
-    const base = part.type === 'piston' ? pistonBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup();
+    const base = part.type === 'piston' ? pistonBaseGroup() : part.type === 'spring' ? springBaseGroup() : part.type === 'hinge' ? hingeBaseGroup() : rotorBaseGroup();
     base.position.y = offsets.base;
-    const head = part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color);
+    const head = part.type === 'piston' ? pistonHeadGroup(part.color) : part.type === 'spring' ? springHeadGroup(part.color) : part.type === 'hinge' ? hingeHeadGroup(part.color) : rotorHeadGroup(part.color);
     head.position.y = offsets.head;
     root.add(base, head);
   } else if (part.type === 'thruster') {

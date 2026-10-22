@@ -34,7 +34,7 @@ export const STRUCTURAL_TYPES = [
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /** Every kind of part in the catalog. */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge';
+export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge' | 'spring';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -43,14 +43,23 @@ export const isStructural = (type: PartType): type is StructuralType => (STRUCTU
 export const HOST_TYPES = ['block', 'blockQuarter', 'blockLowQuarter', 'blockTallQuarter', 'blockHalf', 'blockLong', 'blockLow', 'blockTall', 'blockBeam', 'blockBeamLow', 'blockLarge'] as const;
 export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly string[]).includes(type);
 
+/** The flat plates: only springs are mounted on them (they are too thin for the rest). */
+export const isPlateType = (type: PartType): boolean => type.startsWith('plate');
+
+/** Can `part` be mounted on a `host`? Any mounted part goes on a block (`HOST_TYPES`); a spring also on a plate. */
+export const canHost = (host: PartType, part: PartType): boolean => isHostType(host) || (part === 'spring' && isPlateType(host));
+
+/** Can anything be mounted on a part of this type (a block, or a plate for a spring)? */
+export const isMountHost = (type: PartType): boolean => isHostType(type) || isPlateType(type);
+
 /** The engine: mounted on a face of a block like a wheel, it drives the wheels of the body. */
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge';
+export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
 
 /** The parts with a compact body against their host block (`MOUNTED_BODY`): the engine, the turbo, the thruster and the rotor. */
-export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge';
+export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'rotor' | 'piston' | 'hinge' | 'spring' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
 
 /** The wings: thin flat plates with studs, the only aerodynamic parts (lift and drag from the air they move through, see `WING`). */
 export const WING_TYPES = ['wing', 'wingLarge'] as const;
@@ -66,7 +75,7 @@ export const isPiston = (type: PartType): boolean => type === 'piston';
 export const isHinge = (type: PartType): boolean => type === 'hinge';
 
 /** Parts with a head that moves on a joint (the rotor turns it, the piston slides it, the hinge swings it): the parts built on the studs of the head move with it. */
-export const isHeaded = (type: PartType): boolean => type === 'rotor' || type === 'piston' || type === 'hinge';
+export const isHeaded = (type: PartType): boolean => type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
 
 /** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
@@ -129,6 +138,8 @@ export interface Part {
   angle?: number;
   /** Hinges only (`PART_INFO[type].hasAngle`): the servo's strength, an integer 1-10 (see `HINGE`). Missing = `HINGE.strengthDefault`. Read it through `hingeStrengthOf()`. */
   strength?: number;
+  /** Springs only (`PART_INFO[type].hasStiffness`): how stiff the spring is, an integer 1-10 (see `SPRING`). Missing = `SPRING.stiffnessDefault`. Read it through `springStiffnessOf()`. */
+  stiffness?: number;
   /** Blocks only (`PART_INFO[type].hasWeight`): weight, an integer (see `WEIGHT`). Missing = `WEIGHT.default`. Read it through `weightOf()`. */
   weight?: number;
 }

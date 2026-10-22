@@ -303,6 +303,37 @@ export const strokeOf = (part: { stroke?: number }): number => clampStroke(part.
 export const strokeLength = (part: { stroke?: number }): number => strokeOf(part) * PISTON.strokeStep;
 
 /**
+ * The spring (`Part.stroke` = its rest length, like the piston's stroke; `Part.stiffness`, sliders in the part inspector): a part mounted
+ * on a face of a block whose head, with everything welded to its studs, is pushed out along the face by a spring and rides on it. There
+ * is no key: it is passive. The spring constant (force based, N/m) is fixed by the stiffness (never by the load), so the heavier what is
+ * on the head the more it compresses: at the default stiffness `referenceLoad` blocks sink it about `restSag` cells; the constant
+ * doubles every `doubling` steps of the slider. The damping follows the real mass of the head (`dampingRatio` of critical: low, so it
+ * bounces). The head may go from fully compressed (0) to twice its rest length; at the start of Play it unfolds from 0 to the rest
+ * length at `speed` cells per second. A spring's base weighs `mass` blocks of the default weight.
+ */
+export const SPRING = {
+  stiffnessMin: 1,
+  stiffnessMax: 10,
+  stiffnessDefault: 5,
+  doubling: 2,
+  referenceLoad: 4,
+  restSag: 0.25,
+  dampingRatio: 0.25,
+  speed: 2,
+  mass: 0.5,
+} as const;
+
+export const clampSpringStiffness = (value: number): number =>
+  Math.min(SPRING.stiffnessMax, Math.max(SPRING.stiffnessMin, Math.round(Number.isFinite(value) ? value : SPRING.stiffnessDefault)));
+
+/** The stiffness of a spring (1-10): its own, or the default. */
+export const springStiffnessOf = (part: { stiffness?: number }): number => clampSpringStiffness(part.stiffness ?? SPRING.stiffnessDefault);
+
+/** The spring constant (N/m) of a spring: `referenceLoad` blocks sink it `restSag` cells at the default stiffness. */
+export const springRate = (part: { stiffness?: number }): number =>
+  ((SPRING.referenceLoad * Math.abs(WORLD.gravity)) / SPRING.restSag) * 2 ** ((springStiffnessOf(part) - SPRING.stiffnessDefault) / SPRING.doubling);
+
+/**
  * The hinge (`Part.angle`, a slider in the part inspector): a part mounted on a face of a block whose head, with everything welded to
  * its studs, swings open like a lid on a pin along one edge when it is switched on (its key toggles: open, then closed) and stays
  * there until pressed again. `angle` is how far, in steps of `angleStep` degrees (`min` to `max` steps, `default` 6 = 90 degrees, up to

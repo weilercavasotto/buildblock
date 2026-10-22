@@ -16,6 +16,8 @@ import {
   PROPELLER,
   ROTOR,
   ROTOR_VISUAL,
+  SPRING,
+  SPRING_VISUAL,
   THRUSTER,
   TURBO,
   VEHICLE,
@@ -24,6 +26,7 @@ import {
   hingeDamping,
   hingeRadians,
   hingeStiffness,
+  springRate,
   ROUGHNESS,
   SCENERY_PARTS,
   SHAPES,
@@ -45,7 +48,7 @@ import {
   weightOf,
   wheelSizeOf,
 } from '../constants';
-import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
+import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, createSpringCoil, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
 import { matrixOf, orientationOfPart } from '../parts/orientation';
 import { PROPELLER_BLADES } from '../parts/propeller-model';
 import { partBox, relativeBoxes, studsEngaged, wedgePoints } from '../parts/part-geometry';
@@ -147,8 +150,8 @@ export class PhysicsWorld {
   private rotors: Array<{ part: Part; joint: RAPIER.RevoluteImpulseJoint; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
   /** The hinges: the joint between the body of the block and the head, how far it opens (rad), where the servo is aiming now (rad), and the two bodies. */
   private hinges: Array<{ part: Part; joint: RAPIER.RevoluteImpulseJoint; open: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody }> = [];
-  /** The pistons: the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
-  private pistons: Array<{ part: Part; joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh }> = [];
+  /** The pistons and the springs (a passive piston: `spring` has its rest length and damping, and `stroke` is how far the head may go): the slider between the body of the block and the head, how far (cells) it may go, where its spring is aiming now, the two bodies, the pivot in each (the head's in its own body), the axis and the rod to scale. */
+  private pistons: Array<{ part: Part; joint: RAPIER.PrismaticImpulseJoint; stroke: number; target: number; host: RAPIER.RigidBody; head: RAPIER.RigidBody; pivot: Vec3; headLocal: Vec3; face: Vec3; rod: THREE.Mesh; spring?: { rest: number; damping: number } }> = [];
   private effects: PlayEffects;
   /** The bodies that carry wheels: the ones the straightening assist acts on. */
   private chassis = new Set<RAPIER.RigidBody>();
@@ -380,7 +383,7 @@ export class PhysicsWorld {
       }),
       pistonsMoving:
         this.hinges.filter((h) => Math.abs((this.isOn(h.part, 'run') ? h.open : 0) - h.target) > 1e-3).length +
-        this.pistons.filter((p) => Math.abs((this.isOn(p.part, 'run') ? p.stroke : 0) - p.target) > 1e-3).length,
+        this.pistons.filter((p) => !p.spring && Math.abs((this.isOn(p.part, 'run') ? p.stroke : 0) - p.target) > 1e-3).length,
       impact,
     };
   }
@@ -388,6 +391,13 @@ export class PhysicsWorld {
   /** Slides the pistons: the target of each spring moves towards out (the stroke) or back (0) at `PISTON.speed` and the spring follows it. */
   private drivePistons(dt: number): void {
     for (const piston of this.pistons) {
+      if (piston.spring) {
+        // A spring is always "out": its rest length unfolds at the start of Play, then it is the load that moves the head.
+        const step = SPRING.speed * dt;
+        piston.target += Math.max(-step, Math.min(step, piston.spring.rest - piston.target));
+        piston.joint.configureMotorPosition(piston.target, springRate(piston.part), piston.spring.damping);
+        continue;
+      }
       const goal = this.isOn(piston.part, 'run') ? piston.stroke : 0;
       const step = PISTON.speed * dt;
       piston.target += Math.max(-step, Math.min(step, goal - piston.target));
@@ -543,9 +553,10 @@ export class PhysicsWorld {
     for (const part of parts.filter((p) => isHeaded(p.type) && p.face)) {
       const host = hostBody(part);
       if (!host) continue;
-      const piston = part.type === 'piston';
+      const piston = part.type === 'piston' || part.type === 'spring';
+      const spring = part.type === 'spring';
       const hinge = part.type === 'hinge';
-      const look = piston ? PISTON_VISUAL : hinge ? HINGE_VISUAL : ROTOR_VISUAL;
+      const look = spring ? SPRING_VISUAL : piston ? PISTON_VISUAL : hinge ? HINGE_VISUAL : ROTOR_VISUAL;
       const face = part.face!;
       const axisIndex = face.findIndex((v) => v !== 0);
       const centres = headedCentres(part);
@@ -558,7 +569,7 @@ export class PhysicsWorld {
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(...baseHalf)
           .setTranslation(...baseLocal)
-          .setDensity((CHASSIS.density * (piston ? PISTON.mass : hinge ? HINGE.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
+          .setDensity((CHASSIS.density * (spring ? SPRING.mass : piston ? PISTON.mass : hinge ? HINGE.mass : ROTOR.mass)) / (8 * baseHalf[0] * baseHalf[1] * baseHalf[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -613,21 +624,27 @@ export class PhysicsWorld {
       const axis = { x: face[0], y: face[1], z: face[2] };
       const anchors = [{ x: pivot[0], y: pivot[1], z: pivot[2] }, { x: headLocal[0], y: headLocal[1], z: headLocal[2] }] as const;
       if (piston) {
-        const stroke = strokeLength(part);
+        const rest = strokeLength(part);
+        const stroke = spring ? rest * 2 : rest; // a spring may stretch to twice its length
         const data = RAPIER.JointData.prismatic(anchors[0], anchors[1], axis);
         data.limitsEnabled = true;
         data.limits = [0, stroke];
         const joint = this.world.createImpulseJoint(data, host.body, head.body, true) as RAPIER.PrismaticImpulseJoint;
         joint.setContactsEnabled(false);
-        joint.configureMotorModel(RAPIER.MotorModel.AccelerationBased);
-        joint.configureMotorPosition(0, PISTON.stiffness, PISTON.damping);
-        // The rod shows between the barrel and the head while it is out: a cylinder on the barrel's mouth, as long as the head is away (see `sync`).
-        const rod = createPistonRod();
+        // A piston's motor is acceleration based (it holds whatever the head carries); a spring's is force based, so the load decides how far it sinks.
+        joint.configureMotorModel(spring ? RAPIER.MotorModel.ForceBased : RAPIER.MotorModel.AccelerationBased);
+        joint.configureMotorPosition(0, spring ? springRate(part) : PISTON.stiffness, spring ? 0 : PISTON.damping);
+        // The rod (a spring's coil) shows between the barrel and the head while it is out: a cylinder on the barrel's mouth, as long as the head is away (see `sync`).
+        const rod = spring ? createSpringCoil() : createPistonRod();
         rod.quaternion.copy(orientationQuaternion(orientationOfPart(part)));
-        rod.position.set(...baseLocal).addScaledVector(new THREE.Vector3(...face), PISTON_VISUAL.baseDepth / 2);
+        rod.position.set(...baseLocal).addScaledVector(new THREE.Vector3(...face), look.baseDepth / 2);
         rod.visible = false;
         host.visual.add(rod);
-        this.pistons.push({ part, joint, stroke, target: 0, host: host.body, head: head.body, pivot, headLocal, face, rod });
+        this.pistons.push({
+          part, joint, stroke, target: 0, host: host.body, head: head.body, pivot, headLocal, face, rod,
+          // The damping follows the real mass of the head and what it carries, so a heavy load is not left bouncing more than a light one.
+          ...(spring ? { spring: { rest, damping: 2 * SPRING.dampingRatio * Math.sqrt(springRate(part) * head.body.mass()) } } : {}),
+        });
         continue;
       }
       if (hinge) {

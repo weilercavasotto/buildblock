@@ -145,6 +145,31 @@ export const PISTON_BODY = {
 } as const;
 
 /**
+ * The spring (a part mounted on a face of a block whose head, with everything built on it, rides on a spring that pushes it out along the
+ * face): a low base against the block, the head (a thin disc with studs, like the piston's) and a coil between them that is stretched to
+ * the distance they are apart (`coilRadius` / `wireRadius` of the wire, `turns` of it). The keys that the piston's look has are the same,
+ * so the headed-part code treats them alike. In cells.
+ */
+export const SPRING_VISUAL = {
+  baseDepth: 0.2,
+  headDepth: PLATE.thickness,
+  flangeRadius: 0.46,
+  flangeHeight: 0.07,
+  barrelRadius: 0.4,
+  collarRadius: 0.3,
+  collarHeight: 0.05,
+  headRadius: 0.48,
+  coilRadius: 0.3,
+  wireRadius: 0.05,
+  turns: 7,
+  segments: 32,
+} as const;
+export const SPRING_BODY = {
+  width: 1,
+  depth: SPRING_VISUAL.baseDepth + SPRING_VISUAL.headDepth,
+} as const;
+
+/**
  * The hinge (a part mounted on a face of a block whose head swings open like a lid): a flat base against the block with a pin along
  * one edge (`pinRadius`, tangent to the top of the base; the head turns round its centre) and, on top, the head, a thin square plate
  * with studs. `width` across, `depth` = base + head, closed; in cells. Which edge has the pin comes from how the part is turned.
@@ -168,6 +193,7 @@ export const HEADED_PARTS = {
   rotor: { baseDepth: ROTOR_VISUAL.baseDepth, headDepth: ROTOR_VISUAL.headDepth, width: ROTOR_BODY.width },
   piston: { baseDepth: PISTON_VISUAL.baseDepth, headDepth: PISTON_VISUAL.headDepth, width: PISTON_BODY.width },
   hinge: { baseDepth: HINGE_VISUAL.baseDepth, headDepth: HINGE_VISUAL.headDepth, width: HINGE_BODY.width },
+  spring: { baseDepth: SPRING_VISUAL.baseDepth, headDepth: SPRING_VISUAL.headDepth, width: SPRING_BODY.width },
 } as const;
 
 /**
@@ -231,7 +257,7 @@ export const PROPELLER_VISUAL = {
 } as const;
 
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

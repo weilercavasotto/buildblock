@@ -1,7 +1,7 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, partBox, partsOverlap, studsEngaged } from '../parts/part-geometry';
-import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, frontOf, studsOf, subVec, StructuralType } from '../types';
+import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isMountHost, canHost, frontOf, studsOf, subVec, StructuralType } from '../types';
 
 export class Grid {
   /** Every part, keyed by its own `cell` (see `cellKey`). */
@@ -106,7 +106,7 @@ export class Grid {
       const current = this.get(part.cell);
       if (!current) return null;
       moving.set(cellKey(current.cell), current);
-      if (isHostType(current.type)) for (const mounted of this.mountedOn(current.cell)) moving.set(cellKey(mounted.cell), mounted);
+      if (isMountHost(current.type)) for (const mounted of this.mountedOn(current.cell)) moving.set(cellKey(mounted.cell), mounted);
     }
     const before = new Map(this.parts);
     for (const key of moving.keys()) this.parts.delete(key);
@@ -284,6 +284,18 @@ export class Grid {
     return true;
   }
 
+  /** Sets the stiffness (`SPRING.stiffnessMin` to `SPRING.stiffnessMax`) of the spring at `cell`; the default is stored as "not set". Returns false, changing nothing, when there is no such part or nothing changes. */
+  setStiffness(cell: Vec3, stiffness: number): boolean {
+    const part = this.get(cell);
+    if (!part || !PART_INFO[part.type].hasStiffness || !Number.isFinite(stiffness)) return false;
+    const value = clampSpringStiffness(stiffness);
+    if (springStiffnessOf(part) === value) return false;
+    const { stiffness: _old, ...rest } = part;
+    this.parts.set(cellKey(part.cell), value === SPRING.stiffnessDefault ? rest : { ...rest, stiffness: value });
+    this.emit();
+    return true;
+  }
+
   /** The parts of `type` mounted on the same rigid body as the block or mounted part at `cell` (itself included); [] when there is none. */
   mountedOfTypeOnBody(cell: Vec3, type: Part['type']): Part[] {
     const part = this.get(cell);
@@ -380,7 +392,7 @@ export class Grid {
     const part = this.get(cell);
     if (!part) return;
     // What is mounted on it is found through the block, so it is listed before the block goes.
-    const mounted = isHostType(part.type) ? this.mountedOn(part.cell) : [];
+    const mounted = isMountHost(part.type) ? this.mountedOn(part.cell) : [];
     this.parts.delete(cellKey(part.cell));
     for (const m of mounted) this.parts.delete(cellKey(m.cell));
     this.emit();
@@ -462,7 +474,7 @@ export class Grid {
   }
 
   /**
-   * The block a mounted part sits on: the one (of `HOST_TYPES`) whose face, the one the part's `face` points away from, contains the
+   * The block a mounted part sits on: the one (of `HOST_TYPES`, or a plate for a spring) whose face, the one the part's `face` points away from, contains the
    * middle of the part's back, the point half a cell behind its `cell`. For a plain block that is the block next to it, as it always
    * was; a bigger block has many places on each face. Null for a part that is not mounted or has no host.
    */
@@ -472,7 +484,7 @@ export class Grid {
     const axis = face.findIndex((v) => v !== 0);
     const point = [0, 1, 2].map((i) => part.cell[i] - face[i] / 2);
     for (const host of this.parts.values()) {
-      if (!isHostType(host.type)) continue;
+      if (!canHost(host.type, part.type)) continue;
       const box = partBox(host);
       if (Math.abs((face[axis] > 0 ? box.max[axis] : box.min[axis]) - point[axis]) > EPS) continue;
       if ([0, 1, 2].every((i) => i === axis || (point[i] >= box.min[i] - EPS && point[i] <= box.max[i] + EPS))) return host;
@@ -499,7 +511,7 @@ function withKeys(part: Part, keys: Record<string, string[] | undefined>): Part 
 }
 
 function sanitize(part: Part, legacyFormat: boolean): Part | null {
-  const { color, suspension, tire: savedTire, weight, power, speed, stroke, angle, brake, key, keys, strength, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
+  const { color, suspension, tire: savedTire, weight, power, speed, stroke, angle, brake, key, keys, strength, stiffness, studs, spin, pitch, front, rotation, ...rest } = part as Part & {
     layers?: number;
     rotation?: number;
     pitch?: number;
@@ -527,6 +539,7 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   if (stroke !== undefined && typeof stroke === 'number' && info.hasStroke) out.stroke = clampStroke(stroke);
   if (angle !== undefined && typeof angle === 'number' && info.hasAngle && clampHingeAngle(angle) !== HINGE.default) out.angle = clampHingeAngle(angle);
   if (strength !== undefined && typeof strength === 'number' && info.hasAngle && clampHingeStrength(strength) !== HINGE.strengthDefault) out.strength = clampHingeStrength(strength);
+  if (stiffness !== undefined && typeof stiffness === 'number' && info.hasStiffness && clampSpringStiffness(stiffness) !== SPRING.stiffnessDefault) out.stiffness = clampSpringStiffness(stiffness);
   if (brake !== undefined && typeof brake === 'number' && isWheelType(part.type) && clampBrake(brake) !== BRAKE.default) out.brake = clampBrake(brake);
   if (weight !== undefined && typeof weight === 'number' && info.hasWeight) out.weight = clampWeight(weight);
   // Keys: saved per action. A game saved with one `key` per part (before actions) gets it on the part's first action (a wheel's brake).

@@ -1,4 +1,4 @@
-import { MOVE_ICONS, HINGE, PISTON, ROTOR, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, hingeAngleOf, hingeDegrees, hingeStrengthOf, actionsOf, isKeyed, keyLabel, keysOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
+import { MOVE_ICONS, HINGE, PISTON, ROTOR, SPRING, springStiffnessOf, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, hingeAngleOf, hingeDegrees, hingeStrengthOf, actionsOf, isKeyed, keyLabel, keysOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
 import { Part, Vec3, axleOf, frontOf, isHostType, isWheelType, isStructural, partCells, studsOf, subVec } from '../types';
@@ -23,6 +23,8 @@ export interface InspectorHandlers {
   onSpeed(part: Part, speed: number): void;
   /** Sets how far a piston goes out (steps of half a cell, see `PISTON`). */
   onStroke(part: Part, stroke: number): void;
+  /** Sets the stiffness (1-10) of a spring (see `SPRING`). */
+  onStiffness(part: Part, stiffness: number): void;
   /** Sets how far a hinge opens (steps of `HINGE.angleStep` degrees, see `HINGE`). */
   onAngle(part: Part, angle: number): void;
   /** Sets the strength (1-10) of a hinge's servo (see `HINGE`). */
@@ -105,6 +107,7 @@ export class PartInspector {
       ...this.powerSection(part),
       ...this.speedSection(part),
       ...this.strokeSection(part),
+      ...this.stiffnessSection(part),
       ...this.angleSection(part),
       ...this.strengthSection(part),
       ...this.weightSection(part),
@@ -449,12 +452,31 @@ export class PartInspector {
     });
   }
 
-  /** Stroke slider of a piston: how far its head goes out, in half cells. */
+  /** Stiffness slider of a spring: how little it gives under a load. */
+  private stiffnessSection(part: Part): HTMLElement[] {
+    if (!PART_INFO[part.type].hasStiffness) return [];
+    const t = TEXT.inspector;
+    return this.sliderSection({
+      heading: t.stiffness,
+      min: SPRING.stiffnessMin,
+      max: SPRING.stiffnessMax,
+      step: 1,
+      value: springStiffnessOf(part),
+      defaultValue: SPRING.stiffnessDefault,
+      low: t.stiffnessSoft,
+      high: t.stiffnessStiff,
+      hint: t.stiffnessHint,
+      onCommit: (value) => this.handlers.onStiffness(part, value),
+    });
+  }
+
+  /** Stroke slider of a piston: how far its head goes out, in half cells (a spring's length). */
   private strokeSection(part: Part): HTMLElement[] {
     if (!PART_INFO[part.type].hasStroke) return [];
     const t = TEXT.inspector;
+    const spring = part.type === 'spring';
     return this.sliderSection({
-      heading: t.stroke,
+      heading: spring ? t.springLength : t.stroke,
       min: PISTON.min,
       max: PISTON.max,
       step: PISTON.step,
@@ -462,7 +484,7 @@ export class PartInspector {
       defaultValue: PISTON.default,
       low: t.strokeLow,
       high: t.strokeHigh,
-      hint: t.strokeHint,
+      hint: spring ? t.springLengthHint : t.strokeHint,
       onCommit: (value) => this.handlers.onStroke(part, value),
     });
   }
@@ -600,6 +622,9 @@ export class PartInspector {
         rows.push([TEXT.inspector.servoStrength, String(hingeStrengthOf(part))]);
       } else if (part.type === 'piston') {
         rows.push([TEXT.inspector.stroke, TEXT.inspector.strokeValue(strokeOf(part))]);
+      } else if (part.type === 'spring') {
+        rows.push([TEXT.inspector.springLength, TEXT.inspector.strokeValue(strokeOf(part))]);
+        rows.push([TEXT.inspector.stiffness, String(springStiffnessOf(part))]);
       } else if (part.type === 'rotor') {
         rows.push([TEXT.inspector.speed, TEXT.inspector.speedValue(rotorSpeedOf(part))]);
       } else if (part.type === 'engine') {
