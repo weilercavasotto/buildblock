@@ -231,7 +231,7 @@ The **Turbo** (catalog, *Mobility*) is a nitrous bottle (blue by default, with a
 
 ### The brake
 
-**Every wheel has a brake** (a drilled steel disc with a red caliper behind the rim; the rims are open between the spokes, so you can see it). There is no brake part: select the wheel in inspect mode and the inspector has the **Brake** strength slider (1-10, default 5, with "apply to the wheels on this body", saved and undoable like the tire and the suspension) and the wheel's **key section** (*Action Key*). A wheel brakes only when it has a key: in Play, **holding that key** (see *Part keys*) holds back every wheel with it, driven or not (it overrides the throttle for them); a wheel with no key never brakes, and the bell does not count it. Measured on a 2 × 2 car at 8.9 m/s: no brake stops in 2.9 s, brakes (5) on the two front wheels in 2.2 s and on all four in 0.7 s (10: 0.6 s); a locked wheel is limited by its grip. Games saved with the old Brake part keep the strength of the wheels that had one.
+**Every wheel has a brake** (a drilled steel disc behind the rim; the rims are open between the spokes, so you can see it). There is no brake part: select the wheel in inspect mode and the inspector has the **Brake** strength slider (1-10, default 5, with "apply to the wheels on this body", saved and undoable like the tire and the suspension) and the wheel's **key section** (*Action Key*). A wheel brakes only when it has a key: in Play, **holding that key** (see *Part keys*) holds back every wheel with it, driven or not (it overrides the throttle for them); a wheel with no key never brakes, and the bell does not count it. Measured on a 2 × 2 car at 8.9 m/s: no brake stops in 2.9 s, brakes (5) on the two front wheels in 2.2 s and on all four in 0.7 s (10: 0.6 s); a locked wheel is limited by its grip. Games saved with the old Brake part keep the strength of the wheels that had one.
 
 ### The engine
 
@@ -247,6 +247,12 @@ its axle is X and it extends up and towards +Z). Its centre is the middle of the
 the floor a little and the whole creation spawns slightly higher. It has the same **Tire** and **Suspension** controls
 as the normal wheel, cannot be painted, and turns more slowly (it still covers more ground per turn). Removing any of its
 4 cells (or its block) removes it. Inspecting it shows *Occupies* and its *Axle*.
+
+### Wheels of other sizes
+
+Besides the normal wheel and the large wheel there are a **Small wheel** (half the size: radius 0.325, width 0.2, a toy-car wheel) and a **Medium wheel** (1.5 times: radius 0.975, width 0.6). Both are in the catalog (*Mobility*) and are placed like the normal wheel: click a side face of a block; each takes **one cell** (the medium one's tire reaches into the cells around it, which is harmless: wheels only collide with the ground). A small wheel **hangs lower in its cell** (with its axle horizontal) so its tread is level with the normal wheel's and it reaches the ground; the medium and large wheels are centred. They have the same Tire, Suspension, Brake and steering controls as every wheel. The sizes feel different: a small wheel turns faster, and a medium one slower, than the normal wheel (`WHEEL_SIZES.speed`), and their motor strengths are scaled (`torque`: the motor is acceleration based, so a small wheel needs much more and a bigger one less to push like a normal wheel). Use the same size on both sides of an axle. **Two wheels may not overlap**: a wheel whose tire (a box of its radius and width, `wheelBox`) would intersect another wheel's cannot be placed (the ghost is red), so neighbouring wheels need cells far enough apart (two normal wheels need a free cell between them; saves made before this rule load as they were).
+
+Every wheel sits **next to its block**: with its axle across the block's face it is slid in (`partCentre`) until its inner side is a small gap (`WHEEL.gap`) from the face, whatever its width.
 
 ### Rotating the part to place (`A` / `D`, `W` / `S`)
 

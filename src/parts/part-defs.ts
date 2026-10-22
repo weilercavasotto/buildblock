@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, PartType, Vec3, axleOf, frontOf, isCompactMounted, isHexColor, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
-import { createBrakeCaliper, createBrakeDisc } from './brake-model';
+import { createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
 import { createPropellerModel, propellerHousing } from './propeller-model';
 import { createParachuteModel, parachutePack } from './parachute-model';
@@ -273,15 +273,6 @@ function brakeFitting(wheel: Pick<Part, 'type' | 'studs' | 'spin' | 'face'>): TH
   return fitting;
 }
 
-/** The caliper of a wheel as a separate object (in Play it follows the suspension, not the spinning wheel). */
-export function createCaliperObject(wheel: Pick<Part, 'type' | 'studs' | 'spin' | 'face'>): THREE.Group {
-  const fitting = brakeFitting(wheel);
-  fitting.add(createBrakeCaliper());
-  const holder = new THREE.Group();
-  holder.add(fitting);
-  return holder;
-}
-
 const rotorBaseMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.rotor), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
 const rotorRingMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.rotorRing), roughness: ROUGHNESS.rim, metalness: METALNESS.rim });
 
@@ -525,8 +516,6 @@ export function createHeadedHeadObject(part: Pick<Part, 'type' | 'studs' | 'spin
 export function createPartObject(
   part: Pick<Part, 'type' | 'color' | 'studs' | 'spin' | 'face'>,
   ghost?: 'ok' | 'bad',
-  /** `caliper: false` leaves the caliper of a wheel out (in Play it is a separate object that stays with the suspension). */
-  { caliper = true }: { caliper?: boolean } = {},
 ): THREE.Group {
   const root = new THREE.Group();
   const noRaycast = { raycast: () => {} };
@@ -590,7 +579,6 @@ export function createPartObject(
     // Every wheel has its brake disc behind the rim; the disc turns with the wheel, so it is part of this object.
     const brake = brakeFitting(part);
     brake.add(createBrakeDisc());
-    if (caliper) brake.add(createBrakeCaliper());
     root.add(brake);
   }
   // Every other part is turned the same way: its own frame to the world by its orientation.

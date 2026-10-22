@@ -22,6 +22,7 @@ every time Play starts (and on `R`).
      engine is weaker (`torque` 0.6, the wheel is ~32× the inertia) and eased off in a straight line (`cruise` 0.2: a
      wheelie otherwise), while steering gets the full strength, blended with the steering input. Top speed
      (`speed` 0.75 of angular speed) is still higher because the wheel is bigger.
+   - **Small and medium wheels** (`smallWheel` 0.5, `mediumWheel` 1.5, `WHEEL_SIZES`): the same chain, scaled like the large wheel but one cell. `wheelDrop` (in `partCentre`) hangs a wheel smaller than the normal one `WHEEL.radius * (1 - scale)` lower in its cell when its axle is horizontal, so its tread is level with the normal wheel's. The motor is acceleration based, so the force at the ground goes with the wheel's inertia over its radius (about `scale`⁴): `torque` is 12 for the small wheel (a light wheel needs far more) and 0.5 for the medium one, tuned so that a 2 x 2 car accelerates and pitches about like with normal wheels.
    - **Suspension**: the spring is a `PrismaticImpulseJoint` along the world up axis, limited to
      `SUSPENSION.travelDown` / `travelUp`, with a position motor aiming at the rest position
      (`configureMotorPosition`, `MotorModel.ForceBased`). The player sets the **strength** (0-100, `Part.suspension`,

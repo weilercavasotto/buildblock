@@ -1,6 +1,6 @@
 import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PARACHUTE, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
-import { EPS, partBox, partBoxes, partsOverlap, studsEngaged } from '../parts/part-geometry';
+import { EPS, boxesOverlap, partBox, partBoxes, partsOverlap, studsEngaged, wheelBox } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, isMountHost, canHost, frontOf, studsOf, subVec, StructuralType } from '../types';
 
 export class Grid {
@@ -70,6 +70,11 @@ export class Grid {
         if (studsOf(part).some((v, i) => v !== part.face![i])) return false; // the head (its studs, local up) must point away from the block: the part is never turned for the player
       } else if (part.type !== 'turbo' && part.type !== 'thruster' && part.face[1] !== 0) {
         return false; // a turbo, a thruster, a propeller, a rotor and a piston go on any face, like the engine; the wheels only on the sides
+      }
+      if (isWheelType(part.type)) {
+        // Two wheels may not overlap each other (they are bigger than a cell, so neighbours can).
+        const tire = wheelBox(part);
+        if (this.all().some((other) => isWheelType(other.type) && boxesOverlap(tire, wheelBox(other)))) return false;
       }
       return this.hostOf(part) !== null;
     }
@@ -552,7 +557,7 @@ function sanitize(part: Part, legacyFormat: boolean): Part | null {
   // Keys: saved per action. A game saved with one `key` per part (before actions) gets it on the part's first action (a wheel's brake).
   if (isKeyed(part)) {
     const saved: Record<string, unknown> = typeof keys === 'object' && keys !== null ? (keys as Record<string, unknown>) : {};
-    if (isValidKey(key) && Object.keys(saved).length === 0) saved[part.type === 'wheel' || part.type === 'bigWheel' ? 'brake' : actionsOf(part)[0].id] = [key];
+    if (isValidKey(key) && Object.keys(saved).length === 0) saved[isWheelType(part.type) ? 'brake' : actionsOf(part)[0].id] = [key];
     const clean: Record<string, string[]> = {};
     for (const action of actionsOf(part)) {
       const list = cleanKeys(Array.isArray(saved[action.id]) ? (saved[action.id] as unknown[]) : []);

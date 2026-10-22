@@ -60,7 +60,7 @@ export function generateRandomBuild(): RandomBuild {
   }
 
   const axles = new Set([0, length - 1]);
-  if (length >= 4 && chance(RANDOM_BUILD.middleAxleChance)) axles.add(Math.floor(length / 2));
+  if (length >= 5 && chance(RANDOM_BUILD.middleAxleChance)) axles.add(Math.floor(length / 2));
   for (const z of axles) {
     add({ type: 'wheel', cell: [-1, 0, z], face: [-1, 0, 0] });
     add({ type: 'wheel', cell: [width, 0, z], face: [1, 0, 0] });

@@ -123,6 +123,10 @@ export const HELP_TABS: HelpTab[] = [
             text: 'Click the side of a block to mount a wheel (not the top or bottom). Its axle starts along X; turn it (A / D, W / S) in any direction before placing, e.g. a quarter turn to make it lie along the face like a caster. Every wheel has a brake: in the inspector (inspect mode, I) set its strength (1-10) and, if you want it to brake, give its Brake action a key; while you hold that key in Play every wheel with it is held back, driven or not. A wheel can also steer: give its Steer left / Steer right actions keys (the same ones on all the wheels you want to turn).',
           },
           {
+            keys: ['Small wheel', 'Medium wheel'],
+            text: 'Wheels of other sizes: the small wheel is half the size of the normal one (a toy-car wheel), the medium wheel one and a half times. Both take one cell and are placed like the wheel, on the side of a block; a small wheel hangs low in its cell so it still reaches the ground. They have the same Tire, Suspension, Brake and steering settings as every wheel. Use the same size on both sides of an axle, or the car leans. A wheel cannot be placed where its tire would overlap another wheel (the preview turns red): leave a gap between neighbouring wheels. They are added to the hotbar from the parts catalog (C).',
+          },
+          {
             keys: ['Large wheel'],
             text: 'A wheel twice the size. Click the side of a block, as with the wheel: it fills 2 x 2 cells starting at the cell you point at, so those must be free. Turn it (A / D, W / S) to choose its axle and which way it extends. It is added to the hotbar from the parts catalog (C).',
           },

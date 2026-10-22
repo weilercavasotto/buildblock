@@ -323,8 +323,8 @@ export const TURBO_VISUAL = {
 } as const;
 
 /**
- * The brake model (`parts/brake-model.ts`): a drilled disc lying in the yz plane (its axis along x, like a wheel's) with a
- * caliper clamped on its top edge, in its own frame and at the size it has on a normal wheel (a large wheel scales it). `inset` is
+ * The brake model (`parts/brake-model.ts`): a drilled disc lying in the yz plane (its axis along x, like a wheel's),
+ * in its own frame and at the size it has on a normal wheel (a large wheel scales it). `inset` is
  * how far toward the vehicle the disc sits from the middle of the wheel. Lengths in cells.
  */
 export const BRAKE_VISUAL = {
@@ -336,10 +336,6 @@ export const BRAKE_VISUAL = {
   holes: 6,
   holeRadius: 0.03,
   holeCircle: 0.17,
-  /** The caliper (width along the disc's axis, height and length along the rim). */
-  caliperThickness: 0.12,
-  caliperHeight: 0.14,
-  caliperLength: 0.2,
   inset: 0.11,
   segments: 28,
 } as const;

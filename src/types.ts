@@ -1,4 +1,5 @@
 import { CELL_SIZE, MOUNTED_BODY } from './constants/game';
+import { WHEEL, wheelDrop, wheelSizeOf } from './constants/physics';
 export type Vec3 = [number, number, number];
 /** Parts that make up the body of a creation: blocks, plates and L brackets in several sizes (see `SHAPES`). */
 export const STRUCTURAL_TYPES = [
@@ -34,7 +35,7 @@ export const STRUCTURAL_TYPES = [
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /** Every kind of part in the catalog. */
-export type PartType = StructuralType | 'wheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' | 'bolt';
+export type PartType = StructuralType | 'wheel' | 'smallWheel' | 'mediumWheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' | 'bolt';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -56,7 +57,7 @@ export const isMountHost = (type: PartType): boolean => isHostType(type) || isFl
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring' || type === 'bolt';
+export const isMountedType = (type: PartType): boolean => isWheelType(type) || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring' || type === 'bolt';
 
 /** The parts with a compact body against their host block (`MOUNTED_BODY`): the engine, the turbo, the thruster and the rotor. */
 export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' | 'bolt' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
@@ -77,8 +78,8 @@ export const isHinge = (type: PartType): boolean => type === 'hinge';
 /** Parts with a head that moves on a joint (the rotor turns it, the piston slides it, the hinge swings it, the bolt holds it until it is fired): the parts built on the studs of the head move with it. */
 export const isHeaded = (type: PartType): boolean => type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring' || type === 'bolt';
 
-/** Wheels (small and large): mounted on a block face, with a tire and a suspension. */
-export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'bigWheel';
+/** Wheels (small, normal, medium and large): mounted on a block face, with a tire and a suspension. */
+export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'smallWheel' || type === 'mediumWheel' || type === 'bigWheel';
 
 /** What the left button does: place parts, inspect a part, or remove parts. */
 export type CursorMode = 'build' | 'inspect' | 'paint' | 'remove';
@@ -231,16 +232,26 @@ export function partCells(part: Pick<Part, 'type' | 'cell' | 'studs' | 'spin'>):
   return [part.cell, beside, addVec(part.cell, v), addVec(beside, v)];
 }
 
-/** The centre of a part in world coordinates: its cell, except a large wheel (the middle of its 4 cells) and an engine (nearer its host block). */
+/** The centre of a part in world coordinates: its cell, except a large wheel (the middle of its 4 cells), an engine (nearer its host block) and a wheel (slid in against its block, and lower when small). */
 export function partCentre(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' | 'spin'>): Vec3 {
   if (isCompactMounted(part.type) && part.face) {
     // The body of an engine or a turbo is smaller than a cell and rests against its host block.
     const back = (CELL_SIZE - MOUNTED_BODY[part.type].depth) / 2;
     return [part.cell[0] - part.face[0] * back, part.cell[1] - part.face[1] * back, part.cell[2] - part.face[2] * back];
   }
-  if (part.type !== 'bigWheel') return part.cell;
-  const [u, v] = bigWheelReach(part);
-  return [part.cell[0] + (u[0] + v[0]) / 2, part.cell[1] + (u[1] + v[1]) / 2, part.cell[2] + (u[2] + v[2]) / 2];
+  if (!isWheelType(part.type)) return part.cell;
+  let centre: Vec3 = part.cell;
+  if (part.type === 'bigWheel') {
+    const [u, v] = bigWheelReach(part);
+    centre = [part.cell[0] + (u[0] + v[0]) / 2, part.cell[1] + (u[1] + v[1]) / 2, part.cell[2] + (u[2] + v[2]) / 2];
+  }
+  const axle = axleOf(part);
+  // A wheel smaller than the normal one hangs lower in its cell, so its tread is level with the normal wheel's.
+  const drop = axle[1] === 0 ? wheelDrop(part.type) : 0;
+  // With its axle across the block's face the wheel slides in until its inner side is `WHEEL.gap` from the block.
+  const face = part.face;
+  const slide = face && axle.every((v, i) => Math.abs(v) === Math.abs(face[i])) ? Math.max(0, CELL_SIZE / 2 - (WHEEL.width * wheelSizeOf(part.type).scale) / 2 - WHEEL.gap) : 0;
+  return [centre[0] - (face ? face[0] * slide : 0), centre[1] - drop - (face ? face[1] * slide : 0), centre[2] - (face ? face[2] * slide : 0)];
 }
 
 /** Is `v` one of the six axis directions (a unit vector along x, y or z)? */

@@ -1,5 +1,5 @@
-import { CELL_SIZE, HEADED_PARTS, MOUNTED_BODY, SHAPES, STUD } from '../constants';
-import { Part, Vec3, addVec, roundCoord, applyMatrix, isCompactMounted, isHeaded, isHostType, isStructural, isWing, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
+import { CELL_SIZE, HEADED_PARTS, MOUNTED_BODY, SHAPES, STUD, WHEEL, wheelSizeOf } from '../constants';
+import { Part, Vec3, addVec, axleOf, roundCoord, applyMatrix, isCompactMounted, isHeaded, isHostType, isStructural, isWing, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
 
 /** Axis-aligned box, in world units. */
 export interface Box {
@@ -126,6 +126,15 @@ export function partBox(part: Shape): Box {
   }
   const half = CELL_SIZE / 2;
   return boundingBox(partCells(part).map((c) => ({ min: [c[0] - half, c[1] - half, c[2] - half] as Vec3, max: [c[0] + half, c[1] + half, c[2] + half] as Vec3 })));
+}
+
+/** The box around a wheel's tire (its radius across the axle, half its width along it), for telling whether two wheels overlap. */
+export function wheelBox(wheel: Shape): Box {
+  const { scale } = wheelSizeOf(wheel.type);
+  const axle = axleOf(wheel);
+  const centre = partCentre(wheel);
+  const half = axle.map((v) => (v !== 0 ? WHEEL.width : WHEEL.radius * 2) * scale / 2) as Vec3;
+  return { min: centre.map((v, i) => v - half[i]) as Vec3, max: centre.map((v, i) => v + half[i]) as Vec3 };
 }
 
 /** Do the interiors of the two boxes intersect (touching faces do not count)? */

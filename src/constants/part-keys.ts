@@ -29,6 +29,12 @@ const surfaces = (): KeyAction[] => [
   { id: 'yawLeft', label: 'Yaw left', mode: 'hold', required: false },
   { id: 'yawRight', label: 'Yaw right', mode: 'hold', required: false },
 ];
+/** Every wheel, whatever its size, steers and brakes. */
+const WHEEL_ACTIONS: KeyAction[] = [
+  { id: 'steerLeft', label: 'Steer left', mode: 'hold', required: false },
+  { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
+  { id: 'brake', label: 'Brake', mode: 'hold', required: false },
+];
 const toggle = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'toggle', required: true }];
 
 /**
@@ -41,16 +47,10 @@ export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
     { id: 'forward', label: 'Accelerate', mode: 'hold', required: true },
     { id: 'reverse', label: 'Reverse', mode: 'hold', required: false },
   ],
-  wheel: [
-    { id: 'steerLeft', label: 'Steer left', mode: 'hold', required: false },
-    { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
-    { id: 'brake', label: 'Brake', mode: 'hold', required: false },
-  ],
-  bigWheel: [
-    { id: 'steerLeft', label: 'Steer left', mode: 'hold', required: false },
-    { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
-    { id: 'brake', label: 'Brake', mode: 'hold', required: false },
-  ],
+  wheel: WHEEL_ACTIONS,
+  smallWheel: WHEEL_ACTIONS,
+  mediumWheel: WHEEL_ACTIONS,
+  bigWheel: WHEEL_ACTIONS,
   thruster: run('Thrust'),
   turbo: run('Turbo boost'),
   propeller: toggle('Propellers on / off'),

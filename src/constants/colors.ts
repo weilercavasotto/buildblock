@@ -80,10 +80,9 @@ export const COLORS = {
     engine: '#aab3bd',
     engineRim: '#7b858f',
     engineDark: '#2c323a',
-    /** The brake: a steel disc with dark holes and a red caliper. */
+    /** The brake: a steel disc with dark holes. */
     brakeDisc: '#b8bec8',
     brakeHole: '#2c323a',
-    brakeCaliper: '#d94a4a',
     /** The turbo: a blue nitrous bottle with a white band, a brass valve and a dark nozzle. */
     turbo: '#3b6fb6',
     turboBand: '#e8edf5',

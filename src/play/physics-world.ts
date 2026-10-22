@@ -51,7 +51,7 @@ import {
   weightOf,
   wheelSizeOf,
 } from '../constants';
-import { createCaliperObject, createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, createSpringCoil, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
+import { createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, createSpringCoil, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
 import { matrixOf, orientationOfPart } from '../parts/orientation';
 import { PROPELLER_BLADES } from '../parts/propeller-model';
 import { PARACHUTE_CANOPY } from '../parts/parachute-model';
@@ -961,14 +961,10 @@ export class PhysicsWorld {
         part: wheel,
       });
 
-      // The wheel (with its brake disc, which turns with it) follows the wheel body; the caliper follows the hub, so it
-      // stays on the suspension while the wheel spins.
-      const obj = createPartObject(wheel, undefined, { caliper: false });
+      // The wheel (with its brake disc, which turns with it) follows the wheel body.
+      const obj = createPartObject(wheel);
       this.group.add(obj);
       this.pairs.push({ body, object: obj });
-      const caliper = createCaliperObject(wheel);
-      this.group.add(caliper);
-      this.pairs.push({ body: hub, object: caliper });
     }
 
     this.buildWingControls();

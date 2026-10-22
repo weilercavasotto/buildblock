@@ -1,5 +1,5 @@
 import { SHAPES } from '../constants/part-shapes';
-import { Matrix, Orientation, Part, PartType, Vec3, applyMatrix, isStructural, matrixOf, normalizeRotation, rotationOfFace, turnAbout } from '../types';
+import { Matrix, Orientation, Part, PartType, Vec3, applyMatrix, isStructural, isWheelType, matrixOf, normalizeRotation, rotationOfFace, turnAbout } from '../types';
 
 export { matrixOf, orientationOfPart } from '../types';
 export type { Matrix, Orientation } from '../types';
@@ -20,7 +20,7 @@ function symmetryOf(type: PartType): Matrix[] {
     const spins = SHAPES[type].spins;
     return quarterTurns([0, 1, 0], spins === 1 ? [0, 1, 2, 3] : spins === 2 ? [0, 2] : [0]);
   }
-  if (type === 'wheel') return quarterTurns([1, 0, 0], [0, 1, 2, 3]); // around its axle
+  if (type === 'wheel' || type === 'smallWheel' || type === 'mediumWheel') return quarterTurns([1, 0, 0], [0, 1, 2, 3]); // around its axle
   if (type === 'rotor' || type === 'piston' || type === 'spring') return quarterTurns([0, 1, 0], [0, 1, 2, 3]); // a round base and a square head: around its axis
   return [identity];
 }
@@ -116,7 +116,7 @@ export function legacyOrientation(
  */
 export function mainAxisOf(type: PartType, o: Orientation): Vec3 {
   const m = matrixOf(o);
-  if (type === 'wheel' || type === 'bigWheel') return m[0];
+  if (isWheelType(type)) return m[0];
   if (type === 'engine') return m[2];
   return m[1];
 }

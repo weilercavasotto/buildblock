@@ -15,6 +15,8 @@ export const WHEEL = {
   radius: 0.65,
   width: 0.4,
   density: 1,
+  /** The small gap (cells) between a wheel's inner side and the face of the block it is mounted on (see `partCentre`). */
+  gap: 0.04,
 } as const;
 
 /**
@@ -126,16 +128,25 @@ export const suspensionStiffness = (strength: number): number => {
 /**
  * Size of each wheel type: `scale` multiplies `WHEEL.radius` / `WHEEL.width`; `speed` multiplies the angular top speed (a
  * bigger wheel covers more ground per turn, so the large wheel turns slower to stay controllable); `torque` multiplies
- * the motor strength (the large wheel is far heavier, so the same motor setting would be far too strong); `cruise` is the
+ * the motor strength (the motor is acceleration based, so its force at the ground goes with the wheel's inertia over its radius, about `scale`⁴: the large wheel is far heavier and the same setting would be far too strong, and the small one needs a lot more to push like a normal wheel); `cruise` is the
  * fraction of that strength used when driving straight: steering needs the full strength to skid the car round, but the
  * same torque in a straight line would tip a light body backwards (a wheelie), so it is eased off (see `VehicleController`).
  */
 export const WHEEL_SIZES = {
+  smallWheel: { scale: 0.5, speed: 1.4, torque: 12, cruise: 0.35 },
   wheel: { scale: 1, speed: 1, torque: 1, cruise: 0.3 },
+  mediumWheel: { scale: 1.5, speed: 0.85, torque: 0.5, cruise: 0.25 },
   bigWheel: { scale: 2, speed: 0.75, torque: 0.6, cruise: 0.2 },
 } as const;
 export const wheelSizeOf = (type: PartType): { scale: number; speed: number; torque: number; cruise: number } =>
-  type === 'bigWheel' ? WHEEL_SIZES.bigWheel : WHEEL_SIZES.wheel;
+  type === 'bigWheel' || type === 'mediumWheel' || type === 'smallWheel' ? WHEEL_SIZES[type] : WHEEL_SIZES.wheel;
+
+/**
+ * How far (in cells) a wheel of this type hangs below the centre of its cell: a wheel smaller than the normal one is moved
+ * down so its tread is level with the normal wheel's (otherwise it would not reach the ground), as long as its axle is
+ * horizontal. Bigger wheels are centred.
+ */
+export const wheelDrop = (type: PartType): number => Math.max(0, WHEEL.radius * (1 - wheelSizeOf(type).scale));
 
 /**
  * Weight of a block (`Part.weight`, set with a slider in the part inspector): an integer from `min` to `max`. A block of
