@@ -20,6 +20,8 @@ import {
   ROTOR,
   ROTOR_VISUAL,
   SPRING,
+  SKI,
+  SKI_BODY,
   SPRING_VISUAL,
   THRUSTER,
   TURBO,
@@ -55,9 +57,10 @@ import { createHeadedBaseObject, createHeadedHeadObject, createPartObject, creat
 import { matrixOf, orientationOfPart } from '../parts/orientation';
 import { PROPELLER_BLADES } from '../parts/propeller-model';
 import { PARACHUTE_CANOPY } from '../parts/parachute-model';
+import { SKI_RUNNER, skiProfile } from '../parts/ski-model';
 import { partBox, relativeBoxes, studsEngaged, wedgePoints } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
-import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isStructural, isWheelType, isWing, partCentre, subVec } from '../types';
+import { Part, Vec3, axleOf, cellKey, frontOf, isCompactMounted, isHeaded, isSki, isStructural, isWheelType, isWing, partCentre, subVec } from '../types';
 
 const { ground: GROUND, chassis: CHASSIS_GROUP, wheel: WHEEL_GROUP } = COLLISION_GROUP;
 const groups = (member: number, filter: number): number => (member << 16) | filter;
@@ -177,6 +180,14 @@ export class PhysicsWorld {
   private aero = new Set<RAPIER.RigidBody>();
   /** The bodies of the vehicle that can be flown (the ones that carry wheels or thrusters), where each one's nose is, and the colliders that tell whether it touches the ground. */
   private craft = new Set<RAPIER.RigidBody>();
+  /** The skis: where each is on its body, the way its runner points, how far it is turned and its model's runner (see `steerSkis`). */
+  private skis: Array<{ part: Part; body: RAPIER.RigidBody; point: THREE.Vector3; front: THREE.Vector3; angle: number; runner: THREE.Object3D | null; share: number }> = [];
+  /** The bodies that carry skis: the ones the sled assist acts on (see `levelSkis`). */
+  private skiBodies = new Set<RAPIER.RigidBody>();
+  /** How long (s) each ski body may have been off the ground and still be levelled: a skimming sled loses contact for a moment now and then. */
+  private skiGrace = new Map<RAPIER.RigidBody, number>();
+  /** The normal of the surface each ski body last stood on (pointing up, see `groundNormal`). */
+  private skiGround = new Map<RAPIER.RigidBody, THREE.Vector3>();
   private groundColliders: RAPIER.Collider[] = [];
 
   constructor(grid: Grid) {
@@ -405,6 +416,71 @@ export class PhysicsWorld {
     }
   }
 
+  /**
+   * Sled assist (see `SKI.levelGain`): a body on skis that touches the ground (or did a moment ago) and is nearly upright keeps no
+   * pitch or roll rate and is turned towards the slope it stands on (up on flat ground), so a thruster above its centre of mass does
+   * not tip it into the ground and it still follows a ramp; it turns freely about its own vertical axis. Off in the air and once it tumbles.
+   */
+  private levelSkis(): void {
+    const q = new THREE.Quaternion();
+    const up = new THREE.Vector3();
+    for (const body of this.skiBodies) {
+      const colliders = Array.from({ length: body.numColliders() }, (_, i) => body.collider(i));
+      const normal = this.groundNormal(colliders);
+      if (normal) {
+        this.skiGround.set(body, normal);
+        this.skiGrace.set(body, SKI.levelGrace);
+      } else {
+        this.skiGrace.set(body, (this.skiGrace.get(body) ?? 0) - WORLD.step);
+      }
+      const target = this.skiGround.get(body);
+      if (!target || (this.skiGrace.get(body) ?? 0) <= 0) continue;
+      const r = body.rotation();
+      up.set(0, 1, 0).applyQuaternion(q.set(r.x, r.y, r.z, r.w));
+      if (up.y < SKI.levelMin) continue;
+      const w = body.angvel();
+      const yaw = w.x * up.x + w.y * up.y + w.z * up.z;
+      // The turn that takes the body's up onto the slope's normal: `up x target`.
+      const turn = up.clone().cross(target).multiplyScalar(SKI.levelGain);
+      body.setAngvel({ x: yaw * up.x + turn.x, y: yaw * up.y + turn.y, z: yaw * up.z + turn.z }, true);
+    }
+  }
+
+  /**
+   * Steers the skis (see `SKI.grip`): each one turns its runner towards the way its keys ask (left is a positive turn about the up axis)
+   * and, while its body touches the ground (the sled assist's contact, `levelSkis`), an impulse at its place removes a part of the
+   * body's velocity across the way the runner points: so skis hold a straight line and a turned one pulls the body round.
+   */
+  private steerSkis(dt: number): void {
+    const q = new THREE.Quaternion();
+    const up = new THREE.Vector3();
+    const front = new THREE.Vector3();
+    const side = new THREE.Vector3();
+    const point = new THREE.Vector3();
+    const arm = new THREE.Vector3();
+    for (const ski of this.skis) {
+      const goal = (Number(this.isOn(ski.part, 'steerLeft')) - Number(this.isOn(ski.part, 'steerRight'))) * SKI.maxSteer;
+      const step = SKI.steerRate * dt;
+      ski.angle += Math.max(-step, Math.min(step, goal - ski.angle));
+      if ((this.skiGrace.get(ski.body) ?? 0) <= 0) continue;
+      const r = ski.body.rotation();
+      q.set(r.x, r.y, r.z, r.w);
+      up.set(0, 1, 0).applyQuaternion(q);
+      front.copy(ski.front).applyQuaternion(q).applyAxisAngle(up, ski.angle);
+      side.crossVectors(up, front);
+      const com = ski.body.worldCom();
+      const t = ski.body.translation();
+      point.copy(ski.point).applyQuaternion(q).add(new THREE.Vector3(t.x, t.y, t.z));
+      arm.subVectors(point, new THREE.Vector3(com.x, com.y, com.z));
+      const v = ski.body.linvel();
+      const w = ski.body.angvel();
+      // The velocity of the body at the ski: linear plus angular x arm.
+      const across = (v.x + (w.y * arm.z - w.z * arm.y)) * side.x + (v.y + (w.z * arm.x - w.x * arm.z)) * side.y + (v.z + (w.x * arm.y - w.y * arm.x)) * side.z;
+      const impulse = -across * Math.min(1, SKI.grip * dt) * ski.body.mass() * ski.share;
+      ski.body.applyImpulseAtPoint({ x: side.x * impulse, y: side.y * impulse, z: side.z * impulse }, { x: point.x, y: point.y, z: point.z }, true);
+    }
+  }
+
   /** Drives the rotors: towards their speed while they are switched on, else almost free (a light damping). */
   private driveRotors(): void {
     for (const rotor of this.rotors) {
@@ -509,6 +585,8 @@ export class PhysicsWorld {
     this.airborne = this.craft.size > 0 && !this.touchingGround();
     while (this.accumulator >= WORLD.step) {
       this.straighten();
+      this.levelSkis();
+      this.steerSkis(WORLD.step);
       this.drag(WORLD.step);
       const before = this.focus?.linvel();
       this.world.step();
@@ -518,6 +596,7 @@ export class PhysicsWorld {
       }
       this.accumulator -= WORLD.step;
     }
+    for (const ski of this.skis) if (ski.runner) ski.runner.rotation.y = ski.angle;
     this.sync();
     this.effects.group.visible = this.effectsEnabled;
     this.effects.update(dt, this.level, (part) => this.isOn(part, 'run'));
@@ -564,6 +643,7 @@ export class PhysicsWorld {
     for (const t of [...this.thrusters, ...this.propellers]) this.craft.add(t.body);
     for (const t of [...this.propellers, ...this.wings]) this.aero.add(t.body);
     for (const body of this.chassis) this.craft.add(body);
+    for (const body of this.skiBodies) this.craft.add(body);
     const onX = this.wheels.filter((w) => w.axis[0] !== 0).length;
     this.forward.copy(new THREE.Vector3(...(onX >= this.wheels.length - onX ? [0, 0, -1] : [1, 0, 0])));
     for (const body of this.craft) {
@@ -574,7 +654,28 @@ export class PhysicsWorld {
 
   /** Does any collider of the vehicle touch the ground? */
   private touchingGround(): boolean {
-    for (const collider of this.groundColliders) {
+    return this.touchesGround(this.groundColliders);
+  }
+
+  /** The average normal (pointing up) of the surface the `colliders` touch, ignoring walls (normals that are mostly sideways); null when they touch nothing. */
+  private groundNormal(colliders: RAPIER.Collider[]): THREE.Vector3 | null {
+    const sum = new THREE.Vector3();
+    for (const collider of colliders) {
+      this.world.contactPairsWith(collider, (other) => {
+        if (((other.collisionGroups() >> 16) & GROUND) === 0) return;
+        this.world.contactPair(collider, other, (manifold) => {
+          if (manifold.numContacts() === 0) return;
+          const n = manifold.normal();
+          const sign = n.y < 0 ? -1 : 1;
+          if (Math.abs(n.y) > 0.5) sum.add(new THREE.Vector3(n.x * sign, n.y * sign, n.z * sign));
+        });
+      });
+    }
+    return sum.lengthSq() > 0 ? sum.normalize() : null;
+  }
+
+  private touchesGround(colliders: RAPIER.Collider[]): boolean {
+    for (const collider of colliders) {
       let touching = false;
       this.world.contactPairsWith(collider, (other) => {
         if (touching || ((other.collisionGroups() >> 16) & GROUND) === 0) return;
@@ -882,6 +983,43 @@ export class PhysicsWorld {
       this.engineFx.push({ body: host.body, object: obj, position: obj.position.clone(), quaternion: obj.quaternion.clone() });
       enginesOfBody.set(host.body, [...(enginesOfBody.get(host.body) ?? []), { front: frontOf(engine), power: powerOf(engine), part: engine }]);
     }
+
+    // Skis: a hull collider on the body of the block, with almost no friction (the lowest of the two wins, `Min`), so it slides.
+    for (const ski of parts.filter((p) => isSki(p.type) && p.face)) {
+      const host = hostBody(ski);
+      if (!host) continue;
+      const local = subVec(partCentre(ski), host.origin);
+      const m = matrixOf(orientationOfPart(ski));
+      // The hull has rounded edges (the points are pulled in by the radius, which the shape then adds back): a sharp-edged hull sliding
+      // fast over the ground gets spurious contacts with tilted normals at its edges, which kick the body up.
+      const r = SKI.round;
+      const mid = -SKI_BODY.bottom + SKI_BODY.thickness / 2;
+      const points = skiProfile().flatMap(([z, y]) =>
+        [-SKI_BODY.width / 2, SKI_BODY.width / 2].flatMap((x) => {
+          const inset = [x - Math.sign(x) * r, y + (y < mid ? r : -r), z - Math.sign(z) * Math.min(r, Math.abs(z))];
+          const p = [0, 1, 2].map((i) => m[0][i] * inset[0] + m[1][i] * inset[1] + m[2][i] * inset[2]);
+          return [local[0] + p[0], local[1] + p[1], local[2] + p[2]];
+        }),
+      );
+      const hull = RAPIER.ColliderDesc.roundConvexHull(new Float32Array(points), r);
+      if (hull) {
+        this.world.createCollider(
+          hull
+            .setMass(CHASSIS.density * SKI.mass)
+            .setFriction(SKI.friction)
+            .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
+            .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+          host.body,
+        );
+      }
+      const obj = createPartObject(ski);
+      obj.position.set(...local);
+      host.visual.add(obj);
+      this.skiBodies.add(host.body);
+      const front = matrixOf(orientationOfPart(ski))[2];
+      this.skis.push({ part: ski, body: host.body, point: new THREE.Vector3(...local), front: new THREE.Vector3(...front), angle: 0, runner: obj.getObjectByName(SKI_RUNNER) ?? null, share: 1 });
+    }
+    for (const ski of this.skis) ski.share = 1 / this.skis.filter((other) => other.body === ski.body).length;
 
     this.buildHeaded(parts, bodyOfBlock, hostBody, lift);
 

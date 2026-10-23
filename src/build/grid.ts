@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PARACHUTE, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
+import { DEFAULT_GRID_CELLS, GROUND_Y, PART_INFO, SHAPES, SUSPENSION, TIRE, WEIGHT, buildRange, clampSuspension, clampTire, clampBrake, clampPower, clampRotorSpeed, clampStroke, clampWeight, legacyTireValue, tireValueOf, brakeOf, partVolume, powerOf, rotorSpeedOf, strokeOf, weightOf, ENGINE, PISTON, PARACHUTE, SKI, PROPELLER, ROTOR, THRUSTER, TURBO, BRAKE, HINGE, SPRING, clampSpringStiffness, springStiffnessOf, clampHingeAngle, clampHingeStrength, hingeAngleOf, hingeStrengthOf, MAX_KEYS_PER_ACTION, actionsOf, isKeyed, isValidKey, keysOf } from '../constants';
 import { canonicalOrientation, isSpin, legacyOrientation, orientationFields } from '../parts/orientation';
 import { EPS, boxesOverlap, partBox, partBoxes, partsOverlap, studsEngaged, wheelBox } from '../parts/part-geometry';
 import { Part, Vec3, addVec, cellKey, isAxisDirection, isHexColor, isStructural, isWheelType, isMountedType, isHeaded, isHostType, isMountHost, canHost, frontOf, studsOf, subVec, StructuralType } from '../types';
@@ -64,6 +64,10 @@ export class Grid {
       if (part.type === 'engine') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false;
         if (studsOf(part)[1] === -1) return false;
+      } else if (part.type === 'ski') {
+        // A ski lies flat (studs up) on a side face with its length along the face, so its arm reaches the block.
+        if (part.face[1] !== 0 || studsOf(part)[1] !== 1) return false;
+        if (frontOf(part).some((v, i) => v !== 0 && part.face![i] !== 0)) return false;
       } else if (part.type === 'propeller' || part.type === 'parachute') {
         if (frontOf(part).every((v, i) => v === -part.face![i])) return false; // its blades (or canopy) would be inside the block
       } else if (isHeaded(part.type)) {
@@ -455,7 +459,7 @@ export class Grid {
   connectedWeight(cell: Vec3): number {
     const blocks = this.connectedBlockParts(cell);
     if (blocks.length === 0) return 0;
-    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : m.type === 'propeller' ? PROPELLER.mass : m.type === 'parachute' ? PARACHUTE.mass : 0), 0);
+    const mountedMass = blocks.flatMap((p) => this.mountedOn(p.cell)).reduce((total, m) => total + (m.type === 'engine' ? ENGINE.mass : m.type === 'turbo' ? TURBO.mass : m.type === 'thruster' ? THRUSTER.mass : m.type === 'propeller' ? PROPELLER.mass : m.type === 'parachute' ? PARACHUTE.mass : m.type === 'ski' ? SKI.mass : 0), 0);
     const sum = blocks.reduce((total, p) => total + weightOf(p) * partVolume(p as Part & { type: StructuralType }), 0) + mountedMass * WEIGHT.default;
     return Math.round(sum * 10) / 10;
   }

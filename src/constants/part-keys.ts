@@ -35,6 +35,11 @@ const WHEEL_ACTIONS: KeyAction[] = [
   { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
   { id: 'brake', label: 'Brake', mode: 'hold', required: false },
 ];
+/** A ski steers (its runner turns about the vertical axis; optional, held). */
+const SKI_ACTIONS: KeyAction[] = [
+  { id: 'steerLeft', label: 'Steer left', mode: 'hold', required: false },
+  { id: 'steerRight', label: 'Steer right', mode: 'hold', required: false },
+];
 const toggle = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'toggle', required: true }];
 
 /**
@@ -51,6 +56,7 @@ export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
   smallWheel: WHEEL_ACTIONS,
   mediumWheel: WHEEL_ACTIONS,
   bigWheel: WHEEL_ACTIONS,
+  ski: SKI_ACTIONS,
   thruster: run('Thrust'),
   turbo: run('Turbo boost'),
   propeller: toggle('Propellers on / off'),

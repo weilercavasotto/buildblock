@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, PISTON_BODY, PARACHUTE_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { BOLT, CHASSIS, ENGINE, HINGE, PARACHUTE, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, SKI_BODY, PISTON_BODY, PARACHUTE_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { BOLT, CHASSIS, ENGINE, HINGE, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -658,6 +658,39 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'Two turbos add their boost: up to three times the push of one default turbo.',
     ],
   },
+  ski: {
+    type: 'ski',
+    name: 'Ski',
+    category: 'mobility',
+    rotatable: true,
+    paintable: false,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: false,
+    tagline: 'A runner with almost no friction, for sleds.',
+    description:
+      'A flat runner with a curled tip that you mount on a side face of a block, like a wheel: it takes the cell beside the block and an arm joins it to the block. Its underside is level with the tread of a normal wheel, so the body rides a little above the ground, and its friction is so low that it slides and keeps its speed instead of gripping. It has no suspension, but it can steer: give it Steer left / Steer right keys in the inspector and its runner turns up to 20 degrees (less than a real wheel), and the ski, which has an edge that grips sideways, pulls the body round; a ski without keys holds its line. Put two or four under a body and push it with a thruster or a propeller (or let it run down a ramp): wheels grip, skis glide. It must lie flat, with its length along the face of the block; turn it (A / D) so the tip points the way the body slides.',
+    properties: [
+      { label: 'Size', value: `${SKI_BODY.width} wide × ${SKI_BODY.length} long, in the cell beside the block, its underside ${SKI_BODY.bottom} cells below the centre of the cell` },
+      { label: 'Placement', value: 'Side faces of a block only, lying flat with its length along the face (the preview is red otherwise)' },
+      { label: 'Rotation', value: 'A / D turn it (the tip is the front); W / S tilt it, which is not allowed' },
+      { label: 'Friction', value: `${SKI.friction}: it slides on the ground (wheels grip), but its edge holds it against sliding sideways` },
+      { label: 'Steering', value: 'Optional keys chosen in the inspector (Steer left / Steer right, held); the runner turns up to 20 degrees' },
+      { label: 'Mass', value: `${SKI.mass} block of the default weight` },
+      { label: 'Paint', value: 'No' },
+      { label: 'Collides with', value: 'The ground and the parts of other bodies' },
+    ],
+    tips: [
+      'Mount a ski on each side of a body, at the same height and with the tips pointing the same way.',
+      'No engine drives skis: push the sled with a thruster or a propeller, or start it down a ramp.',
+      'Give the two skis at the front the same Steer left / Steer right keys; the ones at the back keep the line.',
+      'Mix skis with wheels: the wheels drive and steer, the skis let the other end slide, like a snowmobile.',
+    ],
+  },
   wheel: {
     type: 'wheel',
     name: 'Wheel',
@@ -837,6 +870,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'hinge',
   'bolt',
   'spring',
+  'ski',
   'smallWheel',
   'wheel',
   'mediumWheel',

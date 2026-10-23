@@ -35,7 +35,7 @@ export const STRUCTURAL_TYPES = [
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /** Every kind of part in the catalog. */
-export type PartType = StructuralType | 'wheel' | 'smallWheel' | 'mediumWheel' | 'bigWheel' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' | 'bolt';
+export type PartType = StructuralType | 'wheel' | 'smallWheel' | 'mediumWheel' | 'bigWheel' | 'ski' | 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' | 'bolt';
 
 /** Structural parts (touching ones are welded through their studs into one rigid body). */
 export const isStructural = (type: PartType): type is StructuralType => (STRUCTURAL_TYPES as readonly string[]).includes(type);
@@ -57,7 +57,7 @@ export const isMountHost = (type: PartType): boolean => isHostType(type) || isFl
 export const isEngine = (type: PartType): boolean => type === 'engine';
 
 /** Parts mounted on a face of a block (`Part.face`, the host block is at `cell - face`): the wheels and the engine. */
-export const isMountedType = (type: PartType): boolean => isWheelType(type) || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring' || type === 'bolt';
+export const isMountedType = (type: PartType): boolean => isWheelType(type) || type === 'ski' || type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring' || type === 'bolt';
 
 /** The parts with a compact body against their host block (`MOUNTED_BODY`): the engine, the turbo, the thruster and the rotor. */
 export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | 'thruster' | 'propeller' | 'parachute' | 'rotor' | 'piston' | 'hinge' | 'spring' | 'bolt' => type === 'engine' || type === 'turbo' || type === 'thruster' || type === 'propeller' || type === 'parachute' || type === 'rotor' || type === 'piston' || type === 'hinge' || type === 'spring';
@@ -80,6 +80,9 @@ export const isHeaded = (type: PartType): boolean => type === 'rotor' || type ==
 
 /** Wheels (small, normal, medium and large): mounted on a block face, with a tire and a suspension. */
 export const isWheelType = (type: PartType): boolean => type === 'wheel' || type === 'smallWheel' || type === 'mediumWheel' || type === 'bigWheel';
+
+/** The ski: a runner with almost no friction, mounted on the side of a block like a wheel (see `SKI`); it takes one cell. */
+export const isSki = (type: PartType): boolean => type === 'ski';
 
 /** What the left button does: place parts, inspect a part, or remove parts. */
 export type CursorMode = 'build' | 'inspect' | 'paint' | 'remove';

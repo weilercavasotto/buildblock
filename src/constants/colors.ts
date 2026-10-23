@@ -118,6 +118,9 @@ export const COLORS = {
     bolt: '#3f4650',
     boltCharge: '#ef9f27',
     boltHead: '#c9822b',
+    /** The ski: a light blue-grey runner on a dark steel arm. */
+    ski: '#9fb3c8',
+    skiArm: '#3f4650',
     /** The parachute: a steel pack with a dark cap; its canopy is red unless painted, with pale lines. */
     parachute: '#7b858f',
     parachuteCap: '#2c323a',

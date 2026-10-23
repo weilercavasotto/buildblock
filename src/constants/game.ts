@@ -300,6 +300,24 @@ export const PARACHUTE_VISUAL = {
   segments: 24,
 } as const;
 
+/**
+ * The ski (`parts/ski-model.ts`): a flat runner in the cell beside a block, in its own frame (studs up, length along z, `width` across
+ * x) with its tip curled up at the front (+z), and an arm along x to the face of the block. Its underside is `bottom` below the centre
+ * of the cell, level with the tread of a normal wheel (`WHEEL.radius`), so skis and wheels can share a car. Lengths in cells.
+ */
+export const SKI_BODY = {
+  width: 0.3,
+  thickness: 0.3,
+  length: 0.96,
+  bottom: 0.65,
+  /** The curled tip: how long the sloping part is and how high the front edge rises. */
+  tipLength: 0.24,
+  tipRise: 0.2,
+  /** The arm to the block: its width along z and its height. */
+  armWidth: 0.14,
+  armHeight: 0.12,
+} as const;
+
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
 export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
 

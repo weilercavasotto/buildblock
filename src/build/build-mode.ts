@@ -7,7 +7,7 @@ import { BUILD, COLORS, FX, GROUND_Y, MOVE, PART_INFO, ROTATION, STUD, hexToNumb
 import { createPartObject, orientationQuaternion, partBounds } from '../parts/part-defs';
 import { Orientation, canonicalOrientation, mainAxisOf, orientationFields, turnOrientation } from '../parts/orientation';
 import { EPS, StudBox, partBox, partBoxes, relativeBoxes, headOf } from '../parts/part-geometry';
-import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, canHost, isHostType, isMountHost, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
+import { CursorMode, Part, PartType, StructuralType, Vec3, addVec, cellKey, canHost, isHostType, isMountHost, isSki, isStructural, isWheelType, isWing, partCentre, roundCoord } from '../types';
 
 const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GROUND_Y);
 
@@ -63,7 +63,7 @@ export class BuildMode {
   readonly group = new THREE.Group();
   private mode: CursorMode = 'build';
   /** The placement preview. It outlives pointer moves so that its rotation can be animated. */
-  private ghost: { object: THREE.Group; type: PartType; valid: boolean } | null = null;
+  private ghost: { object: THREE.Group; type: PartType; valid: boolean; look: string } | null = null;
   /** Current and target orientation of the placement ghost: it turns smoothly from one to the other (see `update`). */
   private ghostQuat = new THREE.Quaternion();
   private ghostTargetQuat = new THREE.Quaternion();
@@ -535,7 +535,7 @@ export class BuildMode {
     if (isStructural(this.tool)) return this.structuralTarget(this.tool, p);
     // Wheels and engines are mounted on a face of a block (`face` says which), turned as the user chose, like any part.
     if (!p.part || !canHost(p.part.type, this.tool)) return null;
-    if (isWheelType(this.tool) && p.normal[1] !== 0) return null; // wheels go on the sides (the rest on any face)
+    if ((isWheelType(this.tool) || isSki(this.tool)) && p.normal[1] !== 0) return null; // wheels and skis go on the sides (the rest on any face)
     // The part's cell is the unit cell against the face. Across the face it is centred on a face that is not wider than a cell (a plain
     // block: its middle), else it follows the pointer in half-cell steps, kept inside the face.
     const axis = p.normal.findIndex((v) => v !== 0);
@@ -809,11 +809,13 @@ export class BuildMode {
     this.ghostTargetQuat.copy(orientationQuaternion(this.orientation));
     if (!this.ghost) this.ghostQuat.copy(this.ghostTargetQuat); // newly shown: no spin-in from an old orientation
 
-    if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid) {
+    // A ski's arm leans towards the block it is on, which depends on the face and how it is turned: that is part of its identity.
+    const look = part.type === 'ski' ? `${part.face}|${part.studs}|${part.spin}` : '';
+    if (!this.ghost || this.ghost.type !== part.type || this.ghost.valid !== valid || this.ghost.look !== look) {
       if (this.ghost) this.scene.remove(this.ghost.object);
-      const object = createPartObject({ type: part.type }, valid ? 'ok' : 'bad');
+      const object = createPartObject(part.type === 'ski' ? { type: part.type, face: part.face, studs: part.studs, spin: part.spin } : { type: part.type }, valid ? 'ok' : 'bad');
       this.scene.add(object);
-      this.ghost = { object, type: part.type, valid };
+      this.ghost = { object, type: part.type, valid, look };
     }
     this.ghost.object.position.set(...partCentre(part));
     this.ghost.object.quaternion.copy(this.ghostQuat);

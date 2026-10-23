@@ -33,7 +33,7 @@
 
 Chosen from the brainstorm (the numbers are the ones of that list); **not started**. The order below is a suggestion: the simple ones first, then the ones that share a base, the one that touches the physics most last.
 
-### Mobility (8 of 9)
+### Mobility (9 of 9)
 
 | # | Part | Effort | Notes |
 |---|---|---|---|
@@ -43,7 +43,7 @@ Chosen from the brainstorm (the numbers are the ones of that list); **not starte
 | 5 | ~~**Parachute and air brake**~~ | done | The **Parachute**: a pack with a canopy that a key opens or folds; while open it drags its body against its velocity (quadratic in the speed). See the *Parachute and air brake* section of getting-started.md. |
 | 6 | ~~**Detachable stage**~~ | done | The **Explosive bolt**: a headed part whose head (and what is on its studs) is fixed to the block until its key fires it, once; a push then sends the two bodies apart (two-stage rockets). See the *Explosive bolt* section of getting-started.md. |
 | 8 | ~~**Wheels of other sizes**~~ | done | The **Small wheel** (half the size, a toy-car wheel) and the **Medium wheel** (1.5 times), both one cell; with the normal and the large wheel there are four sizes. See the *Wheels of other sizes* section of getting-started.md. |
-| 9 | **Skids / skis** | low | Low-friction parts for sliding. |
+| 9 | ~~**Skids / skis**~~ | done | The **Ski**: a flat runner with a curled tip mounted on a side face, with almost no friction (`SKI`), for sleds pushed by thrusters or propellers. See the *The ski* section of getting-started.md. |
 
 Left out for now: 2 (real steering: an axle that steers the front wheels) and 7 (tank tracks).
 
@@ -65,7 +65,7 @@ Left out for now: 1 (an anchor block fixed to the ground).
 ### Suggested order
 
 1. Ballast, tiles, glass and headlights (no physics change).
-2. ~~Wheels of other sizes~~ (done) and skids (the parachute is done).
+2. ~~Wheels of other sizes~~ and ~~skids~~ (done; the parachute is done).
 3. ~~The detachable stage~~ (done).
 4. Seat and driver.
 5. Round parts, corner slopes, arches and plates with a hole (shapes that are not boxes).

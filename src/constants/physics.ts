@@ -254,6 +254,38 @@ export const PARACHUTE = {
 } as const;
 
 /**
+ * The ski (`isSki`, `SKI_BODY`): a hull collider on the body of its block, level with a normal wheel's tread, whose `friction` is tiny
+ * and wins over the ground's (friction combine rule Min), so a body on skis slides and keeps its speed. A ski weighs `mass` blocks of
+ * the default weight. It must lie flat (studs up) with its length along the block's face (`Grid.canPlace`).
+ */
+export const SKI = {
+  friction: 0.01,
+  mass: 0.25,
+  /** The border radius of the hull collider (cells): rounded edges slide without catching on the ground. */
+  round: 0.04,
+  /**
+   * Steering (`PhysicsWorld.steerSkis`): a ski with a steering key turns its runner up to `maxSteer` rad (20 degrees: less than a real
+   * front wheel, a ski is not a wheel) at `steerRate` rad/s. Skis have almost no friction, so on their own they would not steer; each
+   * one instead has an edge: while it touches the ground it pushes the body against the sideways velocity at its place, relative to
+   * where the runner points, at `grip` (1/s: the fraction of that velocity removed per second, shared among the skis of the body). A
+   * straight ski holds its line, a turned one pulls the body round.
+   */
+  maxSteer: 0.35,
+  steerRate: 2.5,
+  grip: 1.5,
+  /**
+   * Sled assist (`PhysicsWorld.levelSkis`): a body on skis that is touching the ground (or did a moment ago, `levelGrace`) and within `levelMin` of upright (its up axis'
+   * vertical component) does not pitch or roll: only its yaw rate is kept, plus a turn of `levelGain` (1/s) per unit of tilt towards
+   * the surface it stands on (upright on flat ground, so it also follows a ramp). Without it a push above the centre of mass (a thruster on the top) tips the nose into the ground, and a rigid
+   * sled with no suspension bounces and tumbles instead of gliding. A tumble, or the air, switches it off.
+   */
+  levelGain: 8,
+  /** How long (s) after its last touch of the ground a body is still levelled. */
+  levelGrace: 0.15,
+  levelMin: 0.85,
+} as const;
+
+/**
  * The wings (the thin wedge plates, `isWing`): each one is a surface that feels the air it moves through. From the velocity of the
  * body at the wing (turns included, so a spinning blade is a rotor blade) the lift and the drag of the plate are applied at its centre:
  * `lift * area * speed^2 * C` along its up (lift) and against its air velocity (drag), with the angle of attack `a` (between its chord,

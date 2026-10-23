@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, PartType, Vec3, axleOf, frontOf, isCompactMounted, isHexColor, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
+import { ALPHA, BRAKE_VISUAL, SKI_BODY, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { Part, PartType, Vec3, applyMatrix, axleOf, frontOf, isCompactMounted, isHexColor, isSki, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
 import { createPropellerModel, propellerHousing } from './propeller-model';
 import { createParachuteModel, parachutePack } from './parachute-model';
+import { createSkiModel } from './ski-model';
 import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
 import { partBox } from './part-geometry';
@@ -195,6 +196,14 @@ export function partBounds(part: Pick<Part, 'type' | 'cell' | 'face' | 'studs' |
   if (isStructural(part.type) || isCompactMounted(part.type)) {
     const box = partBox(part);
     return new THREE.Box3(new THREE.Vector3(...box.min).sub(margin), new THREE.Vector3(...box.max).add(margin));
+  }
+  if (isSki(part.type)) {
+    // The cell, reaching down to the underside of the runner.
+    const bottom = SKI_BODY.bottom;
+    return new THREE.Box3(
+      new THREE.Vector3(part.cell[0] - 0.5, part.cell[1] - bottom, part.cell[2] - 0.5).sub(margin),
+      new THREE.Vector3(part.cell[0] + 0.5, part.cell[1] + 0.5, part.cell[2] + 0.5).add(margin),
+    );
   }
   const { scale } = wheelSizeOf(part.type);
   const half = new THREE.Vector3().setScalar(WHEEL.radius * scale);
@@ -553,6 +562,10 @@ export function createPartObject(
   } else if (part.type === 'propeller') {
     // The propeller in its own frame: the motor at the back, the blades in front (+z, the way it pushes).
     root.add(createPropellerModel(blockMaterials(part.color, 'propeller').face));
+  } else if (part.type === 'ski') {
+    // The ski in its own frame: the runner along z, tip at the front; its arm goes to the block, on the side the face is on.
+    const toBlock = part.face ? -applyMatrix(matrixOf(orientationOfPart(part)), [1, 0, 0]).reduce((sum, v, i) => sum + v * part.face![i], 0) : 0;
+    root.add(createSkiModel(toBlock > 0 ? 1 : -1));
   } else if (part.type === 'parachute') {
     // The parachute in its own frame: the pack at the back, the canopy in front (+z, where it opens).
     root.add(createParachuteModel(blockMaterials(part.color, 'parachute').face));
