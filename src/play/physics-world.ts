@@ -695,6 +695,22 @@ export class PhysicsWorld {
         .setCollisionGroups(groups(GROUND, 0xffff))
         .setFriction(GROUND_COLLIDER.friction),
     );
+    // Invisible walls along the edges of the ground keep everything on the map (same group as the ground, so wheels and parts hit them).
+    const { halfExtent: edge, wallHalfThickness: thick, wallHeight: height } = GROUND_COLLIDER;
+    const walls: [number, number, number, number][] = [
+      [edge + thick, 0, thick, edge + 2 * thick],
+      [-edge - thick, 0, thick, edge + 2 * thick],
+      [0, edge + thick, edge + 2 * thick, thick],
+      [0, -edge - thick, edge + 2 * thick, thick],
+    ];
+    for (const [x, z, halfX, halfZ] of walls) {
+      this.world.createCollider(
+        RAPIER.ColliderDesc.cuboid(halfX, height / 2, halfZ)
+          .setTranslation(x, GROUND_Y + height / 2, z)
+          .setCollisionGroups(groups(GROUND, 0xffff))
+          .setFriction(0),
+      );
+    }
     // The ramps and obstacles: parts of the catalog, fixed in place (one fixed body, a collider per box of each part).
     const fixed = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     for (const part of SCENERY_PARTS) {

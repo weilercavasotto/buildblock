@@ -507,5 +507,8 @@ export const GROUND_COLLIDER = {
   /** Centre Y so the top surface is at GROUND_Y. */
   centerY: GROUND_Y - CELL_SIZE / 2,
   friction: 1,
+  /** Invisible walls along the four edges of the ground, so nothing leaves the map: how thick (cells) and how tall (cells, above the ground). */
+  wallHalfThickness: 2,
+  wallHeight: 400,
 } as const;
 

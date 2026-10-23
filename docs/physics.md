@@ -58,6 +58,8 @@ Wheels have a radius (0.65) larger than half a cell, so they overlap neighbourin
 ignore chassis blocks and other wheels avoids spurious collisions. The larger radius also lifts the
 chassis above the ground. Bodies spawn raised by `SPAWN_LIFT` (0.2) so wheels do not start inside the floor.
 
+- **Map edges** (`GROUND_COLLIDER.wallHalfThickness` / `wallHeight`, `PhysicsWorld.buildScenery`): four invisible fixed walls along the edges of the ground (same collision group, no friction) so a vehicle cannot drive off the map.
+
 ## Stepping
 
 `step(dt)` accumulates real time (clamped to 0.1 s) and advances Rapier in fixed `1/60 s` steps, then
