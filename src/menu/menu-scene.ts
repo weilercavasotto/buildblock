@@ -11,11 +11,13 @@ export class MenuScene {
   private age = 0;
   private lifetime = 0;
   private flippedFor = 0;
+  /** How long a plane has been standing still at the edge of the roaming area (it is replaced by a new build then). */
+  private idleFor = 0;
   private driveTimer = 0;
   private throttle = 1;
   private steer = 0;
-  /** What the build has, for the autopilot to use (see `drive`): rotors spin all the time, pistons go out and back, thrusters and turbos fire in bursts. */
-  private features = { rotors: false, pistons: false, jets: false, lamps: false, sirens: false };
+  /** What the build has, for the autopilot to use (see `drive`): rotors and propellers spin all the time, lamps and sirens are on, pistons go out and back, thrusters and turbos fire in bursts. */
+  private features = { rotors: false, pistons: false, jets: false, lamps: false, sirens: false, propellers: false };
   private pistonOut = false;
   private pistonTimer = 0;
   private burstTimer = 0;
@@ -48,9 +50,12 @@ export class MenuScene {
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(rotation);
 
     this.flippedFor = up.y < MENU_SCENE.flipUpThreshold ? this.flippedFor + dt : 0;
+    const v = body.linvel();
+    this.idleFor = this.features.propellers && Math.hypot(t.x, t.z) > MENU_SCENE.roamRadius && Math.hypot(v.x, v.y, v.z) < MENU_SCENE.idleSpeed ? this.idleFor + dt : 0;
     if (
       this.age > this.lifetime ||
       this.flippedFor > MENU_SCENE.flipSeconds ||
+      this.idleFor > MENU_SCENE.idleSeconds ||
       t.y < MENU_SCENE.fallY ||
       Math.hypot(t.x, t.z) > MENU_SCENE.respawnDistance
     ) {
@@ -102,15 +107,19 @@ export class MenuScene {
       this.burstTimer = this.bursting ? MENU_SCENE.burstLength : MENU_SCENE.burstPauseMin + Math.random() * MENU_SCENE.burstPauseJitter;
     }
     const fire = this.features.jets && this.bursting;
+    const far = position.length() > MENU_SCENE.roamRadius;
     this.vehicle?.setAutopilot({
       throttle: this.throttle,
-      steer: fire ? 0 : this.steer,
+      steer: fire || this.features.propellers ? 0 : this.steer, // a plane keeps straight (its free wheels would skid-steer it): see `plane` in random-build.ts
       thrust: fire,
       boost: fire,
       rotors: this.features.rotors,
       pistons: this.features.pistons && this.pistonOut,
       lamps: this.features.lamps,
       sirens: this.features.sirens,
+      // A plane pulls itself out to the edge of the roaming area and then stops there, brakes on, instead of running away.
+      propellers: this.features.propellers && !far,
+      brake: this.features.propellers && far,
     });
   }
 
@@ -118,7 +127,7 @@ export class MenuScene {
     this.despawn();
     const { grid } = generateRandomBuild();
     const has = (...types: string[]) => grid.all().some((p) => types.includes(p.type));
-    this.features = { rotors: has('rotor'), pistons: has('piston'), jets: has('thruster', 'turbo'), lamps: has('lamp'), sirens: has('siren') };
+    this.features = { rotors: has('rotor'), pistons: has('piston'), jets: has('thruster', 'turbo'), lamps: has('lamp'), sirens: has('siren'), propellers: has('propeller') };
     this.pistonOut = false;
     this.pistonTimer = MENU_SCENE.pistonInterval;
     this.bursting = false;
@@ -130,6 +139,7 @@ export class MenuScene {
     this.scene.add(this.physics.group);
     this.age = 0;
     this.flippedFor = 0;
+    this.idleFor = 0;
     this.driveTimer = 0;
     this.lifetime = MENU_SCENE.minLifetime + Math.random() * (MENU_SCENE.maxLifetime - MENU_SCENE.minLifetime);
   }

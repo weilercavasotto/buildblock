@@ -720,6 +720,9 @@ export const MENU_SCENE = {
   maxLifetime: 45,
   flipUpThreshold: 0.2,
   flipSeconds: 2,
+  /** A plane that has stopped (below `idleSpeed` m/s) at the edge of the roaming area for `idleSeconds` s is replaced. */
+  idleSpeed: 0.3,
+  idleSeconds: 2,
   driveIntervalMin: 1.2, // s
   driveIntervalJitter: 2.5,
   returnInterval: 0.5,
@@ -736,7 +739,16 @@ export const MENU_SCENE = {
 /** Random car generator for the menu. */
 export const RANDOM_BUILD = {
   /** The kinds of vehicle, repeated in proportion to how often they appear. */
-  archetypes: ['coupe', 'coupe', 'coupe', 'pickup', 'pickup', 'propeller', 'rocket', 'rocket'] as const,
+  archetypes: ['coupe', 'coupe', 'coupe', 'pickup', 'pickup', 'propeller', 'rocket', 'rocket', 'sled', 'windmill', 'lighthouse', 'rocketship', 'plane'] as const,
+  /** The towers of the windmill and the lighthouse (blocks above their base), and the slow speeds of their rotors (see `ROTOR`). */
+  windmillHeights: [2, 3, 4],
+  lighthouseHeights: [2, 3, 4],
+  slowRotorSpeeds: [2, 3, -2, -3] as const,
+  /** The rocketship: how many round bricks tall its body is, and the power (1-10) of the four thrusters under it (a light one hops, it does not fly away). */
+  rocketshipHeights: [2, 3, 4],
+  rocketshipPower: 3,
+  /** The power (1-10) of the plane's propeller: enough to get it to flying speed. */
+  planePower: 7,
   widths: [2, 3],
   lengths: [3, 4, 5],
   pickupLengths: [4, 5],
