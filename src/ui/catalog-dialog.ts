@@ -67,14 +67,14 @@ export function openCatalog(hotbar: Hotbar): void {
     card.dataset.part = type;
     card.classList.toggle('selected', type === selected);
     const canvas = createPreviewCanvas(SIZE.catalogCardPreview);
-    renderPartPreview(type, canvas, undefined, { common: true });
+    renderPartPreview(type, canvas);
     card.append(canvas, text('span', 'catalog-card-name', info.name), text('span', 'catalog-card-category', categoryTitle(info.category)));
 
     // The preview spins while the pointer (or keyboard focus) is on the card.
     let stop: (() => void) | null = null;
     const startHover = () => {
       if (stop) return;
-      stop = startSpin(type, canvas, PREVIEW.hoverSpinSpeed, true, { common: true });
+      stop = startSpin(type, canvas, PREVIEW.hoverSpinSpeed, true);
       stopCardSpins.add(stop);
     };
     const endHover = () => {
@@ -114,8 +114,8 @@ export function openCatalog(hotbar: Hotbar): void {
     const type = selected;
 
     const canvas = createPreviewCanvas(SIZE.inspectorPreview);
-    renderPartPreview(type, canvas, undefined, { common: true });
-    stopInspectorSpin = startSpin(type, canvas, PREVIEW.inspectSpinSpeed, false, { common: true });
+    renderPartPreview(type, canvas);
+    stopInspectorSpin = startSpin(type, canvas, PREVIEW.inspectSpinSpeed, false);
 
     const name = text('h3', 'inspector-name', info.name);
     name.id = 'inspector-name';

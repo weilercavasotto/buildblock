@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, PART_ORDER, PREVIEW, hexToNumber } from '../constants';
+import { COLORS, PREVIEW, hexToNumber } from '../constants';
 import { createPartObject } from '../parts/part-defs';
 import { PartType, Vec3 } from '../types';
 
@@ -9,7 +9,7 @@ interface PreviewScene {
   camera: THREE.PerspectiveCamera;
   pivot: THREE.Group;
   /** Per part: the centred object and the camera distance that frames it. */
-  parts: Map<string, { object: THREE.Object3D; distance: number; commonDistance: number }>;
+  parts: Map<string, { object: THREE.Object3D; distance: number }>;
 }
 
 let shared: PreviewScene | null = null;
@@ -18,27 +18,6 @@ let shared: PreviewScene | null = null;
 export interface PreviewOptions {
   /** Paint of the part (`Part.color`). */
   color?: string;
-  /**
-   * Frame every part with the same camera distance (the one that fits the biggest part) so the previews show their sizes
-   * relative to each other (the catalog does, a large wheel then looks twice the wheel). Default: each part fills its frame.
-   */
-  common?: boolean;
-}
-
-/**
- * How far `object` reaches from its centre while it spins around the vertical axis: its half height or the radius of its
- * horizontal footprint. Tighter than the bounding sphere (a wide flat wheel would otherwise leave the previews tiny).
- */
-function spinRadius(object: THREE.Object3D): number {
-  const half = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3()).multiplyScalar(0.5);
-  return Math.max(half.y, Math.hypot(half.x, half.z));
-}
-
-let commonRadius = 0;
-/** The spin radius of the biggest part of the catalog. */
-function biggestRadius(): number {
-  if (!commonRadius) commonRadius = Math.max(...PART_ORDER.map((type) => spinRadius(createPartObject({ type }))));
-  return commonRadius;
 }
 
 /** One off-screen WebGL renderer shared by every preview (hotbar, catalog cards, inspector): browsers cap contexts. */
@@ -68,7 +47,7 @@ function partEntry(type: PartType, color?: string) {
     object.position.sub(box.getCenter(new THREE.Vector3()));
     const radius = box.getBoundingSphere(new THREE.Sphere()).radius;
     const distanceFor = (r: number) => (r * PREVIEW.margin) / Math.sin(THREE.MathUtils.degToRad(PREVIEW.fov / 2));
-    entry = { object, distance: distanceFor(radius), commonDistance: distanceFor(biggestRadius()) };
+    entry = { object, distance: distanceFor(radius) };
     s.parts.set(key, entry);
   }
   return entry;
@@ -88,7 +67,7 @@ export function renderPartPreview(
   type: PartType,
   canvas: HTMLCanvasElement,
   angle: number = PREVIEW.angle,
-  { color, common }: PreviewOptions = {},
+  { color }: PreviewOptions = {},
 ): void {
   const s = setup();
   const entry = partEntry(type, color);
@@ -99,7 +78,7 @@ export function renderPartPreview(
   s.pivot.add(entry.object);
   s.pivot.rotation.y = angle;
   const direction = new THREE.Vector3(...PREVIEW.cameraDirection).normalize();
-  s.camera.position.copy(direction.multiplyScalar(common ? entry.commonDistance : entry.distance));
+  s.camera.position.copy(direction.multiplyScalar(entry.distance));
   s.camera.lookAt(0, 0, 0);
   s.renderer.render(s.scene, s.camera);
 
