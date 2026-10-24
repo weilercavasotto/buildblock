@@ -80,6 +80,9 @@ export const SFX = {
   chuteOpen: [noise('lowpass', 300, 1100, 0.35, 0.4, 0.8), noise('bandpass', 900, 500, 0.3, 0.2, 1, 0.1)],
   // A stage bolt: a sharp crack and a low thump.
   boltFire: [noise('highpass', 5000, 1800, 0.07, 0.6, 0.8), tone('sine', 160, 55, 0.18, 0.7), noise('lowpass', 900, 200, 0.16, 0.4)],
+  // A lamp switch: a short dry click, a little higher when it goes on.
+  lampOn: [tone('square', 2200, 1500, 0.025, 0.12), noise('highpass', 4000, 3000, 0.02, 0.1)],
+  lampOff: [tone('square', 1700, 1100, 0.025, 0.12), noise('highpass', 3500, 2500, 0.02, 0.1)],
   chuteClose: [noise('lowpass', 900, 300, 0.18, 0.25, 0.8)],
   pistonEnd: [tone('sine', 95, 60, 0.16, 0.6), noise('lowpass', 520, 260, 0.09, 0.3)],
 } as const satisfies Record<string, ReadonlyArray<SfxLayer>>;

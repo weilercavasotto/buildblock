@@ -15,6 +15,7 @@ import {
   HINGE_VISUAL,
   PISTON,
   PISTON_VISUAL,
+  LAMP,
   PARACHUTE,
   PROPELLER,
   ROTOR,
@@ -57,6 +58,7 @@ import { createHeadedBaseObject, createHeadedHeadObject, createPartObject, creat
 import { matrixOf, orientationOfPart } from '../parts/orientation';
 import { PROPELLER_BLADES } from '../parts/propeller-model';
 import { PARACHUTE_CANOPY } from '../parts/parachute-model';
+import { setLampLevel } from '../parts/lamp-model';
 import { SKI_RUNNER, skiProfile } from '../parts/ski-model';
 import { partBox, relativeBoxes, studsEngaged, wedgePoints } from '../parts/part-geometry';
 import { EngineFx, PlayEffects, ThrusterFx, TurboFx, WheelFx } from './play-effects';
@@ -78,6 +80,8 @@ export interface AudioState {
   propellers: number[];
   /** How far open each parachute is, 0 (folded) to 1 (open). */
   parachutes: number[];
+  /** How lit each lamp is, 0 (off) to 1 (on). */
+  lamps: number[];
   turbos: number;
   /** False for an old save, where every wheel is driven without engines. */
   engineDrive: boolean;
@@ -153,6 +157,8 @@ export class PhysicsWorld {
   private propellers: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; direction: Vec3; thrust: number; spin: number; blades: THREE.Object3D | null }> = [];
   /** The parachutes: the body each drags, where (in the body's frame), its canopy size (1 = default), how far open it is now (0-1) and the canopy to scale. */
   private parachutes: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; size: number; open: number; canopy: THREE.Object3D | null; object: THREE.Object3D; time: number }> = [];
+  /** The lamps: the part, how lit it is now (0-1) and its visual. */
+  private lamps: Array<{ part: Part; level: number; object: THREE.Object3D }> = [];
   /** The wings: the body each is on, where and how it is turned (in the body's frame), its area (cells²), the flap now (-1..1) and the visual to tilt with it. */
   private wings: Array<{ part: Part; body: RAPIER.RigidBody; point: Vec3; up: Vec3; front: Vec3; area: number; lift: 1 | -1; flap: number; object: THREE.Object3D; rest: THREE.Quaternion; pitch: number; roll: number; yaw: number }> = [];
   /** The engines: the body each is mounted on, where (in the body's frame), where it faces and its power (see `ENGINE.leverage`). */
@@ -213,6 +219,7 @@ export class PhysicsWorld {
     this.applyEngines(q);
     this.applyPropellers(q, dt);
     this.applyParachutes(q, dt);
+    this.fadeLamps(dt);
     this.applyWings(q, dt);
     for (const t of this.thrusters) {
       if (!this.isOn(t.part, 'run')) continue;
@@ -274,6 +281,17 @@ export class PhysicsWorld {
       const push = Math.min(wanted, (PARACHUTE.stopFraction * c.body.mass() * speed) / dt);
       const force = velocity.multiplyScalar(-push / speed);
       c.body.addForceAtPoint({ x: force.x, y: force.y, z: force.z }, { x: at.x, y: at.y, z: at.z }, true);
+    }
+  }
+
+  /** The lamps (see `LAMP`): each fades towards on or off with its key and lights its lens and beam; nothing else is touched. */
+  private fadeLamps(dt: number): void {
+    for (const l of this.lamps) {
+      const goal = this.isOn(l.part, 'run') ? 1 : 0;
+      const next = l.level + Math.max(-dt / LAMP.fadeTime, Math.min(dt / LAMP.fadeTime, goal - l.level));
+      if (next === l.level) continue;
+      l.level = next;
+      setLampLevel(l.object, next);
     }
   }
 
@@ -513,6 +531,7 @@ export class PhysicsWorld {
       thrusters: this.thrusterFx.length,
       propellers: this.propellers.map((p) => p.spin),
       parachutes: this.parachutes.map((c) => c.open),
+      lamps: this.lamps.map((l) => l.level),
       turbos: this.turboFx.length,
       engineDrive: this.engineDrive,
       rotors: this.rotors.map((r) => {
@@ -969,7 +988,7 @@ export class PhysicsWorld {
       this.world.createCollider(
         RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2])
           .setTranslation(...local)
-          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : engine.type === 'propeller' ? PROPELLER.mass : engine.type === 'parachute' ? PARACHUTE.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
+          .setDensity((CHASSIS.density * (engine.type === 'engine' ? ENGINE.mass : engine.type === 'propeller' ? PROPELLER.mass : engine.type === 'parachute' ? PARACHUTE.mass : engine.type === 'lamp' ? LAMP.mass : TURBO.mass)) / (8 * half[0] * half[1] * half[2]))
           .setFriction(CHASSIS.friction)
           .setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         host.body,
@@ -988,6 +1007,10 @@ export class PhysicsWorld {
       }
       if (engine.type === 'parachute') {
         this.parachutes.push({ part: engine, body: host.body, point: local, size: powerOf(engine) / ENGINE.default, open: 0, canopy: obj.getObjectByName(PARACHUTE_CANOPY) ?? null, object: obj, time: Math.random() * 10 });
+        continue;
+      }
+      if (engine.type === 'lamp') {
+        this.lamps.push({ part: engine, level: 0, object: obj });
         continue;
       }
       if (engine.type === 'turbo') {

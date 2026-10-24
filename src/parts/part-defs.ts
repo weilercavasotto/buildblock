@@ -6,6 +6,7 @@ import { createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
 import { createPropellerModel, propellerHousing } from './propeller-model';
 import { createParachuteModel, parachutePack } from './parachute-model';
+import { createLampModel, lampHousing } from './lamp-model';
 import { createSkiModel } from './ski-model';
 import { createTurboModel, turboBottle } from './turbo-model';
 import { createEngineModel, engineMetal } from './engine-model';
@@ -143,7 +144,7 @@ const glassMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.glass
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return (!!type && isGlass(type as PartType)) ? { face: glassMat, edge: edgeMat } : type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  if (!isHexColor(paint)) return type === 'lamp' ? { face: lampHousing, edge: edgeMat } : (!!type && isGlass(type as PartType)) ? { face: glassMat, edge: edgeMat } : type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const hex = paint.toLowerCase();
   const key = (!!type && isGlass(type as PartType)) ? `glass:${hex}` : hex;
   let pair = paintCache.get(key);
@@ -572,6 +573,9 @@ export function createPartObject(
   } else if (part.type === 'parachute') {
     // The parachute in its own frame: the pack at the back, the canopy in front (+z, where it opens).
     root.add(createParachuteModel(blockMaterials(part.color, 'parachute').face));
+  } else if (part.type === 'lamp') {
+    // The lamp in its own frame: the housing at the back, the lens in front (+z, the way it shines).
+    root.add(createLampModel(blockMaterials(part.color, 'lamp').face));
   } else if (part.type === 'turbo') {
     // The turbo in its own frame: the bottle along z, the nozzle at the back.
     root.add(createTurboModel(blockMaterials(part.color, 'turbo').face));

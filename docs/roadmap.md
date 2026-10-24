@@ -52,7 +52,7 @@ Left out for now: 2 (real steering: an axle that steers the front wheels) and 7 
 | # | Part | Effort | Notes |
 |---|---|---|---|
 | 2 | ~~**Glass and windscreen**~~ | done | The **2x2 / 4x4 Glass** panes and the **2x2 / 2x4 Windscreen** glass slopes: plate and slope shapes drawn translucent, paint tints them. See the *Glass and windscreens* section of getting-started.md. |
-| 3 | **Headlights and lamps** | low to medium | A part that glows (and lights up, if there is ever a night). |
+| 3 | ~~**Headlights and lamps**~~ | done | The **Headlight**: a lamp mounted on a block face, switched on / off by a key chosen in the inspector; the lens glows and a faint beam shows (a look only, no real light yet). See the *Headlights* section of getting-started.md. |
 | 4 | **Round parts** | medium | Round bricks and plates (1x1 and 2x2), cones and domes; they need shapes that are not boxes in the stud engagement. |
 | 5 | **Tiles** | low | Smooth plates without studs. |
 | 6 | **Corner and inverted slopes** | medium | Complete the wedge family. |
@@ -64,7 +64,7 @@ Left out for now: 1 (an anchor block fixed to the ground).
 
 ### Suggested order
 
-1. Ballast, tiles, ~~glass~~ (done) and headlights (no physics change).
+1. Ballast, tiles, ~~glass~~ (done) and ~~headlights~~ (done) (no physics change).
 2. ~~Wheels of other sizes~~ and ~~skids~~ (done; the parachute is done).
 3. ~~The detachable stage~~ (done).
 4. Seat and driver.

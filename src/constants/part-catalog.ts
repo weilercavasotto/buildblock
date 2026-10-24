@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, SKI_BODY, PISTON_BODY, PARACHUTE_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { BOLT, CHASSIS, ENGINE, HINGE, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, SKI_BODY, PISTON_BODY, PARACHUTE_BODY, LAMP_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { BOLT, CHASSIS, ENGINE, HINGE, LAMP, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -489,6 +489,36 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'A parachute away from the centre of the body also turns it: put pairs on both sides to brake straight.',
     ],
   },
+  lamp: {
+    type: 'lamp',
+    name: 'Headlight',
+    category: 'structure',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: false,
+    tagline: 'A lamp that glows and shines a beam.',
+    description:
+      'A round lamp that you mount on a face of a block, like the engine: a housing against the block and a lens in front. Give it a key in the inspector: each press switches it on or off. While it is on the lens glows warm white and a faint cone of light shows in front of it. It is a look only: it lights nothing else and does not change the physics (the world has no night yet).',
+    properties: [
+      { label: 'Size', value: `${LAMP_BODY.width} × ${LAMP_BODY.width} × ${LAMP_BODY.depth} cells, against the block, the lens in front` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block. Its front may not point into the block' },
+      { label: 'Front', value: 'The side the lens and the light face. A / D turn it, W / S tilt it, in every direction' },
+      { label: 'Control', value: 'A key chosen in the inspector switches it on and off (the keys of all the lamps with the same key work together)' },
+      { label: 'Mass', value: `${LAMP.mass} block of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the housing takes the colour; the lens stays clear' },
+    ],
+    tips: [
+      'Mount a pair on the nose of a car with their fronts pointing forward.',
+      'Give every lamp the same key (or use Copy these keys in the inspector) to switch them all at once.',
+      'Put one on the roof or under the nose of a plane too: it is a look, so any face works.',
+    ],
+  },
   piston: {
     type: 'piston',
     name: 'Piston',
@@ -894,6 +924,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'glassLarge',
   'windscreen',
   'windscreenLong',
+  'lamp',
   'engine',
   'thruster',
   'propeller',

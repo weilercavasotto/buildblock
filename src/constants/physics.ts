@@ -254,6 +254,18 @@ export const PARACHUTE = {
 } as const;
 
 /**
+ * The lamp (a headlight, mounted on a face of a block, shining along its front): its key (a toggle) switches it on or off, fading over
+ * `fadeTime` s. It is a look only (the lens glows by `glow` as emissive intensity and a faint cone of light, `beamOpacity`, shows in
+ * front of it): it lights nothing else and does not touch the physics. A lamp weighs `mass` blocks of the default weight.
+ */
+export const LAMP = {
+  fadeTime: 0.12,
+  glow: 2.4,
+  beamOpacity: 0.16,
+  mass: 0.15,
+} as const;
+
+/**
  * The ski (`isSki`, `SKI_BODY`): a hull collider on the body of its block, level with a normal wheel's tread, whose `friction` is tiny
  * and wins over the ground's (friction combine rule Min), so a body on skis slides and keeps its speed. A ski weighs `mass` blocks of
  * the default weight. It must lie flat (studs up) with its length along the block's face (`Grid.canPlace`).

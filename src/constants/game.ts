@@ -318,8 +318,32 @@ export const SKI_BODY = {
   armHeight: 0.12,
 } as const;
 
+/**
+ * The lamp body: a headlight against a face of a block (`width` across the face, `depth` out of it), in cells; it shines along its front (+z).
+ */
+export const LAMP_BODY = {
+  width: 0.5,
+  depth: 0.45,
+} as const;
+
+/**
+ * The lamp model (`parts/lamp-model.ts`), in its own frame, lengths in cells: the housing at the back (`housingRadius` at the block, a bit
+ * narrower in front), the rim and the lens in front of it, and the cone of light (`beamLength` long, `beamRadius` wide at its far end).
+ */
+export const LAMP_VISUAL = {
+  housingRadius: 0.22,
+  housingLength: 0.3,
+  rimRadius: 0.2,
+  rimLength: 0.04,
+  lensRadius: 0.17,
+  lensLength: 0.11,
+  beamLength: 3.5,
+  beamRadius: 1.1,
+  segments: 24,
+} as const;
+
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, lamp: LAMP_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

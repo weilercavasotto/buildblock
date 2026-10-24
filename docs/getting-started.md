@@ -187,6 +187,10 @@ Five **wedges** (*Structure*) are triangular prisms, half the volume of the box 
 
 Four translucent **glass** parts (*Structure*): the **2x2 Glass** and **4x4 Glass** (1 × 1 and 2 × 2 cells, a plate thick, 4 and 16 studs; they place, weld, tilt and weigh like plates) and the **2x2 Windscreen** and **2x4 Windscreen** (a 45° and a raked ~27° glass wedge, the same shapes as the 2x2 and 2x4 Slope: no studs on the slope, sockets underneath). They are drawn see-through (`ALPHA.glass`, `COLORS.part.glass`, material `glassMat` in `part-defs.ts`, no depth write) and are solid for physics. Painting tints the glass but keeps it translucent. `isGlass(type)` in `types.ts` picks them.
 
+### Headlights
+
+The **Headlight** (catalog, *Structure*) is a round lamp mounted on any face of a block like the propeller (`LAMP_BODY`; its front, the lens side, may not point into the block; turn it with `A` / `D`, tilt it with `W` / `S`). Like every mobility part it has **no default key**: select it in inspect mode and give its *Lamps on / off* action a key (a toggle, so each press switches it on or off; lamps with the same key switch together, and *Copy these keys* spreads a key to the other lamps). In Play the lens glows (emissive, `LAMP.glow`) and a faint cone of light fades in in front of it (`LAMP.beamOpacity`, `LAMP.fadeTime`); a click sounds when the first lamp goes on and the last goes off. It is a **look only**: it casts no real light and changes no physics beyond its tiny mass (`LAMP.mass`). The housing can be painted.
+
 ### Effects
 
 A part you place **bounces like jelly**: it squashes, stretches and wobbles for about half a second (loading a game, undo and redo do not

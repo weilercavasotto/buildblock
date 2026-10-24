@@ -644,6 +644,8 @@ export class PartInspector {
         rows.push([TEXT.inspector.front, TEXT.inspector.frontAnyValue(frontOf(part))]);
         rows.push([TEXT.inspector.chute, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyParachutes, String(this.grid.parachutesOnBody(part.cell).length)]);
+      } else if (part.type === 'lamp') {
+        rows.push([TEXT.inspector.front, TEXT.inspector.frontAnyValue(frontOf(part))]);
       } else if (part.type === 'turbo') {
         rows.push([TEXT.inspector.boost, String(powerOf(part))]);
         rows.push([TEXT.inspector.bodyTurbos, String(this.grid.turbosOnBody(part.cell).length)]);

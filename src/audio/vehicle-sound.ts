@@ -49,6 +49,7 @@ export class VehicleSound {
   private lastImpact = -1;
   private pistons = 0;
   private chutesOpen = false;
+  private lampsOn = false;
 
   constructor() {
     const out = sound.vehicleOutput;
@@ -225,6 +226,10 @@ export class VehicleSound {
     const open = state.parachutes.some((o) => o > 0.02);
     if (open !== this.chutesOpen) sound.play(open ? 'chuteOpen' : 'chuteClose');
     this.chutesOpen = open;
+    // A lamp switch clicks when the first lamp goes on and when the last one goes off.
+    const lit = state.lamps.some((l) => l > 0.02);
+    if (lit !== this.lampsOn) sound.play(lit ? 'lampOn' : 'lampOff');
+    this.lampsOn = lit;
   }
 
   dispose(): void {

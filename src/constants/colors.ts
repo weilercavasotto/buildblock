@@ -126,6 +126,12 @@ export const COLORS = {
     parachuteCap: '#2c323a',
     parachuteCanopy: '#e5484d',
     parachuteLine: '#e9edf2',
+    /** The lamp: a steel housing with a pale lens that glows warm white when it is on, lighting a faint beam. */
+    lamp: '#7b858f',
+    lampRim: '#2c323a',
+    lampLens: '#e9e4c8',
+    lampGlow: '#fff0a8',
+    lampBeam: '#fff1a8',
     /** The wings: a pale grey plate unless painted. */
     wing: '#d9dee5',
     /** Glass panes and windscreens: a pale blue tint unless painted (always translucent, `ALPHA.glass`). */
