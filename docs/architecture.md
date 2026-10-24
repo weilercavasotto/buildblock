@@ -222,8 +222,7 @@ Saves made before (a wheel's `rotation` / `pitch`, a large wheel's `rotation`, a
   are equal, it never reaches the top bar or the hotbar and it **fills the height between them**; when the window is
   short only the **body** scrolls: the header with the title and the × button is outside the scrolling `.inspector-body`, so it stays fixed):
   small spinning preview beside the name and category, a *Remove part* button
-  (`history.run`), "This part" rows (position; for a block the size of its rigid body from `Grid.connectedBlocks` and its
-  wheels from `Grid.wheelsOn`; for a wheel its host block and axle) and the properties from `PART_INFO`.
+  (`history.run`), "This part" rows (position; for a block the size of its rigid body from `Grid.connectedBlocks`; for a wheel its host block and axle) (the catalog, not the inspector, shows the properties from `PART_INFO`).
   `main.ts` calls `inspector.show(part)` from `build.onSelectionChange`, so it follows undo/redo and every other edit.
 - **`Hotbar`** (`src/ui/hotbar.ts`) — `HOTBAR.slots` (9) slots, each a part type or empty; the selected slot is what
   `BuildMode.setTool` places (`null` = place nothing). `main.ts` wires `hotbar.subscribe(part => build.setTool(part))`

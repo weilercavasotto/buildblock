@@ -1,7 +1,7 @@
 import { MOVE_ICONS, HINGE, PISTON, ROTOR, SPRING, springStiffnessOf, BRAKE, PAINT_COLORS, PART_CATEGORIES, PART_INFO, ENGINE, PREVIEW, SIZE, SUSPENSION, TEXT, TIRE, WEIGHT, brakeOf, hingeAngleOf, hingeDegrees, hingeStrengthOf, actionsOf, isKeyed, keyLabel, keysOf, powerOf, rotorSpeedOf, strokeOf, suspensionOf, tireValueOf, weightOf } from '../constants';
 import { MoveDirection } from '../build/build-mode';
 import { Grid } from '../build/grid';
-import { Part, Vec3, axleOf, frontOf, isHostType, isWheelType, isStructural, partCells, studsOf, subVec } from '../types';
+import { Part, Vec3, axleOf, frontOf, isWheelType, isStructural, partCells, studsOf, subVec } from '../types';
 import { captureKey } from './key-capture';
 import { createPreviewCanvas, renderPartPreview, startSpin } from './part-preview';
 
@@ -45,7 +45,7 @@ const coords = (cell: Vec3): string => cell.join(', ');
 
 /**
  * Panel on the right of the screen that shows the part selected in inspect mode: a spinning preview, what it is, where
- * it is and how it is connected (rigid body size, mounted wheels / host block), its properties, and a button to remove
+ * it is and how it is connected (rigid body size, mounted wheels / host block), and a button to remove
  * it. It is refreshed by `show()` whenever the selection or the grid changes. All text is set with `textContent`.
  */
 export class PartInspector {
@@ -114,9 +114,6 @@ export class PartInspector {
       ...this.suspensionSection(part),
       text('h4', 'inspector-heading', TEXT.inspector.thisPart),
       this.rows(this.placedRows(part)),
-      text('h4', 'inspector-heading', TEXT.catalog.properties),
-      this.rows(info.properties.map(({ label, value }) => [label, value] as [string, string])),
-      text('p', 'inspector-status', TEXT.inspector.removeHint),
     );
     this.root.replaceChildren(header, body);
   }
@@ -142,7 +139,6 @@ export class PartInspector {
       ...this.keySectionMany(parts),
       ...this.moveSection(),
       this.rows([...counts].map(([type, n]) => [PART_INFO[type as keyof typeof PART_INFO].name, String(n)] as [string, string])),
-      text('p', 'inspector-status', TEXT.inspector.removeHint),
       text('p', 'inspector-status', TEXT.inspector.multiHint),
     );
     this.root.replaceChildren(header, body);
@@ -186,7 +182,7 @@ export class PartInspector {
     ground.append(icon, text('span', '', TEXT.inspector.moveGround));
     ground.title = TEXT.inspector.moveGroundLabel;
     ground.onclick = () => this.handlers.onMoveToGround();
-    return [text('h4', 'inspector-heading', TEXT.inspector.move), this.movePad(), ground, text('p', 'inspector-status', TEXT.inspector.moveHint), this.mouseMoves()];
+    return [text('h4', 'inspector-heading', TEXT.inspector.move), this.movePad(), ground, this.mouseMoves()];
   }
 
   /** The buttons that move the selection: up / forward / down above left / back / right. */
@@ -614,7 +610,6 @@ export class PartInspector {
       rows.push([TEXT.inspector.weight, String(weightOf(part))]);
       rows.push([TEXT.inspector.rigidBody, TEXT.inspector.blocks(this.grid.connectedBlocks(part.cell))]);
       rows.push([TEXT.inspector.bodyWeight, String(this.grid.connectedWeight(part.cell))]);
-      if (isHostType(part.type)) rows.push([TEXT.inspector.wheelsAttached, String(this.grid.wheelsOn(part.cell).length)]);
     } else if (part.face) {
       const host = this.grid.hostOf(part);
       rows.push([TEXT.inspector.mountedOn, host ? `${PART_INFO[host.type].name} at ${coords(host.cell)}` : '-']);
