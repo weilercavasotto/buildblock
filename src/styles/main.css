@@ -1184,7 +1184,7 @@ body[data-cursor-mode='remove'] > canvas {
   outline: none;
   border-color: var(--color-accent-highlight);
 }
-/* The credit, bottom centre of the menu: a line of text with a coffee cup at its end. */
+/* The credit, bottom centre of the menu. */
 #menu-credit {
   position: fixed;
   left: 50%;
@@ -1199,11 +1199,6 @@ body[data-cursor-mode='remove'] > canvas {
   opacity: var(--opacity-muted);
   text-shadow: var(--shadow-text-small);
   user-select: none;
-}
-#menu-credit svg {
-  width: var(--size-credit-icon);
-  height: var(--size-credit-icon);
-  color: var(--color-accent-highlight);
 }
 #menu.over-game #menu-credit {
   display: none;
