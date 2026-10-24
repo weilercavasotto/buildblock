@@ -225,6 +225,7 @@ export const TEXT = {
   menu: {
     version: (v: string) => `v${v}`,
     noSaves: 'No saved games yet. Start a new one below.',
+    previewAlt: (name: string) => `Preview of ${name}`,
     back: 'Back',
     newGame: 'New game',
     gridSize: (cells: number) => `${cells} × ${cells}`,

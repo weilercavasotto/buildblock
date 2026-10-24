@@ -1,5 +1,6 @@
 import { DEFAULT_GRID_CELLS, GRID_SIZES, SAVE, TEXT } from '../constants';
 import { SaveGame, deleteSave, gridCellsOf, listSaves } from '../save';
+import { savePreviewUrl } from './save-preview';
 import { confirmDialog } from './confirm-dialog';
 
 export interface MenuHandlers {
@@ -146,6 +147,13 @@ export class Menu {
     const item = document.createElement('div');
     item.className = 'save-item';
 
+    // The picture of the creation on the floor, drawn just after the list is shown so a long list does not hold up the panel.
+    const preview = document.createElement('img');
+    preview.className = 'save-preview';
+    preview.alt = TEXT.menu.previewAlt(save.name);
+    preview.draggable = false;
+    setTimeout(() => (preview.src = savePreviewUrl(save)), 0);
+
     const info = document.createElement('div');
     info.className = 'info';
     const name = document.createElement('div');
@@ -180,7 +188,7 @@ export class Menu {
       }
     };
 
-    item.append(info, load, remove);
+    item.append(preview, info, load, remove);
     return item;
   }
 }

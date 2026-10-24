@@ -94,7 +94,7 @@ Press **Play** to open the *Saved games* panel:
 
 - **Load** opens a save; **Delete** asks for confirmation in a dialog (Enter/Cancel/Esc/click outside keep the save;
   only the red **Delete** button removes it).
-- Each save shows its number of parts, its grid size and its date.
+- Each save shows a **picture of its creation** (a small 3D snapshot of all its parts on the floor of the game with its grid, filling the whole tile, drawn when the list opens; an empty save shows just the floor), its number of parts, its grid size and its date.
 - **New game** opens the *New game* panel: type a name (optional, it defaults to "Creation N") and pick the **grid size** (Small 16 × 16, Medium 32 × 32, Large 64 × 64, the default and the biggest), then **Create**. The size is fixed for that game: blocks can only be placed inside the floor grid, which is drawn with one square per cell. Saves from before sizes existed are Large. A grid of `n` squares covers the cells `-n/2 … n/2 - 1` on x and z, and the build height is limited to `n` cells (`y` from 0 to `n - 1`) too.
 - **Back** returns to the title screen (or from the New game panel to the saved games).
 

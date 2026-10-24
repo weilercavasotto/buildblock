@@ -1093,6 +1093,18 @@ body[data-cursor-mode='remove'] > canvas {
   border-radius: var(--radius-md);
   padding: var(--space-md);
 }
+.save-item .save-preview {
+  flex: none;
+  width: var(--size-save-preview);
+  height: var(--size-save-preview);
+  object-fit: contain;
+  background: var(--color-surface-control-hover);
+  border-radius: var(--radius-sm);
+}
+/* A picture that is still being drawn is hidden (no broken image). */
+.save-item img.save-preview:not([src]) {
+  visibility: hidden;
+}
 .save-item .info {
   flex: 1;
   min-width: 0;

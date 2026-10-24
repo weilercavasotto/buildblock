@@ -357,6 +357,14 @@ export const SIREN_VISUAL = {
   segments: 24,
 } as const;
 
+/** The floor under a creation in the preview of a save: its side (cells; it only has to fill the view) and how far the grid lines sit above it so they do not fight with it. */
+export const SAVE_PREVIEW = {
+  extent: 80,
+  lineLift: 0.01,
+  /** The radius (cells) of the patch of floor shown for an empty save. */
+  emptyRadius: 3,
+} as const;
+
 /** The warning band around a ballast block (`createPartObject`): its height and where its centre is (cells, from the block's centre). */
 export const BALLAST_VISUAL = {
   bandHeight: 0.14,

@@ -60,6 +60,8 @@ export const SIZE = {
   dragGhost: 92,
   partInspectorWidth: 340,
   partInspectorPreview: 72,
+  /** The picture of a creation in the saved-games list. */
+  savePreview: 76,
   paintSwatch: 28,
   loadingLogo: 96,
   menuPlayIcon: 28,

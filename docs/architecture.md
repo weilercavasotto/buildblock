@@ -29,7 +29,8 @@ src/
   ui/hud.ts                    Top-left buttons, top bar and hotbar visibility (DOM bound to index.html)
   ui/hotbar.ts                 Hotbar: 9 slots, selection, persistence, drag between slots
   ui/catalog-dialog.ts         Parts catalog modal: tabs, cards with 3D previews, inspector, drag to the hotbar
-  ui/part-preview.ts           Shared off-screen WebGL renderer for the 3D part previews
+  ui/part-preview.ts           Shared off-screen WebGL renderer for the 3D part previews (and `renderCreationPreview`, a whole creation)
+  ui/save-preview.ts           The picture of a save for the saved-games list (cached per save and update)
   ui/drag-drop.ts              Pointer-based drag & drop (catalog cards, hotbar slots)
   ui/modal.ts                  Generic modal (backdrop, Esc, focus trap, key swallowing) used by help and catalog
   ui/help-dialog.ts            Help modal with tabs (opened by the top-left info button or H)
