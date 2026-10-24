@@ -342,6 +342,12 @@ export const LAMP_VISUAL = {
   segments: 24,
 } as const;
 
+/** The warning band around a ballast block (`createPartObject`): its height and where its centre is (cells, from the block's centre). */
+export const BALLAST_VISUAL = {
+  bandHeight: 0.14,
+  bandY: -0.3,
+} as const;
+
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
 export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, lamp: LAMP_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
 

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, SKI_BODY, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, studInside, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { ALPHA, BALLAST_VISUAL, BRAKE_VISUAL, SKI_BODY, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, studInside, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, PartType, Vec3, applyMatrix, axleOf, frontOf, isCompactMounted, isHexColor, isGlass, isSki, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeDisc } from './brake-model';
@@ -146,10 +146,13 @@ const blockMat = new THREE.MeshStandardMaterial({
 const wingMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.wing), roughness: ROUGHNESS.block, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
 /** The default material of glass: translucent, and it does not write depth, so what is behind it shows. */
 const glassMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.glass), roughness: ROUGHNESS.glass, transparent: true, opacity: ALPHA.glass, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+/** The default material of a ballast block (dark steel) and of its warning band. */
+const ballastMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.ballast), roughness: ROUGHNESS.block, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+const ballastBandMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.ballastBand), roughness: ROUGHNESS.block });
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return type === 'lamp' ? { face: lampHousing, edge: edgeMat } : (!!type && isGlass(type as PartType)) ? { face: glassMat, edge: edgeMat } : type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  if (!isHexColor(paint)) return type === 'ballast' ? { face: ballastMat, edge: edgeMat } : type === 'lamp' ? { face: lampHousing, edge: edgeMat } : (!!type && isGlass(type as PartType)) ? { face: glassMat, edge: edgeMat } : type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
   const hex = paint.toLowerCase();
   const key = (!!type && isGlass(type as PartType)) ? `glass:${hex}` : hex;
   let pair = paintCache.get(key);
@@ -556,6 +559,14 @@ export function createPartObject(
       if (!box.wedge && !box.smooth) group.add(studsMesh(mats.face, box.size, box.studs, box.round)); // a slope or a tile has no studs on it, only sockets underneath
       if (!box.polygon) group.add(socketsMesh(box.size, box.studs, box.round)); // the sockets of a swept wing would stick out of its outline: not drawn
       root.add(group);
+    }
+    if (part.type === 'ballast') {
+      // The warning band: a ring a little larger than the cube, round all four sides (the same on any face, so it is part of the cube whatever turns it).
+      const band = new THREE.Mesh(blockGeo, ballastBandMat);
+      band.scale.set(1.004, BALLAST_VISUAL.bandHeight, 1.004);
+      band.position.y = BALLAST_VISUAL.bandY;
+      Object.assign(band, noRaycast);
+      root.add(band);
     }
   } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge' || part.type === 'spring' || part.type === 'bolt') {
     // The rotor / piston / hinge in its own frame: the base against the block (-y) and the head with its studs on the outside (+y).

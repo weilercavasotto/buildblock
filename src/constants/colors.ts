@@ -132,6 +132,9 @@ export const COLORS = {
     lampLens: '#e9e4c8',
     lampGlow: '#fff0a8',
     lampBeam: '#fff1a8',
+    /** The ballast block: dark steel with an amber warning band. */
+    ballast: '#4a4f57',
+    ballastBand: '#f2b134',
     /** The wings: a pale grey plate unless painted. */
     wing: '#d9dee5',
     /** Glass panes and windscreens: a pale blue tint unless painted (always translucent, `ALPHA.glass`). */

@@ -50,8 +50,8 @@ import {
   suspensionOf,
   suspensionStiffness,
   tireOf,
-  weightMass,
-  weightOf,
+  WEIGHT,
+  weightUnits,
   wheelSizeOf,
 } from '../constants';
 import { createHeadedBaseObject, createHeadedHeadObject, createPartObject, createPistonRod, createSpringCoil, faceQuaternion, headedCentres, hingePivot, orientationQuaternion } from '../parts/part-defs';
@@ -962,7 +962,7 @@ export class PhysicsWorld {
         const local = subVec(p.cell, origin);
         // One collider per box of the part (a block is one cube, a plate a slab, an L bracket two slabs), around its centre.
         this.addStructuralColliders(body, p, local, (desc) =>
-          desc.setDensity(CHASSIS.density * weightMass(weightOf(p))).setFriction(CHASSIS.friction).setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
+          desc.setDensity(CHASSIS.density * (weightUnits(p) / WEIGHT.default)).setFriction(CHASSIS.friction).setCollisionGroups(groups(CHASSIS_GROUP, GROUND | CHASSIS_GROUP)),
         );
         const obj = createPartObject(p);
         obj.position.set(...local);

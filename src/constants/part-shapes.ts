@@ -107,6 +107,8 @@ export const SHAPES: Record<StructuralType, Shape> = {
   blockBeam: { boxes: [solid(1, 1, 2)], spins: 2 },
   /** Four blocks in one: 2 x 2 footprint (16 studs). */
   blockLarge: { boxes: [solid(2, 1, 2)], spins: 1 },
+  /** The ballast block: a 1 x 1 x 1 cube like the block, but far denser (`BALLAST.density`). */
+  ballast: { boxes: [solid(1, 1, 1)], spins: 1 },
   plate: { boxes: [flat(1, 1)], spins: 1 },
   /** The smallest plate: 0.5 x 0.5 (a single stud). */
   plateQuarter: { boxes: [flat(0.5, 0.5)], spins: 1 },

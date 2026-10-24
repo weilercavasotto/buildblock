@@ -166,6 +166,17 @@ export const clampWeight = (value: number): number =>
 /** The weight of a part: its own, or the default; always an integer in `[min, max]`. */
 export const weightOf = (part: { weight?: number }): number => clampWeight(part.weight ?? WEIGHT.default);
 
+/**
+ * The ballast block (`'ballast'`): a cube the size of a block with a fixed, very high density, `density` times the default block's
+ * (the weight slider tops out at 4x), to lower and centre the mass of a vehicle. It has no weight slider.
+ */
+export const BALLAST = {
+  density: 8,
+} as const;
+
+/** The weight of a structural part in the units of `WEIGHT`: its own setting, or for a ballast block the fixed one that `BALLAST` gives. */
+export const weightUnits = (part: { type: string; weight?: number }): number => (part.type === 'ballast' ? WEIGHT.default * BALLAST.density : weightOf(part));
+
 /** Mass multiplier (relative to `CHASSIS.density`) of a block of this weight. */
 export const weightMass = (weight: number): number => clampWeight(weight) / WEIGHT.default;
 

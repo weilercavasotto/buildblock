@@ -1,6 +1,6 @@
 import { BLOCK_HEIGHT } from './part-shapes';
 import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, SKI_BODY, PISTON_BODY, PARACHUTE_BODY, LAMP_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { BOLT, CHASSIS, ENGINE, HINGE, LAMP, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { BALLAST, BOLT, CHASSIS, ENGINE, HINGE, LAMP, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
@@ -104,6 +104,23 @@ function wing(type: StructuralType, name: string, [span, depth]: [number, number
     ],
     extraProperties: [{ label: 'Control', value: 'Pitch, roll and yaw keys, chosen in the inspector (all optional)' }],
   });
+}
+
+/** The ballast block: a block with a fixed, very high density and no weight slider. */
+function ballastInfo(): PartInfo {
+  const info = structural('ballast', {
+    name: '2x2 Ballast',
+    tagline: 'A block as heavy as eight.',
+    description: `A block-sized cube of dense metal with an amber band: the same shape, studs and sockets as the 2x2 Block, but ${BALLAST.density} times as heavy (the weight slider of a normal block only goes up to 4 times). Put it low and near the middle of a vehicle to lower its centre of mass, so it takes curves and ramps without tipping, or at the nose or tail to balance a plane. It has no weight setting of its own.`,
+    size: '1 x 1 x 1 cell',
+    studs: '4 on the top face',
+    tips: [STRUCTURE_TIP, 'Build it into the floor between the wheels: the lower the weight, the harder the car is to tip over.', 'Engines and wheels do not mount on it (use a block for that); it is a body part, not a host.', 'A plane balances where its weight is: a ballast at the tail can offset a heavy engine at the nose.'],
+  });
+  return {
+    ...info,
+    hasWeight: false,
+    properties: info.properties.map((row) => (row.label === 'Weight' ? { label: 'Weight', value: `Fixed: ${BALLAST.density} times a block of the default weight` } : row)),
+  };
 }
 
 const STRUCTURE_TIP = 'Move the pointer over the part below to choose how much of it rests there (all the studs, half, or just one).';
@@ -307,6 +324,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
     studs: 'None on the slope; sockets underneath',
     tips: [STRUCTURE_TIP, 'The thick edge is the back: A / D turn it, W / S tilt it.', 'Two of them side by side make a wide fairing.'],
   }),
+  ballast: ballastInfo(),
   tileQuarter: structural('tileQuarter', {
     name: '1x1 Tile',
     tagline: 'The smallest smooth plate.',
@@ -968,6 +986,7 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'blockBeamLow',
   'blockBeam',
   'blockLarge',
+  'ballast',
   'plateQuarter',
   'plateHalf',
   'plateLong',

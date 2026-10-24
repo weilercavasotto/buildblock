@@ -58,13 +58,13 @@ Left out for now: 2 (real steering: an axle that steers the front wheels) and 7 
 | 6 | **Corner and inverted slopes** | medium | Complete the wedge family. |
 | 7 | **Arches and plates with a hole** | medium | For bridges, and for a real "axle". |
 | 8 | **Seat and driver** | medium | A figure that sits in the car, with an optional first-person camera (needs a change in the Play camera). |
-| 9 | **Ballast block** | low | Very dense, to balance vehicles. |
+| 9 | ~~**Ballast block**~~ | done | The **2x2 Ballast**: a block-sized cube, 8 times denser than the default block, no weight slider; lowers or balances a vehicle. See the *Ballast* section of getting-started.md. |
 
 Left out for now: 1 (an anchor block fixed to the ground).
 
 ### Suggested order
 
-1. Ballast, ~~tiles~~ (done), ~~glass~~ (done) and ~~headlights~~ (done) (no physics change).
+1. ~~Ballast~~ (done), ~~tiles~~ (done), ~~glass~~ (done) and ~~headlights~~ (done) (no physics change).
 2. ~~Wheels of other sizes~~ and ~~skids~~ (done; the parachute is done).
 3. ~~The detachable stage~~ (done).
 4. Seat and driver.

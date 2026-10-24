@@ -14,6 +14,7 @@ export const STRUCTURAL_TYPES = [
   'blockBeam',
   'blockBeamLow',
   'blockLarge',
+  'ballast',
   'plate',
   'plateQuarter',
   'plateHalf',
