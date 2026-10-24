@@ -183,6 +183,10 @@ The catalog (*Structure*) has blocks, plates and L brackets in several sizes, na
 
 Five **wedges** (*Structure*) are triangular prisms, half the volume of the box they fit in: the **2x2 Slope** (1 × 1 × 1, a 45° ramp), the **1x2 Slope** (0.5 × 1 × 1, narrow), the **2x4 Slope** (1 × 1 × 2, a gentle ramp of about 27°) and two thin ones, the **2x2 Slope Plate** and the **2x4 Slope Plate** (1 × 0.2 × 1 and 1 × 0.2 × 2, a plate thick at one edge and tapering to nothing: wings, spoilers, fairings and propeller blades and fairings). The tall (thick) edge is the **back**: turn them with `A` / `D` and tilt them with `W` / `S` like any part, so a slope can face any way or hang from a ceiling. A wedge has **no studs on the slope**: nothing can be built on it (the preview is red), but its **underside has sockets**, so it holds on the studs of the parts below it (or on the ground), and it welds into the body like any part. It collides as its real shape (a convex hull), so a car drives up it. Like every part it is a body that can be pushed: a ramp on the ground slides away under a car unless you give it weight (the Weight slider, up to 16) or weld it to something heavy. The occupancy test (what is "in the way") uses the whole box of the wedge, not just the solid half.
 
+### Glass and windscreens
+
+Four translucent **glass** parts (*Structure*): the **2x2 Glass** and **4x4 Glass** (1 × 1 and 2 × 2 cells, a plate thick, 4 and 16 studs; they place, weld, tilt and weigh like plates) and the **2x2 Windscreen** and **2x4 Windscreen** (a 45° and a raked ~27° glass wedge, the same shapes as the 2x2 and 2x4 Slope: no studs on the slope, sockets underneath). They are drawn see-through (`ALPHA.glass`, `COLORS.part.glass`, material `glassMat` in `part-defs.ts`, no depth write) and are solid for physics. Painting tints the glass but keeps it translucent. `isGlass(type)` in `types.ts` picks them.
+
 ### Effects
 
 A part you place **bounces like jelly**: it squashes, stretches and wobbles for about half a second (loading a game, undo and redo do not

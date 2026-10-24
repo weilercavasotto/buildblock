@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ALPHA, BRAKE_VISUAL, SKI_BODY, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
-import { Part, PartType, Vec3, applyMatrix, axleOf, frontOf, isCompactMounted, isHexColor, isSki, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
+import { Part, PartType, Vec3, applyMatrix, axleOf, frontOf, isCompactMounted, isHexColor, isGlass, isSki, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeDisc } from './brake-model';
 import { createThrusterModel, thrusterTube } from './thruster-model';
@@ -138,18 +138,21 @@ const blockMat = new THREE.MeshStandardMaterial({
 });
 /** The default material of a wing. */
 const wingMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.wing), roughness: ROUGHNESS.block, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+/** The default material of glass: translucent, and it does not write depth, so what is behind it shows. */
+const glassMat = new THREE.MeshStandardMaterial({ color: color(COLORS.part.glass), roughness: ROUGHNESS.glass, transparent: true, opacity: ALPHA.glass, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
 /** Materials of painted blocks, one pair per colour (shared by every block with that colour). */
 const paintCache = new Map<string, { face: THREE.MeshStandardMaterial; edge: THREE.LineBasicMaterial }>();
 function blockMaterials(paint?: string, type?: string) {
-  if (!isHexColor(paint)) return type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
-  const key = paint.toLowerCase();
+  if (!isHexColor(paint)) return (!!type && isGlass(type as PartType)) ? { face: glassMat, edge: edgeMat } : type === 'engine' ? { face: engineMetal, edge: edgeMat } : type === 'turbo' ? { face: turboBottle, edge: edgeMat } : type === 'thruster' ? { face: thrusterTube, edge: edgeMat } : type === 'propeller' ? { face: propellerHousing, edge: edgeMat } : type === 'parachute' ? { face: parachutePack, edge: edgeMat } : isWing(type as PartType) ? { face: wingMat, edge: edgeMat } : { face: blockMat, edge: edgeMat };
+  const hex = paint.toLowerCase();
+  const key = (!!type && isGlass(type as PartType)) ? `glass:${hex}` : hex;
   let pair = paintCache.get(key);
   if (!pair) {
     pair = {
-      face: blockMat.clone(),
-      edge: new THREE.LineBasicMaterial({ color: new THREE.Color(color(key)).multiplyScalar(PAINT_EDGE_FACTOR) }),
+      face: ((!!type && isGlass(type as PartType)) ? glassMat : blockMat).clone(),
+      edge: new THREE.LineBasicMaterial({ color: new THREE.Color(color(hex)).multiplyScalar(PAINT_EDGE_FACTOR) }),
     };
-    pair.face.color.setHex(color(key));
+    pair.face.color.setHex(color(hex));
     paintCache.set(key, pair);
   }
   return pair;

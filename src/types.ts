@@ -32,6 +32,10 @@ export const STRUCTURAL_TYPES = [
   'slopePlateLong',
   'wing',
   'wingLarge',
+  'glass',
+  'glassLarge',
+  'windscreen',
+  'windscreenLong',
 ] as const;
 export type StructuralType = (typeof STRUCTURAL_TYPES)[number];
 /** Every kind of part in the catalog. */
@@ -45,7 +49,7 @@ export const HOST_TYPES = ['block', 'blockQuarter', 'blockLowQuarter', 'blockTal
 export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly string[]).includes(type);
 
 /** Structural parts made of flat boxes (plates, L brackets, every block): not the wedges (slopes) and the swept wings, whose faces are slanted or outlines. */
-export const isFlatStructural = (type: PartType): boolean => isStructural(type) && !isWing(type) && !type.startsWith('slope');
+export const isFlatStructural = (type: PartType): boolean => isStructural(type) && !isWing(type) && !type.startsWith('slope') && !type.startsWith('windscreen');
 
 /** Can `part` be mounted on a `host`? Any mounted part goes on a block (`HOST_TYPES`); a spring on any flat structural part (plates, brackets), on the faces of its boxes. */
 export const canHost = (host: PartType, part: PartType): boolean => isHostType(host) || (part === 'spring' && isFlatStructural(host));
@@ -64,6 +68,8 @@ export const isCompactMounted = (type: PartType): type is 'engine' | 'turbo' | '
 
 /** The wings: thin flat plates with studs, the only aerodynamic parts (lift and drag from the air they move through, see `WING`). */
 export const WING_TYPES = ['wing', 'wingLarge'] as const;
+/** The glass panes and windscreens: structural parts drawn translucent. */
+export const isGlass = (type: PartType): boolean => type.startsWith('glass') || type.startsWith('windscreen');
 export const isWing = (type: PartType): type is (typeof WING_TYPES)[number] => (WING_TYPES as readonly string[]).includes(type);
 
 /** The rotor: mounted on a block face, its head (with the parts welded to its studs) turns on the axis of the face. */

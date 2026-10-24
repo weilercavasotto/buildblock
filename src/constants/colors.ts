@@ -128,6 +128,8 @@ export const COLORS = {
     parachuteLine: '#e9edf2',
     /** The wings: a pale grey plate unless painted. */
     wing: '#d9dee5',
+    /** Glass panes and windscreens: a pale blue tint unless painted (always translucent, `ALPHA.glass`). */
+    glass: '#a9d6f5',
     tire: '#23262d',
     rim: '#dfe3ea',
     /** The placement ghost turns this colour when the part cannot be placed (otherwise it is the part itself, translucent). */
@@ -166,6 +168,7 @@ export const ALPHA = {
   muted: 0.7,
   disabled: 0.45,
   ghost: 0.5,
+  glass: 0.35,
   backdrop: 0.55,
 } as const;
 

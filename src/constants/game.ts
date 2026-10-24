@@ -509,6 +509,7 @@ export const ROUGHNESS = {
   block: 0.55,
   tire: 0.9,
   rim: 0.35,
+  glass: 0.1,
   scenery: 0.8,
 } as const;
 

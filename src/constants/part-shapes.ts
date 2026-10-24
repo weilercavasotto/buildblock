@@ -123,6 +123,14 @@ export const SHAPES: Record<StructuralType, Shape> = {
   wing: { boxes: swept(2, 1.5, -1), spins: 4 },
   /** The big wing: 4 x 3. */
   wingLarge: { boxes: swept(4, 3, -1), spins: 4 },
+  /** A pane of glass: a 1 x 1 plate (4 studs), translucent. */
+  glass: { boxes: [flat(1, 1)], spins: 1 },
+  /** The big pane: 2 x 2 (16 studs). */
+  glassLarge: { boxes: [flat(2, 2)], spins: 1 },
+  /** A windscreen: a 45 degree glass slope, 1 x 1 footprint, 1 tall, rising towards the back. */
+  windscreen: { boxes: [wedge(1, 1, 1)], spins: 4 },
+  /** The long windscreen: 1 x 2 footprint, 1 tall (a raked screen, about 27 degrees). */
+  windscreenLong: { boxes: [wedge(1, 1, 2)], spins: 4 },
   /** Two plates at a right angle (8 studs). */
   bracket: { boxes: bracket(1), spins: 4 },
   /** The same L, half as wide (4 studs). */
