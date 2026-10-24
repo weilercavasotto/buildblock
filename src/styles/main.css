@@ -302,7 +302,26 @@ body.dragging * {
 }
 .help-text {
   flex: 1;
+  min-width: 0;
   opacity: var(--opacity-muted);
+}
+.help-para {
+  margin: 0 0 var(--space-xs);
+}
+/* A lead-in line ("The actions:") stands out a little over the list under it. */
+.help-lead {
+  margin-top: var(--space-sm);
+  font-weight: var(--font-weight-semibold);
+}
+.help-list {
+  margin: 0 0 var(--space-xs);
+  padding-left: var(--space-lg);
+}
+.help-list li {
+  margin-bottom: var(--space-xs);
+}
+.help-text > :last-child {
+  margin-bottom: 0;
 }
 .help-note .help-text {
   opacity: 1;

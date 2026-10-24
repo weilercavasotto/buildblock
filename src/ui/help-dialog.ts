@@ -107,8 +107,36 @@ function renderRow(row: HelpRow): HTMLElement {
     });
     el.append(keys);
   }
-  el.append(span('help-text', row.text));
+  el.append(renderText(row.text));
   return el;
+}
+
+/**
+ * The text of a row: each line is a paragraph, except the lines that start with "- ", which are the items of a bulleted list (a run
+ * of them makes one list). A paragraph that ends with a colon is a lead-in (a small heading for what follows).
+ */
+function renderText(text: string): HTMLElement {
+  const box = div('help-text');
+  let list: HTMLUListElement | null = null;
+  for (const line of text.split('\n')) {
+    if (line.startsWith('- ')) {
+      if (!list) {
+        list = document.createElement('ul');
+        list.className = 'help-list';
+        box.append(list);
+      }
+      const item = document.createElement('li');
+      item.textContent = line.slice(2);
+      list.append(item);
+      continue;
+    }
+    list = null;
+    const paragraph = document.createElement('p');
+    paragraph.className = line.endsWith(':') ? 'help-para help-lead' : 'help-para';
+    paragraph.textContent = line;
+    box.append(paragraph);
+  }
+  return box;
 }
 
 function div(className: string): HTMLDivElement {
