@@ -61,7 +61,7 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 - The game starts in the main menu. Edits autosave only to the active save (`activeSave` in `main.ts`);
   set it to `null` around `grid.load/clear` so loading does not rewrite (and re-date) a save.
 - UI font is Orbitron (self-hosted, imported in `main.ts`, token in `typography.ts`); it is wide, so keep sizes modest and buttons `nowrap`.
-- Mouse: left = place on press / drag to paint blocks on the starting face's plane (never moves the camera), right click = remove / right drag = pan, middle drag = rotate,
+- Mouse: left = place on press / drag to keep placing the same part (`Stroke` in `build-mode.ts`, one part apart, any part) on the starting face's plane (never moves the camera), right click = remove / right drag = pan, middle drag = rotate,
   scroll = zoom (`controls.mouseButtons` in `main.ts`; click-vs-drag logic in `build-mode.ts`).
 - `index.html` hides the whole body until `main()` adds `html.ready` (after `applyTheme()`), and paints the page `#0a0e18` (= `COLORS.surface.vignette`) meanwhile, so no unstyled flash on first load; keep that colour in sync.
 - The version shown in the menu comes from `package.json` (`__APP_VERSION__`, defined in `vite.config.ts`).

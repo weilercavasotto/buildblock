@@ -68,7 +68,7 @@ export const HELP_TABS: HelpTab[] = [
           { keys: ['Left click'], text: 'Place the selected part.' },
           {
             keys: ['Left drag'],
-            text: 'Paint blocks: keep the button down and move to keep placing blocks on the face where you started (a row, a layer or a wall).',
+            text: 'Place several: keep the button down and move to keep placing the same part on the face where you started (a row, a layer or a wall). Parts go a whole part apart (a 2x4 plate a plate length, a block a cell); parts that do not fit are skipped, and the whole stroke is one undo step.',
           },
           { keys: ['W', 'S'], text: 'Tilt the part to place a quarter turn up or down (W / S, also the ↑ ↓ arrow keys) (around the screen\'s left-right axis): a plate stands as a wall, a block lies with its studs to the side, a bracket lies on its back, a wheel\'s axle points up or down, an engine faces up or down. Every part turns the same way, in all directions. Also the ↑ ↓ buttons in the top bar. Studs only connect to studs pointing the same way.' },
           { keys: ['A', 'D'], text: 'Rotate the part to place a quarter turn (A counter-clockwise, D clockwise). The preview follows, also for parts that look the same after the turn. Every part rotates freely this way (a wheel\'s axle, an engine\'s front and a large wheel\'s reach turn with it). Also available as the ↺ ↻ buttons in the top bar.' },

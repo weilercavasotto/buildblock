@@ -25,15 +25,19 @@ interface Pick {
   point: THREE.Vector3;
 }
 
-/** A left-button drag that keeps placing blocks on the plane of the face where it started. */
+/** A left-button drag that keeps placing the same part on the plane of the face where it started. */
 interface Stroke {
   /** Axis (0 = x, 1 = y, 2 = z) perpendicular to the painted plane. */
   axis: number;
-  /** Coordinate of the painted surface along `axis` (a cell face, half a cell from the cell centres). */
+  /** Coordinate of the surface the parts rest on along `axis` (the face they touch). */
   surface: number;
-  /** Coordinate along `axis` shared by every cell of the stroke. */
-  layer: number;
+  /** The part placed on press: every other one is a copy of it (same orientation and face), moved along the plane. */
+  template: Part;
+  /** How far apart the parts go along each axis: the size of the part (a whole cell for a mounted one), 0 across the plane. */
+  step: Vec3;
+  /** The cell of the first part. */
   start: Vec3;
+  /** The offset, in steps from `start`, of the last position that was filled. */
   last: Vec3;
   /** Grid state before the stroke; committed to the history as one step when the stroke ends. */
   before: Checkpoint;
@@ -52,7 +56,7 @@ export type MoveDirection = 'left' | 'right' | 'forward' | 'back' | 'up' | 'down
 
 /**
  * Turns pointer input into edits of the grid, depending on the cursor mode:
- * - build: the left button places the hotbar part (drag to paint blocks), a right click removes;
+ * - build: the left button places the hotbar part (drag to keep placing it along the face where you started), a right click removes;
  * - inspect: a left click selects the part under the cursor, a left drag draws a box and selects every part it touches on the screen
  *   (Shift adds to the selection; a Shift click toggles a part), unless it starts on a selected part: then it moves the selection (Shift: up / down); selected parts are outlined and listeners such as the inspector panel are told;
  * - paint: the left button paints the part under the cursor with the chosen colour (drag to paint several; wheels are skipped);
@@ -640,7 +644,7 @@ export class BuildMode {
     }
     if (this.mode !== 'build') return;
 
-    // The left button places on press; for blocks, keeping it down and moving paints more blocks (see `paint`).
+    // The left button places on press; keeping it down and moving places more of the same part along the face (see `paint`).
     const p = this.pick(e);
     const part = p && this.target(p);
     if (!p || !part) return;
@@ -654,22 +658,21 @@ export class BuildMode {
     }
     sound.play('place', { pitch: this.placePitch(part) });
     this.setGhost(null);
-    if (part.type !== 'block') {
-      this.history.commit(before);
-    } else {
-      const axis = p.normal.findIndex((v) => v !== 0);
-      this.stroke = {
-        axis,
-        surface: part.cell[axis] - 0.5 * p.normal[axis],
-        layer: part.cell[axis],
-        start: part.cell,
-        last: part.cell,
-        before,
-      };
-    }
+    const axis = p.normal.findIndex((v) => v !== 0);
+    const box = partBox(part);
+    const structural = isStructural(part.type);
+    this.stroke = {
+      axis,
+      surface: p.normal[axis] > 0 ? box.min[axis] : box.max[axis],
+      template: part,
+      step: [0, 1, 2].map((i) => (i === axis ? 0 : Math.max(structural ? STUD.pitch : 1, roundCoord(box.max[i] - box.min[i])))) as Vec3,
+      start: part.cell,
+      last: [0, 0, 0],
+      before,
+    };
   }
 
-  /** True while the left button is held after placing a block (further blocks may still be added). */
+  /** True while the left button is held after placing a part (further parts may still be added). */
   get isPainting(): boolean {
     return this.stroke !== null;
   }
@@ -706,9 +709,9 @@ export class BuildMode {
   }
 
   /**
-   * Extends the stroke to the cell under the pointer. The pointer ray is intersected with the plane of the face the
-   * stroke started on (not with the blocks just placed, which would make the stroke grow towards the camera), and
-   * the cells between the previous and the new position are filled so fast mouse moves leave no gaps.
+   * Extends the stroke to the position under the pointer. The pointer ray is intersected with the plane of the face the
+   * stroke started on (not with the parts just placed, which would make the stroke grow towards the camera), the parts go a whole
+   * step (their own size) apart, and the positions between the previous and the new one are filled so fast mouse moves leave no gaps.
    */
   private paint(e: PointerLike): void {
     const s = this.stroke!;
@@ -718,18 +721,18 @@ export class BuildMode {
     const point = this.raycaster.ray.intersectPlane(new THREE.Plane(normal, -s.surface), new THREE.Vector3());
     if (!point) return;
 
-    // Whole cells from where the stroke started, so a stroke that starts on a half cell keeps its offset.
-    const goal: Vec3 = [0, 1, 2].map((i) => (i === s.axis ? s.layer : roundCoord(s.start[i] + Math.round(point.getComponent(i) - s.start[i])))) as Vec3;
-    if (goal.some((v, i) => Math.abs(v - s.start[i]) > BUILD.maxPaintDistance)) return;
+    // Whole steps from where the stroke started, so a stroke that starts on a half cell keeps its offset.
+    const goal: Vec3 = [0, 1, 2].map((i) => (s.step[i] === 0 ? 0 : Math.round((point.getComponent(i) - s.start[i]) / s.step[i]))) as Vec3;
+    if (goal.some((v, i) => Math.abs(v * s.step[i]) > BUILD.maxPaintDistance)) return;
 
-    const steps = Math.round(Math.max(...goal.map((v, i) => Math.abs(v - s.last[i]))));
-    const cells: Part[] = [];
+    const steps = Math.max(...goal.map((v, i) => Math.abs(v - s.last[i])));
+    const parts: Part[] = [];
     for (let step = 1; step <= steps; step++) {
-      const cell = s.last.map((v, i) => roundCoord(s.start[i] + Math.round(v + ((goal[i] - v) * step) / steps - s.start[i]))) as Vec3;
-      cells.push({ type: 'block', cell, ...orientationFields(canonicalOrientation('block', this.orientation)) });
+      const cell = s.last.map((v, i) => roundCoord(s.start[i] + Math.round(v + ((goal[i] - v) * step) / steps) * s.step[i])) as Vec3;
+      parts.push({ ...s.template, cell });
     }
     this.placing = true;
-    if (this.grid.addMany(cells) > 0) sound.play('place', { gain: 0.6 });
+    if (this.grid.addMany(parts) > 0) sound.play('place', { gain: 0.6 });
     this.placing = false;
     s.last = goal;
   }
