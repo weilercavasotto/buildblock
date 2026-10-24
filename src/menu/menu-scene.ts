@@ -15,7 +15,7 @@ export class MenuScene {
   private throttle = 1;
   private steer = 0;
   /** What the build has, for the autopilot to use (see `drive`): rotors spin all the time, pistons go out and back, thrusters and turbos fire in bursts. */
-  private features = { rotors: false, pistons: false, jets: false };
+  private features = { rotors: false, pistons: false, jets: false, lamps: false, sirens: false };
   private pistonOut = false;
   private pistonTimer = 0;
   private burstTimer = 0;
@@ -109,6 +109,8 @@ export class MenuScene {
       boost: fire,
       rotors: this.features.rotors,
       pistons: this.features.pistons && this.pistonOut,
+      lamps: this.features.lamps,
+      sirens: this.features.sirens,
     });
   }
 
@@ -116,7 +118,7 @@ export class MenuScene {
     this.despawn();
     const { grid } = generateRandomBuild();
     const has = (...types: string[]) => grid.all().some((p) => types.includes(p.type));
-    this.features = { rotors: has('rotor'), pistons: has('piston'), jets: has('thruster', 'turbo') };
+    this.features = { rotors: has('rotor'), pistons: has('piston'), jets: has('thruster', 'turbo'), lamps: has('lamp'), sirens: has('siren') };
     this.pistonOut = false;
     this.pistonTimer = MENU_SCENE.pistonInterval;
     this.bursting = false;

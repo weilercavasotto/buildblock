@@ -747,6 +747,13 @@ export const RANDOM_BUILD = {
   liftChance: 0.5,
   /** The speeds a propeller can have (see `ROTOR`). */
   rotorSpeeds: [4, 6, 8, -5, -7] as const,
+  /** The headlights on the nose, a glass roof (or a smooth tile roof when nothing is built on it), a glass windscreen as the tail, a siren on the roof, a barrel (a round brick) as cargo. */
+  lampChance: 0.8,
+  glassRoofChance: 0.35,
+  tileRoofChance: 0.4,
+  glassTailChance: 0.5,
+  sirenChance: 0.2,
+  barrelChance: 0.35,
   cabinChance: 0.75,
   cabinShortChance: 0.5,
   roofBlockChance: 0.4,

@@ -89,7 +89,7 @@ catalog (which just lists the property).
 
 ## Main menu and saved games
 
-The game opens on the main menu (with a credit line at the bottom centre, "Developed by Weiler Cavasotto", drawn in `index.html` as `#menu-credit`): a random vehicle (a coupe, a pickup that may lift its cargo on a piston, a buggy with a spinning propeller or a rocket car that fires its thrusters, always freshly painted) wanders in the background while the camera orbits it.
+The game opens on the main menu (with a credit line at the bottom centre, "Developed by Weiler Cavasotto", drawn in `index.html` as `#menu-credit`): a random vehicle (with headlights on the nose that the menu switches on, glass roofs and rear windows, now and then a siren on the roof or a barrel as cargo: a coupe, a pickup that may lift its cargo on a piston, a buggy with a spinning propeller or a rocket car that fires its thrusters, always freshly painted) wanders in the background while the camera orbits it.
 Press **Play** to open the *Saved games* panel:
 
 - **Load** opens a save; **Delete** asks for confirmation in a dialog (Enter/Cancel/Esc/click outside keep the save;

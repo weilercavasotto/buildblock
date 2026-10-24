@@ -39,7 +39,7 @@ interface DrivenWheel {
 }
 
 export class VehicleController {
-  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean } | null = null;
+  private autopilot: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean; lamps?: boolean; sirens?: boolean } | null = null;
   /** The part keys that are held right now. */
   private held = new Set<string>();
   /** The (part, action) pairs each key is bound to: a press flips the `toggle` ones, the held key runs the `hold` ones. */
@@ -127,6 +127,8 @@ export class VehicleController {
       if (isPiston(part.type)) return this.autopilot.pistons ?? false;
       if (part.type === 'thruster') return this.autopilot.thrust ?? false;
       if (part.type === 'turbo') return this.autopilot.boost ?? false;
+      if (part.type === 'lamp') return this.autopilot.lamps ?? false;
+      if (part.type === 'siren') return this.autopilot.sirens ?? false;
       return action === 'brake' ? (this.autopilot.brake ?? false) : false;
     }
     const mode = actionsOf(part).find((a) => a.id === action)?.mode;
@@ -193,7 +195,7 @@ export class VehicleController {
   };
 
   /** Drives the vehicle with the given throttle/steer in [-1, 1]; `null` hands control back to the keyboard. */
-  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean } | null): void {
+  setAutopilot(input: { throttle: number; steer: number; brake?: boolean; boost?: boolean; thrust?: boolean; rotors?: boolean; pistons?: boolean; lamps?: boolean; sirens?: boolean } | null): void {
     this.autopilot = input;
   }
 

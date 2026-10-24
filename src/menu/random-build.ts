@@ -1,6 +1,6 @@
 import { Grid } from '../build/grid';
 import { CELL_SIZE, PAINT_COLORS, PISTON_BODY, PLATE, RANDOM_BUILD, ROTOR_BODY } from '../constants';
-import { Part, Vec3 } from '../types';
+import { Part, Vec3, frontOf } from '../types';
 
 const pick = <T>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)];
 const chance = (probability: number): boolean => Math.random() < probability;
@@ -22,6 +22,17 @@ function randomPalette(): Palette {
   const accent = pick(colours.filter((c) => c !== body));
   const detail = pick(colours.filter((c) => c !== body && c !== accent));
   return { body, accent, detail };
+}
+
+/** The orientation fields (`studs`, `spin`) that make a part's front (local +z) point along `direction`; none when it is the default one. */
+function facing(type: Part['type'], direction: Vec3): Pick<Part, 'studs' | 'spin'> {
+  const ups: Vec3[] = [[0, 1, 0], [0, -1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]];
+  for (const studs of ups) {
+    for (const spin of [0, 1, 2, 3]) {
+      if (frontOf({ studs, spin }).every((v, i) => Math.round(v) === direction[i])) return { studs, spin } as Pick<Part, 'studs' | 'spin'>;
+    }
+  }
+  return {} as Pick<Part, 'studs' | 'spin'>;
 }
 
 /** What a build is made of, for the menu to know what to drive (rotors, pistons, thrusters, turbos). */
@@ -72,11 +83,16 @@ export function generateRandomBuild(): RandomBuild {
     grid.engineDrive = true;
   }
 
+  // Headlights on the nose (the front of a lamp points the way the car drives, towards -z), at ground level where the hood does not cover them.
+  if (chance(RANDOM_BUILD.lampChance)) {
+    for (const x of width > 1 ? [0, width - 1] : [0]) add({ type: 'lamp', cell: [x, 0, -1], face: [0, 0, -1], color: palette.detail, ...facing('lamp', [0, 0, -1]) });
+  }
+
   const across = [...Array(width).keys()];
   /** A row of `type` across the car at row `z`, `y` above the ground. */
-  const row = (type: Part['type'], z: number, y: number, color: string, extra: Partial<Part> = {}) => across.forEach((x) => add({ type, cell: [x, y, z], color, ...extra } as Part));
-  /** The roof: a plate on every block of the cabin row `z` (its top is at `top`). */
-  const roof = (z: number, top: number, color: string) => across.forEach((x) => add({ type: 'plate', cell: [x, top + PLATE.thickness / 2, z], color }));
+  const row = (type: Part['type'], z: number, y: number, color: string | undefined, extra: Partial<Part> = {}) => across.forEach((x) => add({ type, cell: [x, y, z], ...(color ? { color } : {}), ...extra } as Part));
+  /** The roof: a plate (or a pane of glass, or a smooth tile) on every block of the cabin row `z` (its top is at `top`); glass keeps its own tint. */
+  const roof = (z: number, top: number, color: string, type: 'plate' | 'glass' | 'tile' = 'plate') => across.forEach((x) => add({ type, cell: [x, top + PLATE.thickness / 2, z], ...(type === 'glass' ? {} : { color }) }));
 
   if (archetype === 'coupe') coupe(grid, { palette, width, length, onDeck, row, roof });
   else if (archetype === 'pickup') pickup(grid, { palette, width, length, onDeck, deckTop, row, roof });
@@ -91,8 +107,8 @@ interface Kit {
   length: number;
   onDeck: number;
 }
-type RowBuilder = (type: Part['type'], z: number, y: number, color: string, extra?: Partial<Part>) => void;
-type RoofBuilder = (z: number, top: number, color: string) => void;
+type RowBuilder = (type: Part['type'], z: number, y: number, color: string | undefined, extra?: Partial<Part>) => void;
+type RoofBuilder = (z: number, top: number, color: string, type?: 'plate' | 'glass' | 'tile') => void;
 
 /** A coupe: a sloping hood, a cabin with a roof (maybe a spoiler or a light bar on it) and a sloping tail. */
 function coupe(grid: Grid, { palette, width, length, onDeck, row, roof }: Kit & { row: RowBuilder; roof: RoofBuilder }): void {
@@ -105,22 +121,35 @@ function coupe(grid: Grid, { palette, width, length, onDeck, row, roof }: Kit & 
   if (to <= from) return; // no room for a cabin
   for (let z = from; z < to; z++) row('block', z, onDeck, palette.accent);
   const roofTop = onDeck + CELL_SIZE / 2;
-  for (let z = from; z < to; z++) roof(z, roofTop, palette.body);
-  // The tail slopes down behind the cabin, when there is room.
-  if (to <= length - 1 && chance(RANDOM_BUILD.tailChance)) row('slope', to, onDeck, palette.body);
+  const decoration = chance(RANDOM_BUILD.sirenChance) ? 'siren' : pick(['spoiler', 'bar', 'block', 'none'] as const);
+  // A smooth tile roof only when nothing is built on it (a tile has no studs); otherwise a plate, or a pane of glass.
+  const roofType = decoration === 'none' && chance(RANDOM_BUILD.tileRoofChance) ? 'tile' : chance(RANDOM_BUILD.glassRoofChance) ? 'glass' : 'plate';
+  for (let z = from; z < to; z++) roof(z, roofTop, palette.body, roofType);
+  // The tail slopes down behind the cabin, when there is room: painted, or a glass rear window.
+  if (to <= length - 1 && chance(RANDOM_BUILD.tailChance)) {
+    const glass = chance(RANDOM_BUILD.glassTailChance);
+    row(glass ? 'windscreen' : 'slope', to, onDeck, glass ? undefined : palette.body);
+  }
   const roofLevel = roofTop + PLATE.thickness;
-  const decoration = pick(['spoiler', 'bar', 'block', 'none'] as const);
-  if (decoration === 'spoiler') row('slope', to - 1, roofLevel + CELL_SIZE / 2, palette.detail);
+  if (decoration === 'siren') {
+    // A block on the roof with a siren on its top, its dome pointing up.
+    const x = Math.floor(width / 2);
+    add({ type: 'block', cell: [x, roofLevel + CELL_SIZE / 2, from], color: palette.detail });
+    add({ type: 'siren', cell: [x, roofLevel + CELL_SIZE * 1.5, from], face: [0, 1, 0], color: palette.accent, ...facing('siren', [0, 1, 0]) });
+  } else if (decoration === 'spoiler') row('slope', to - 1, roofLevel + CELL_SIZE / 2, palette.detail);
   else if (decoration === 'bar') add({ type: 'plateHalf', cell: [(width - 1) / 2, roofLevel + PLATE.thickness / 2, from + 0.25], color: palette.detail, spin: 1 });
   else if (decoration === 'block') add({ type: 'block', cell: [Math.floor(width / 2), roofLevel + CELL_SIZE / 2, from], color: palette.detail });
 }
+
+/** The cargo of a pickup: a block, a low block or, now and then, a barrel (a round brick). */
+const pickCargo = (): 'block' | 'blockLow' | 'roundBrick' => (chance(RANDOM_BUILD.barrelChance) ? 'roundBrick' : pick(['block', 'blockLow'] as const));
 
 /** A pickup: a cabin at the front and an open bed behind it, with low walls or a platform that a piston lifts with its cargo. */
 function pickup(grid: Grid, { palette, width, length, onDeck, deckTop, row, roof }: Kit & { deckTop: number; row: RowBuilder; roof: RoofBuilder }): void {
   const add = (part: Part) => grid.add(part);
   if (chance(RANDOM_BUILD.hoodChance)) row('slope', 0, onDeck, palette.body, { spin: 2 });
   row('block', 1, onDeck, palette.accent);
-  roof(1, onDeck + CELL_SIZE / 2, palette.body);
+  roof(1, onDeck + CELL_SIZE / 2, palette.body, chance(RANDOM_BUILD.glassRoofChance) ? 'glass' : 'plate');
   const bed = [...Array(length - 2).keys()].map((i) => i + 2);
   const lift = chance(RANDOM_BUILD.liftChance);
   const wallHeight = CELL_SIZE * 0.3 + deckTop; // the centre of a low block on the deck (0.6 tall)
@@ -133,7 +162,7 @@ function pickup(grid: Grid, { palette, width, length, onDeck, deckTop, row, roof
     add({ type: 'piston', cell: [x, pistonY, z], face: [0, 1, 0], color: palette.detail });
     const head = onDeck + CELL_SIZE / 2 + PISTON_BODY.depth; // the top of the folded piston: its base and head
     add({ type: 'plateLargeHalf', cell: [x, head + PLATE.thickness / 2, z + 0.5], color: palette.accent });
-    const cargo = pick(['block', 'blockLow'] as const);
+    const cargo = pickCargo();
     add({ type: cargo, cell: [x, head + PLATE.thickness + (cargo === 'blockLow' ? 0.3 : 0.5), z + 0.5], color: palette.body });
     row('blockLow', length - 1, wallHeight, palette.accent);
   } else {
@@ -144,8 +173,8 @@ function pickup(grid: Grid, { palette, width, length, onDeck, deckTop, row, roof
     }
     row('blockLow', length - 1, wallHeight, palette.accent);
     if (width === 3 && chance(0.7)) {
-      const cargo = pick(['block', 'blockLow'] as const);
-      add({ type: cargo, cell: [1, cargo === 'block' ? onDeck : deckTop + 0.3, bed[0]], color: palette.detail });
+      const cargo = pickCargo();
+      add({ type: cargo, cell: [1, cargo === 'blockLow' ? deckTop + 0.3 : onDeck, bed[0]], color: palette.detail });
     }
   }
 }
