@@ -202,8 +202,9 @@ export class PhysicsWorld {
   private skiGround = new Map<RAPIER.RigidBody, THREE.Vector3>();
   private groundColliders: RAPIER.Collider[] = [];
 
-  constructor(grid: Grid) {
-    this.buildScenery();
+  /** `scenery` adds the fixed ramps and obstacles of `SCENERY_PARTS` to the floor (the main menu has them for its cars; Play is just the floor). */
+  constructor(grid: Grid, scenery = false) {
+    this.buildScenery(scenery);
     this.buildCreation(grid);
     this.effects = new PlayEffects(this.world, this.wheelFx, this.engineFx, this.turboFx, this.thrusterFx);
     this.group.add(this.effects.group);
@@ -726,7 +727,7 @@ export class PhysicsWorld {
     return false;
   }
 
-  private buildScenery(): void {
+  private buildScenery(scenery: boolean): void {
     this.world.createCollider(
       RAPIER.ColliderDesc.cuboid(GROUND_COLLIDER.halfExtent, GROUND_COLLIDER.halfThickness, GROUND_COLLIDER.halfExtent)
         .setTranslation(0, GROUND_COLLIDER.centerY, 0)
@@ -750,6 +751,7 @@ export class PhysicsWorld {
       );
     }
     // The ramps and obstacles: parts of the catalog, fixed in place (one fixed body, a collider per box of each part).
+    if (!scenery) return;
     const fixed = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     for (const part of SCENERY_PARTS) {
       this.addStructuralColliders(fixed, part, part.cell, (desc) => desc.setCollisionGroups(groups(GROUND, 0xffff)).setFriction(1));

@@ -7,7 +7,7 @@
 - Wheels, engines, turbos, thrusters, rotors, pistons and hinges are mounted on blocks (not on plates or brackets); the hinge swings its head like a lid on a pin along one edge (no free joints that bend in both directions) and only the wings are aerodynamic (no fuselage or tail model, no wind).
 - No export/import of saves and no rename of existing saves; the undo history is per session (not saved).
 - Blocks have no joints that can break; a structure never falls apart.
-- Scenery in Play mode is fixed (ramps, a kicker, walls, pillars and whoops built from catalog parts: `SCENERY_PARTS`). Every part of a creation is a body that can be pushed: there is no part fixed to the ground.
+- Play mode is just the floor (and the invisible map edges); the ramps, a kicker, walls, pillars and whoops built from catalog parts (`SCENERY_PARTS`) are only in the main menu, for its cars. Every part of a creation is a body that can be pushed: there is no part fixed to the ground.
 - **Nothing moves without keys the player assigns** (a rule of the game): engines, wheels, rotors, pistons, thrusters and turbos have actions with player-chosen keys, and there are no fixed driving keys.
 - **In-air attitude control is the wings' control surfaces**: the old fixed pitch / roll / yaw keys (W / S, A / D, Q / E, removed when the keys became assignable; the code is in git at commit `70596ad`) were replaced by the optional *Pitch*, *Roll* and *Yaw* actions of every wing, which the player gives keys to; each wing moves its surface the way that turns the plane as asked from where it is. There is no autopilot, trim or stability assist: a badly balanced plane tips or stalls.
 

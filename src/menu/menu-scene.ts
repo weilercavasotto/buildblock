@@ -132,7 +132,7 @@ export class MenuScene {
     this.pistonTimer = MENU_SCENE.pistonInterval;
     this.bursting = false;
     this.burstTimer = MENU_SCENE.burstPauseMin;
-    this.physics = new PhysicsWorld(grid);
+    this.physics = new PhysicsWorld(grid, true);
     this.vehicle = new VehicleController(this.physics.wheels, grid.all(), { keyboard: false });
     this.physics.isOn = this.vehicle.isOn;
     this.physics.engineInput = this.vehicle.engineInput;

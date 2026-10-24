@@ -2,7 +2,7 @@ import { COLORS } from './colors';
 import { Part } from '../types';
 
 /**
- * The ramps and obstacles of the floor, in Play and in the main menu, built from the parts of the catalog (fixed in place: see
+ * The ramps and obstacles of the floor, in the main menu only (Play has none), built from the parts of the catalog (fixed in place: see
  * `PhysicsWorld.buildScenery`). Cells are world positions (a part's `cell` is its centre, the ground top is y = -0.5). They are far from
  * the origin, where the player builds and the menu car starts.
  */
