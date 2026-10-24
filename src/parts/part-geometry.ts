@@ -14,6 +14,8 @@ export interface StudBox extends Box {
   wedge?: true;
   /** A cylinder inscribed in the box (see `ShapeBox.round`). */
   round?: true;
+  /** Smooth (see `ShapeBox.smooth`): no studs on top, only sockets underneath. */
+  smooth?: true;
 }
 
 /** Tolerance for comparing heights and edges made of halves and fifths. */
@@ -44,6 +46,7 @@ export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): Stud
         studs: applyMatrix(m, box.studs).map((n) => (n === 0 ? 0 : n)) as Vec3,
         ...(box.wedge ? { wedge: true as const } : {}),
         ...(box.round ? { round: true as const } : {}),
+        ...(box.smooth ? { smooth: true as const } : {}),
       };
     });
     relativeCache.set(key, boxes);
@@ -72,7 +75,7 @@ export function wedgePoints(part: Pick<Part, 'type' | 'studs' | 'spin'>): Array<
 
 /** The boxes (with the direction of their studs) a structural part occupies in the world. */
 export function partBoxes(part: Shape): StudBox[] {
-  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs, ...(box.wedge ? { wedge: true as const } : {}), ...(box.round ? { round: true as const } : {}) }));
+  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs, ...(box.wedge ? { wedge: true as const } : {}), ...(box.round ? { round: true as const } : {}), ...(box.smooth ? { smooth: true as const } : {}) }));
 }
 
 /**
@@ -174,11 +177,11 @@ export function studsEngaged(a: Shape, b: Shape): number {
       const axis = boxA.studs.findIndex((v) => v !== 0);
       const [u, w] = [0, 1, 2].filter((i) => i !== axis);
       // The studs of one box fit the underside of the other: its stud face touches the other's socket face (`studs` is the same for both).
-      // A wedge has no studs, so it can only be the one that is held (its underside on the studs of the other).
+      // A wedge or a tile has no studs, so it can only be the one that is held (its underside on the studs of the other).
       const stud = (box: StudBox) => (box.studs[axis] > 0 ? box.max[axis] : box.min[axis]);
       const socket = (box: StudBox) => (box.studs[axis] > 0 ? box.min[axis] : box.max[axis]);
-      const aOnB = !boxA.wedge && Math.abs(stud(boxA) - socket(boxB)) <= EPS;
-      const bOnA = !boxB.wedge && Math.abs(stud(boxB) - socket(boxA)) <= EPS;
+      const aOnB = !boxA.wedge && !boxA.smooth && Math.abs(stud(boxA) - socket(boxB)) <= EPS;
+      const bOnA = !boxB.wedge && !boxB.smooth && Math.abs(stud(boxB) - socket(boxA)) <= EPS;
       if (!aOnB && !bOnA) continue;
       const overlapU = Math.min(boxA.max[u], boxB.max[u]) - Math.max(boxA.min[u], boxB.min[u]);
       const overlapW = Math.min(boxA.max[w], boxB.max[w]) - Math.max(boxA.min[w], boxB.min[w]);

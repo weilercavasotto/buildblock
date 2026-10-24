@@ -553,7 +553,7 @@ export function createPartObject(
       Object.assign(edges, noRaycast);
       if (!flatShape) edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
       group.add(edges);
-      if (!box.wedge) group.add(studsMesh(mats.face, box.size, box.studs, box.round)); // a slope has no studs on it, only sockets underneath
+      if (!box.wedge && !box.smooth) group.add(studsMesh(mats.face, box.size, box.studs, box.round)); // a slope or a tile has no studs on it, only sockets underneath
       if (!box.polygon) group.add(socketsMesh(box.size, box.studs, box.round)); // the sockets of a swept wing would stick out of its outline: not drawn
       root.add(group);
     }

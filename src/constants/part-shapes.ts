@@ -29,6 +29,8 @@ export interface ShapeBox {
    * what it occupies). Only the studs whose centre lies inside the circle exist (`studInside`), and its collider is a real cylinder.
    */
   round?: true;
+  /** Smooth: a plain box with no studs on top (a tile), only sockets underneath, so it can be held but nothing is built on it. */
+  smooth?: true;
 }
 
 export interface Shape {
@@ -60,6 +62,8 @@ const swept = (span: number, depth: number, root: 1 | -1): ReadonlyArray<ShapeBo
     },
   ];
 };
+/** A tile: a flat plate with a smooth top (no studs), sockets underneath. */
+const tile = (width: number, depth: number): ShapeBox => ({ ...flat(width, depth), smooth: true });
 /** A round part: a cylinder `diameter` across and `height` tall, its studs up, inside a square box of the same footprint. */
 const round = (diameter: number, height: number): ShapeBox => ({ ...solid(diameter, height, diameter), round: true });
 const wedge = (width: number, height: number, depth: number): ShapeBox => ({ ...solid(width, height, depth), wedge: true });
@@ -138,6 +142,16 @@ export const SHAPES: Record<StructuralType, Shape> = {
   windscreen: { boxes: [wedge(1, 1, 1)], spins: 4 },
   /** The long windscreen: 1 x 2 footprint, 1 tall (a raked screen, about 27 degrees). */
   windscreenLong: { boxes: [wedge(1, 1, 2)], spins: 4 },
+  /** A tile: a plate with a smooth top, no studs (it is held by the studs below it). 1 x 1 studs (0.5 x 0.5). */
+  tileQuarter: { boxes: [tile(0.5, 0.5)], spins: 1 },
+  /** The tile half as wide: 1 x 2 studs (0.5 x 1). */
+  tileHalf: { boxes: [tile(0.5, 1)], spins: 2 },
+  /** The tile: 2 x 2 studs (1 x 1). */
+  tile: { boxes: [tile(1, 1)], spins: 1 },
+  /** A long tile: 2 x 4 studs (1 x 2). */
+  tileLong: { boxes: [tile(1, 2)], spins: 2 },
+  /** The big tile: 4 x 4 studs (2 x 2). */
+  tileLarge: { boxes: [tile(2, 2)], spins: 1 },
   /** A round brick: a cylinder 1 cell across and a block tall (4 studs: the lattice points inside the circle). */
   roundBrick: { boxes: [round(1, 1)], spins: 1 },
   /** A round plate: the same disc, a plate thick (4 studs). */
