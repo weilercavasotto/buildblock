@@ -45,7 +45,7 @@ const toggle = (label: string): KeyAction[] => [{ id: 'run', label, mode: 'toggl
 /**
  * The actions of each kind of part that takes keys. An engine accelerates / reverses the wheels of its body (its own throttle, so
  * engines on different keys work apart); a wheel steers (differential drive: a wheel with no steering key keeps going straight) and
- * brakes, both optional; a rotor and a piston switch on and off with each press; a thruster fires and a turbo boosts while held; a propeller switches on and off; a parachute opens and closes; a lamp switches on and off; a stage bolt fires once; a wing moves its control surface while one of its pitch / roll / yaw keys is held, all optional.
+ * brakes, both optional; a rotor and a piston switch on and off with each press; a thruster fires and a turbo boosts while held; a propeller switches on and off; a parachute opens and closes; a lamp or a siren switches on and off; a stage bolt fires once; a wing moves its control surface while one of its pitch / roll / yaw keys is held, all optional.
  */
 export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
   engine: [
@@ -62,6 +62,7 @@ export const PART_ACTIONS: Partial<Record<PartType, KeyAction[]>> = {
   propeller: toggle('Propellers on / off'),
   parachute: toggle('Parachutes open / closed'),
   lamp: toggle('Lamps on / off'),
+  siren: toggle('Sirens on / off'),
   wing: surfaces(),
   wingLarge: surfaces(),
   rotor: toggle('Rotors on / off'),

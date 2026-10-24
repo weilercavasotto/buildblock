@@ -135,6 +135,10 @@ export const COLORS = {
     /** The ballast block: dark steel with an amber warning band. */
     ballast: '#4a4f57',
     ballastBand: '#f2b134',
+    /** The siren: a dark base with a red and a blue half dome (the colours they glow). */
+    sirenBase: '#2c323a',
+    sirenRed: '#e5484d',
+    sirenBlue: '#3b82f6',
     /** The wings: a pale grey plate unless painted. */
     wing: '#d9dee5',
     /** Glass panes and windscreens: a pale blue tint unless painted (always translucent, `ALPHA.glass`). */

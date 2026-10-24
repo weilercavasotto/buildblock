@@ -46,6 +46,7 @@ export class VehicleSound {
   private propFilter!: BiquadFilterNode;
   private propGain!: GainNode;
   private propLfo!: OscillatorNode;
+  private sirenGain!: GainNode;
   private lastImpact = -1;
   private pistons = 0;
   private chutesOpen = false;
@@ -152,6 +153,17 @@ export class VehicleSound {
     this.propLfo.connect(propDepth).connect(propChop.gain);
     this.propOsc.connect(this.propFilter).connect(propChop).connect(this.propGain).connect(out);
 
+    // The sirens: a triangle wave whose pitch wails up and down.
+    const wail = osc('triangle');
+    wail.frequency.value = V.siren.base;
+    const wailLfo = osc('sine');
+    wailLfo.frequency.value = V.siren.rate;
+    const wailDepth = gain();
+    wailDepth.gain.value = V.siren.depth;
+    wailLfo.connect(wailDepth).connect(wail.frequency);
+    this.sirenGain = gain();
+    wail.connect(this.sirenGain).connect(out);
+
     for (const s of this.sources) s.start();
   }
 
@@ -212,6 +224,10 @@ export class VehicleSound {
     to(this.propLfo.frequency, V.propeller.bladeHz * blades);
     to(this.propFilter.frequency, 300 + 700 * blades);
     to(this.propGain.gain, blades > 0.02 ? V.propeller.gain * (0.3 + 0.7 * blades) * Math.min(1.5, Math.sqrt(state.propellers.length)) : 0);
+
+    // Sirens: the level follows how lit they are, a little louder for each one more.
+    const sirenLevel = Math.max(0, ...state.sirens);
+    to(this.sirenGain.gain, sirenLevel > 0.02 ? V.siren.gain * sirenLevel * Math.min(1.8, Math.sqrt(state.sirens.length)) : 0);
 
     // One-shots: a bump, and a piston starting and stopping.
     if (state.impact > V.impact.minChange && t - this.lastImpact > V.impact.minGap) {

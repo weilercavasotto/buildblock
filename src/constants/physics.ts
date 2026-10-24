@@ -277,6 +277,20 @@ export const LAMP = {
 } as const;
 
 /**
+ * The siren (a police beacon, mounted on a face of a block): its key (a toggle) switches it on or off, fading over `fadeTime` s. While it
+ * is on its red and blue half domes flash in turn (`flashRate` rad/s, so a flash of each colour every `2 pi / flashRate` s), glowing by
+ * `glow` as emissive intensity with a halo (`haloOpacity`), and a wailing siren sounds (`VEHICLE_SOUND.siren`). A look and a sound only:
+ * it changes no physics beyond its mass (`mass` blocks of the default weight).
+ */
+export const SIREN = {
+  fadeTime: 0.1,
+  flashRate: 9,
+  glow: 2.6,
+  haloOpacity: 0.35,
+  mass: 0.2,
+} as const;
+
+/**
  * The ski (`isSki`, `SKI_BODY`): a hull collider on the body of its block, level with a normal wheel's tread, whose `friction` is tiny
  * and wins over the ground's (friction combine rule Min), so a body on skis slides and keeps its speed. A ski weighs `mass` blocks of
  * the default weight. It must lie flat (studs up) with its length along the block's face (`Grid.canPlace`).

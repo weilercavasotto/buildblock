@@ -342,6 +342,21 @@ export const LAMP_VISUAL = {
   segments: 24,
 } as const;
 
+/** The siren body: a beacon against a face of a block (`width` across the face, `depth` out of it), in cells; its dome faces along its front (+z). */
+export const SIREN_BODY = {
+  width: 0.7,
+  depth: 0.5,
+} as const;
+
+/** The siren model (`parts/siren-model.ts`), in its own frame, lengths in cells: the base disc, the two-coloured dome on it and the halo that glows round the dome while it flashes. */
+export const SIREN_VISUAL = {
+  baseRadius: 0.32,
+  baseHeight: 0.14,
+  domeRadius: 0.24,
+  haloScale: 1.9,
+  segments: 24,
+} as const;
+
 /** The warning band around a ballast block (`createPartObject`): its height and where its centre is (cells, from the block's centre). */
 export const BALLAST_VISUAL = {
   bandHeight: 0.14,
@@ -349,7 +364,7 @@ export const BALLAST_VISUAL = {
 } as const;
 
 /** The compact bodies of the parts mounted on a block face besides the wheels: where they sit (`partCentre`) and how big they are (`partBox`). */
-export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, lamp: LAMP_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
+export const MOUNTED_BODY = { engine: ENGINE_BODY, turbo: TURBO_BODY, thruster: THRUSTER_BODY, propeller: PROPELLER_BODY, parachute: PARACHUTE_BODY, lamp: LAMP_BODY, siren: SIREN_BODY, rotor: ROTOR_BODY, piston: PISTON_BODY, hinge: HINGE_BODY, spring: SPRING_BODY, bolt: BOLT_BODY } as const;
 
 /**
  * The turbo model (`parts/turbo-model.ts`): a nitrous bottle lying along z with its nozzle at the back (-z), in its own frame,

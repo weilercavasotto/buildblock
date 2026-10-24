@@ -52,7 +52,7 @@ Left out for now: 2 (real steering: an axle that steers the front wheels) and 7 
 | # | Part | Effort | Notes |
 |---|---|---|---|
 | 2 | ~~**Glass and windscreen**~~ | done | The **2x2 / 4x4 Glass** panes and the **2x2 / 2x4 Windscreen** glass slopes: plate and slope shapes drawn translucent, paint tints them. See the *Glass and windscreens* section of getting-started.md. |
-| 3 | ~~**Headlights and lamps**~~ | done | The **Headlight**: a lamp mounted on a block face, switched on / off by a key chosen in the inspector; the lens glows and a faint beam shows (a look only, no real light yet). See the *Headlights* section of getting-started.md. |
+| 3 | ~~**Headlights and lamps**~~ | done | In the **Lighting** category (with the **Siren**, a flashing red / blue beacon with a wail): the **Headlight**: a lamp mounted on a block face, switched on / off by a key chosen in the inspector; the lens glows and a faint beam shows (a look only, no real light yet). See the *Headlights* section of getting-started.md. |
 | 4 | ~~**Round parts**~~ | done (cones and domes left out) | The **2x2 Round Brick**, **2x2 Round Plate** and **4x4 Round Brick**: cylinders in a square box whose studs are the lattice points inside the circle (counted one by one in `studsEngaged`), with a true cylinder collider. See the *Round parts* section of getting-started.md. |
 | 5 | ~~**Tiles**~~ | done | Five **tiles** (1x1, 1x2, 2x2, 2x4, 4x4): plates with a smooth top, no studs, sockets underneath; held by the studs below, nothing built on top. See the *Tiles* section of getting-started.md. |
 | 6 | **Corner and inverted slopes** | medium | Complete the wedge family. |

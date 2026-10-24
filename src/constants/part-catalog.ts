@@ -1,15 +1,16 @@
 import { BLOCK_HEIGHT } from './part-shapes';
-import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, SKI_BODY, PISTON_BODY, PARACHUTE_BODY, LAMP_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
-import { BALLAST, BOLT, CHASSIS, ENGINE, HINGE, LAMP, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
+import { BOLT_BODY, ENGINE_BODY, HINGE_BODY, SKI_BODY, PISTON_BODY, PARACHUTE_BODY, LAMP_BODY, SIREN_BODY, PLATE, PROPELLER_BODY, ROTOR_BODY, SPRING_BODY, THRUSTER_BODY, TURBO_BODY } from './game';
+import { BALLAST, BOLT, CHASSIS, ENGINE, HINGE, LAMP, SIREN, PARACHUTE, SKI, PISTON, PROPELLER, ROTOR, SPRING, THRUSTER, TURBO, WHEEL, WHEEL_SIZES } from './physics';
 import { PartType, StructuralType } from '../types';
 
 /** Data behind the hotbar and the parts catalog. To add a part: extend `PartType`, then add its entry here. */
 
-export type PartCategory = 'structure' | 'mobility';
+export type PartCategory = 'structure' | 'mobility' | 'lighting';
 
 export const PART_CATEGORIES: ReadonlyArray<{ id: PartCategory; title: string }> = [
   { id: 'structure', title: 'Structure' },
   { id: 'mobility', title: 'Mobility' },
+  { id: 'lighting', title: 'Lighting' },
 ];
 
 export interface PartInfo {
@@ -574,7 +575,7 @@ export const PART_INFO: Record<PartType, PartInfo> = {
   lamp: {
     type: 'lamp',
     name: 'Headlight',
-    category: 'structure',
+    category: 'lighting',
     rotatable: true,
     paintable: true,
     hasSuspension: false,
@@ -599,6 +600,36 @@ export const PART_INFO: Record<PartType, PartInfo> = {
       'Mount a pair on the nose of a car with their fronts pointing forward.',
       'Give every lamp the same key (or use Copy these keys in the inspector) to switch them all at once.',
       'Put one on the roof or under the nose of a plane too: it is a look, so any face works.',
+    ],
+  },
+  siren: {
+    type: 'siren',
+    name: 'Siren',
+    category: 'lighting',
+    rotatable: true,
+    paintable: true,
+    hasSuspension: false,
+    hasTire: false,
+    hasWeight: false,
+    hasPower: false,
+    hasSpeed: false,
+    hasStroke: false,
+    hasAngle: false,
+    tagline: 'A flashing beacon with a wailing siren.',
+    description:
+      'A police-style beacon that you mount on a face of a block, like the headlight: a round base with a dome of two halves, red and blue. Give it a key in the inspector: each press switches it on or off. While it is on the two halves flash in turn, glowing with a halo, and a siren wails. It is a look and a sound only: it lights nothing else and does not change the physics.',
+    properties: [
+      { label: 'Size', value: `${SIREN_BODY.width} × ${SIREN_BODY.width} × ${SIREN_BODY.depth} cells, against the block, the dome in front` },
+      { label: 'Placement', value: 'On any face of a block (top, bottom or sides); it does not take the place of a block. Its front may not point into the block' },
+      { label: 'Front', value: 'The side the dome faces. A / D turn it, W / S tilt it, in every direction' },
+      { label: 'Control', value: 'A key chosen in the inspector switches it on and off (sirens with the same key work together)' },
+      { label: 'Mass', value: `${SIREN.mass} block of the default weight` },
+      { label: 'Paint', value: 'Yes, in paint mode (E): the base takes the colour; the dome stays red and blue' },
+    ],
+    tips: [
+      'Mount it on the roof of a car with its front pointing up.',
+      'Give it the same key as a headlight to flash everything at once, or its own key.',
+      'Mute with M if the wail gets old: it is part of the vehicle sound.',
     ],
   },
   piston: {
@@ -1015,7 +1046,6 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'glassLarge',
   'windscreen',
   'windscreenLong',
-  'lamp',
   'engine',
   'thruster',
   'propeller',
@@ -1033,4 +1063,6 @@ export const PART_ORDER: ReadonlyArray<PartType> = [
   'wheel',
   'mediumWheel',
   'bigWheel',
+  'lamp',
+  'siren',
 ];

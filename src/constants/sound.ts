@@ -122,6 +122,8 @@ export const VEHICLE_SOUND = {
   /** A propeller: a saw whose pitch follows how fast the blades turn (0-1), chopped as they pass; `bladeHz` is the blade-pass rate at full speed. */
   propeller: { base: 60, pitchRange: 140, gain: 0.12, chop: 0.6, bladeHz: 22 },
   rotor: { base: 40, perRadian: 4.5, gain: 0.13, chop: 0.55, bladeCount: 2, topSpeed: 25 },
+  /** The siren: a triangle wave whose pitch wails up and down (`base` Hz plus or minus `depth`, `rate` Hz); `gain` is for one siren and grows with the square root of their number. */
+  siren: { base: 850, depth: 320, rate: 0.65, gain: 0.07 },
   /** An impact is heard when the vehicle's velocity changes by more than `minChange` (m/s) in a step, loudest at `maxChange`. */
   impact: { minChange: 1.4, maxChange: 9, minGap: 0.12 },
 } as const;
