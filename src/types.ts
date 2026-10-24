@@ -32,6 +32,9 @@ export const STRUCTURAL_TYPES = [
   'slopePlateLong',
   'wing',
   'wingLarge',
+  'roundBrick',
+  'roundPlate',
+  'roundBrickLarge',
   'glass',
   'glassLarge',
   'windscreen',
@@ -48,8 +51,8 @@ export const isStructural = (type: PartType): type is StructuralType => (STRUCTU
 export const HOST_TYPES = ['block', 'blockQuarter', 'blockLowQuarter', 'blockTallQuarter', 'blockHalf', 'blockLong', 'blockLow', 'blockTall', 'blockBeam', 'blockBeamLow', 'blockLarge'] as const;
 export const isHostType = (type: PartType): boolean => (HOST_TYPES as readonly string[]).includes(type);
 
-/** Structural parts made of flat boxes (plates, L brackets, every block): not the wedges (slopes) and the swept wings, whose faces are slanted or outlines. */
-export const isFlatStructural = (type: PartType): boolean => isStructural(type) && !isWing(type) && !type.startsWith('slope') && !type.startsWith('windscreen');
+/** Structural parts made of flat boxes (plates, L brackets, every block): not the wedges (slopes), the round parts and the swept wings, whose faces are slanted, curved or outlines. */
+export const isFlatStructural = (type: PartType): boolean => isStructural(type) && !isWing(type) && !type.startsWith('slope') && !type.startsWith('windscreen') && !type.startsWith('round');
 
 /** Can `part` be mounted on a `host`? Any mounted part goes on a block (`HOST_TYPES`); a spring on any flat structural part (plates, brackets), on the faces of its boxes. */
 export const canHost = (host: PartType, part: PartType): boolean => isHostType(host) || (part === 'spring' && isFlatStructural(host));

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ALPHA, BRAKE_VISUAL, SKI_BODY, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
+import { ALPHA, BRAKE_VISUAL, SKI_BODY, PAINT_EDGE_FACTOR, BOLT_BODY, BOLT_VISUAL, HEADED_PARTS, HINGE_BODY, HINGE_VISUAL, PISTON_BODY, PISTON_VISUAL, ROTOR_BODY, ROTOR_VISUAL, SHAPES, SPRING_BODY, studInside, SPRING_VISUAL, STUD, BLOCK_VISUAL_SIZE, BLOCK_EDGE_SCALE, COLORS, GHOST_BLOCK_SCALE, HIGHLIGHT, METALNESS, ROUGHNESS, WHEEL, brakeOf, hexToNumber, wheelSizeOf } from '../constants';
 import { Part, PartType, Vec3, applyMatrix, axleOf, frontOf, isCompactMounted, isHexColor, isGlass, isSki, isStructural, isWheelType, isWing, orientationOfPart, partCentre } from '../types';
 import { Orientation, matrixOf } from './orientation';
 import { createBrakeDisc } from './brake-model';
@@ -18,6 +18,9 @@ const color = (hex: string): number => hexToNumber(hex);
 
 const blockGeo = new THREE.BoxGeometry(BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE, BLOCK_VISUAL_SIZE);
 const edgeGeo = new THREE.EdgesGeometry(blockGeo);
+/** The round part: a cylinder that fits the unit cube like `blockGeo` (scaled to the box of the shape), its axis along y (the studs). */
+const roundGeo = new THREE.CylinderGeometry(BLOCK_VISUAL_SIZE / 2, BLOCK_VISUAL_SIZE / 2, BLOCK_VISUAL_SIZE, 40);
+const roundEdgeGeo = new THREE.EdgesGeometry(roundGeo, 20);
 /**
  * The wedge: a triangular prism that fits the unit cube like `blockGeo` (scaled to the box of the shape), its slope rising towards -z:
  * the front foot (+z, bottom), the back foot (-z, bottom) and the back top. Flat shaded.
@@ -86,13 +89,14 @@ function polygonGeometry(polygon: ReadonlyArray<readonly [number, number]>, thic
 // The connectors: round studs on a face, `STUD.pitch` apart, merged into one mesh per box (one draw call). They are built for
 // the top of a box (a grid of `across` x `along` studs around its centre, pointing up) and cached by that size.
 const studsCache = new Map<string, THREE.BufferGeometry>();
-function studsGeometry(across: number, along: number): THREE.BufferGeometry {
-  const key = `${across}x${along}`;
+function studsGeometry(across: number, along: number, round = false): THREE.BufferGeometry {
+  const key = `${across}x${along}${round ? 'r' : ''}`;
   let geometry = studsCache.get(key);
   if (!geometry) {
     const pieces: THREE.BufferGeometry[] = [];
     for (let i = 0; i < across; i++) {
       for (let j = 0; j < along; j++) {
+        if (round && !studInside((i - (across - 1) / 2) * STUD.pitch, (j - (along - 1) / 2) * STUD.pitch, across * STUD.pitch)) continue;
         pieces.push(
           new THREE.CylinderGeometry(STUD.radius, STUD.radius, STUD.height, STUD.segments)
             .translate((i - (across - 1) / 2) * STUD.pitch, STUD.height / 2, (j - (along - 1) / 2) * STUD.pitch)
@@ -107,13 +111,14 @@ function studsGeometry(across: number, along: number): THREE.BufferGeometry {
 }
 // The sockets: one dark disc per stud position, facing up (`socketsMesh` turns them to the underside), cached by grid size.
 const socketsCache = new Map<string, THREE.BufferGeometry>();
-function socketsGeometry(across: number, along: number): THREE.BufferGeometry {
-  const key = `${across}x${along}`;
+function socketsGeometry(across: number, along: number, round = false): THREE.BufferGeometry {
+  const key = `${across}x${along}${round ? 'r' : ''}`;
   let geometry = socketsCache.get(key);
   if (!geometry) {
     const pieces: THREE.BufferGeometry[] = [];
     for (let i = 0; i < across; i++) {
       for (let j = 0; j < along; j++) {
+        if (round && !studInside((i - (across - 1) / 2) * STUD.pitch, (j - (along - 1) / 2) * STUD.pitch, across * STUD.pitch)) continue;
         pieces.push(
           new THREE.CircleGeometry(STUD.socketRadius, STUD.segments)
             .rotateX(-Math.PI / 2)
@@ -241,9 +246,9 @@ function studLayout(size: Vec3, studs: Vec3) {
 }
 
 /** The studs on the `studs` face of a box of the given size: one mesh, no picking. `studs` is a local axis vector. */
-function studsMesh(material: THREE.Material, size: Vec3, studs: Vec3): THREE.Mesh {
+function studsMesh(material: THREE.Material, size: Vec3, studs: Vec3, round = false): THREE.Mesh {
   const { facing, across, along, reach } = studLayout(size, studs);
-  const mesh = new THREE.Mesh(studsGeometry(across, along), material);
+  const mesh = new THREE.Mesh(studsGeometry(across, along, round), material);
   mesh.quaternion.copy(facing);
   mesh.position.set(...studs).multiplyScalar(reach);
   mesh.castShadow = true;
@@ -252,10 +257,10 @@ function studsMesh(material: THREE.Material, size: Vec3, studs: Vec3): THREE.Mes
 }
 
 /** The dark sockets on the underside of a box (the face opposite its studs), where the studs of another part go in. */
-function socketsMesh(size: Vec3, studs: Vec3): THREE.Mesh {
+function socketsMesh(size: Vec3, studs: Vec3, round = false): THREE.Mesh {
   const under = studs.map((v) => (v === 0 ? 0 : -v)) as Vec3;
   const { facing, across, along, reach } = studLayout(size, under);
-  const mesh = new THREE.Mesh(socketsGeometry(across, along), socketMat);
+  const mesh = new THREE.Mesh(socketsGeometry(across, along, round), socketMat);
   mesh.quaternion.copy(facing);
   mesh.position.set(...under).multiplyScalar(reach + STUD.socketLift);
   mesh.raycast = () => {};
@@ -540,16 +545,16 @@ export function createPartObject(
       const group = new THREE.Group();
       group.position.set(...box.offset);
       const flatShape = box.polygon ? polygonGeometry(box.polygon, box.size[1]) : null;
-      const mesh = new THREE.Mesh(flatShape ? flatShape.geometry : box.wedge ? wedgeGeo : blockGeo, mats.face);
+      const mesh = new THREE.Mesh(flatShape ? flatShape.geometry : box.round ? roundGeo : box.wedge ? wedgeGeo : blockGeo, mats.face);
       mesh.castShadow = mesh.receiveShadow = true;
       if (!flatShape) mesh.scale.set(...box.size);
       group.add(mesh);
-      const edges = new THREE.LineSegments(flatShape ? flatShape.edges : box.wedge ? wedgeEdgeGeo : edgeGeo, mats.edge);
+      const edges = new THREE.LineSegments(flatShape ? flatShape.edges : box.round ? roundEdgeGeo : box.wedge ? wedgeEdgeGeo : edgeGeo, mats.edge);
       Object.assign(edges, noRaycast);
       if (!flatShape) edges.scale.set(...box.size).multiplyScalar(BLOCK_EDGE_SCALE);
       group.add(edges);
-      if (!box.wedge) group.add(studsMesh(mats.face, box.size, box.studs)); // a slope has no studs on it, only sockets underneath
-      if (!box.polygon) group.add(socketsMesh(box.size, box.studs)); // the sockets of a swept wing would stick out of its outline: not drawn
+      if (!box.wedge) group.add(studsMesh(mats.face, box.size, box.studs, box.round)); // a slope has no studs on it, only sockets underneath
+      if (!box.polygon) group.add(socketsMesh(box.size, box.studs, box.round)); // the sockets of a swept wing would stick out of its outline: not drawn
       root.add(group);
     }
   } else if (part.type === 'rotor' || part.type === 'piston' || part.type === 'hinge' || part.type === 'spring' || part.type === 'bolt') {

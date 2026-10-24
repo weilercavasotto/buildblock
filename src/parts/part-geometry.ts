@@ -1,4 +1,4 @@
-import { CELL_SIZE, HEADED_PARTS, MOUNTED_BODY, SHAPES, STUD, WHEEL, wheelSizeOf } from '../constants';
+import { CELL_SIZE, HEADED_PARTS, MOUNTED_BODY, SHAPES, STUD, WHEEL, studInside, wheelSizeOf } from '../constants';
 import { Part, Vec3, addVec, axleOf, roundCoord, applyMatrix, isCompactMounted, isHeaded, isHostType, isStructural, isWing, matrixOf, orientationOfPart, partCells, partCentre, studsOf, spinOf } from '../types';
 
 /** Axis-aligned box, in world units. */
@@ -12,6 +12,8 @@ export interface StudBox extends Box {
   studs: Vec3;
   /** A wedge (see `ShapeBox.wedge`): the box is its bounding box, and it has no studs on top. */
   wedge?: true;
+  /** A cylinder inscribed in the box (see `ShapeBox.round`). */
+  round?: true;
 }
 
 /** Tolerance for comparing heights and edges made of halves and fifths. */
@@ -41,6 +43,7 @@ export function relativeBoxes(part: Pick<Part, 'type' | 'studs' | 'spin'>): Stud
         max: centre.map((v, i) => v + half[i]) as Vec3,
         studs: applyMatrix(m, box.studs).map((n) => (n === 0 ? 0 : n)) as Vec3,
         ...(box.wedge ? { wedge: true as const } : {}),
+        ...(box.round ? { round: true as const } : {}),
       };
     });
     relativeCache.set(key, boxes);
@@ -69,7 +72,7 @@ export function wedgePoints(part: Pick<Part, 'type' | 'studs' | 'spin'>): Array<
 
 /** The boxes (with the direction of their studs) a structural part occupies in the world. */
 export function partBoxes(part: Shape): StudBox[] {
-  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs, ...(box.wedge ? { wedge: true as const } : {}) }));
+  return relativeBoxes(part).map((box) => ({ min: addVec(part.cell, box.min), max: addVec(part.cell, box.max), studs: box.studs, ...(box.wedge ? { wedge: true as const } : {}), ...(box.round ? { round: true as const } : {}) }));
 }
 
 /**
@@ -180,7 +183,28 @@ export function studsEngaged(a: Shape, b: Shape): number {
       const overlapU = Math.min(boxA.max[u], boxB.max[u]) - Math.max(boxA.min[u], boxB.min[u]);
       const overlapW = Math.min(boxA.max[w], boxB.max[w]) - Math.max(boxA.min[w], boxB.min[w]);
       if (overlapU <= EPS || overlapW <= EPS) continue;
-      count += Math.round((overlapU * overlapW) / (STUD.pitch * STUD.pitch));
+      count += studsBetween(boxA, boxB, u, w, overlapU, overlapW);
+    }
+  }
+  return count;
+}
+
+/**
+ * The studs in the overlap of two stud faces (`overlapU` x `overlapW` along the axes `u`, `w`): one per `STUD.pitch` square, except that a
+ * round box only has the studs whose centre is inside its circle, so those are counted one by one.
+ */
+function studsBetween(a: StudBox, b: StudBox, u: number, w: number, overlapU: number, overlapW: number): number {
+  const squares = Math.round((overlapU * overlapW) / (STUD.pitch * STUD.pitch));
+  if (!a.round && !b.round) return squares;
+  const startU = Math.max(a.min[u], b.min[u]);
+  const startW = Math.max(a.min[w], b.min[w]);
+  const [nu, nw] = [Math.round(overlapU / STUD.pitch), Math.round(overlapW / STUD.pitch)];
+  let count = 0;
+  for (let i = 0; i < nu; i++) {
+    for (let j = 0; j < nw; j++) {
+      const [pu, pw] = [startU + (i + 0.5) * STUD.pitch, startW + (j + 0.5) * STUD.pitch];
+      const inside = (box: StudBox) => !box.round || studInside(pu - (box.min[u] + box.max[u]) / 2, pw - (box.min[w] + box.max[w]) / 2, box.max[u] - box.min[u]);
+      if (inside(a) && inside(b)) count++;
     }
   }
   return count;

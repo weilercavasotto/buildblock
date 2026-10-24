@@ -53,7 +53,7 @@ Left out for now: 2 (real steering: an axle that steers the front wheels) and 7 
 |---|---|---|---|
 | 2 | ~~**Glass and windscreen**~~ | done | The **2x2 / 4x4 Glass** panes and the **2x2 / 2x4 Windscreen** glass slopes: plate and slope shapes drawn translucent, paint tints them. See the *Glass and windscreens* section of getting-started.md. |
 | 3 | ~~**Headlights and lamps**~~ | done | The **Headlight**: a lamp mounted on a block face, switched on / off by a key chosen in the inspector; the lens glows and a faint beam shows (a look only, no real light yet). See the *Headlights* section of getting-started.md. |
-| 4 | **Round parts** | medium | Round bricks and plates (1x1 and 2x2), cones and domes; they need shapes that are not boxes in the stud engagement. |
+| 4 | ~~**Round parts**~~ | done (cones and domes left out) | The **2x2 Round Brick**, **2x2 Round Plate** and **4x4 Round Brick**: cylinders in a square box whose studs are the lattice points inside the circle (counted one by one in `studsEngaged`), with a true cylinder collider. See the *Round parts* section of getting-started.md. |
 | 5 | **Tiles** | low | Smooth plates without studs. |
 | 6 | **Corner and inverted slopes** | medium | Complete the wedge family. |
 | 7 | **Arches and plates with a hole** | medium | For bridges, and for a real "axle". |
@@ -68,7 +68,7 @@ Left out for now: 1 (an anchor block fixed to the ground).
 2. ~~Wheels of other sizes~~ and ~~skids~~ (done; the parachute is done).
 3. ~~The detachable stage~~ (done).
 4. Seat and driver.
-5. Round parts, corner slopes, arches and plates with a hole (shapes that are not boxes).
+5. ~~Round parts~~ (done, without cones and domes), corner slopes, arches and plates with a hole (shapes that are not boxes).
 6. ~~Propeller and wings with lift~~ (done).
 
 Every new part follows [adding-a-part.md](adding-a-part.md) (and the rules of `AGENTS.md`: tokens in `constants/`, `help-content.ts`, `PART_ACTIONS` when it takes keys, a sound recipe if it should make one).

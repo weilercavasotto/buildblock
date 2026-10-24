@@ -750,6 +750,16 @@ export class PhysicsWorld {
       const half = box.max.map((v, k) => (v - box.min[k]) / 2);
       const corners = wedges[i];
       const hull = corners ? RAPIER.ColliderDesc.convexHull(new Float32Array(corners.flatMap((c) => [local[0] + c[0], local[1] + c[1], local[2] + c[2]]))) : null;
+      if (box.round) {
+        // A cylinder along the studs axis (Rapier's is along y): turned a quarter about z or x when that axis is x or z.
+        const axis = box.studs.findIndex((v) => v !== 0);
+        const quarter = Math.SQRT1_2;
+        const cylinder = RAPIER.ColliderDesc.cylinder(half[axis], half[(axis + 1) % 3])
+          .setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2)
+          .setRotation(axis === 0 ? { x: 0, y: 0, z: quarter, w: quarter } : axis === 2 ? { x: quarter, y: 0, z: 0, w: quarter } : { x: 0, y: 0, z: 0, w: 1 });
+        this.world.createCollider(configure(cylinder), body);
+        return;
+      }
       const shape =
         hull ??
         RAPIER.ColliderDesc.cuboid(half[0], half[1], half[2]).setTranslation(local[0] + (box.min[0] + box.max[0]) / 2, local[1] + (box.min[1] + box.max[1]) / 2, local[2] + (box.min[2] + box.max[2]) / 2);

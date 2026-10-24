@@ -24,6 +24,11 @@ export interface ShapeBox {
    * Like a wedge it has no studs on top (`wedge` is set with it): only sockets underneath, and its bounding box is what it occupies.
    */
   polygon?: ReadonlyArray<readonly [number, number]>;
+  /**
+   * A cylinder inscribed in the box instead of the box: its axis is the studs direction and its diameter is the box's width (the box is
+   * what it occupies). Only the studs whose centre lies inside the circle exist (`studInside`), and its collider is a real cylinder.
+   */
+  round?: true;
 }
 
 export interface Shape {
@@ -55,6 +60,8 @@ const swept = (span: number, depth: number, root: 1 | -1): ReadonlyArray<ShapeBo
     },
   ];
 };
+/** A round part: a cylinder `diameter` across and `height` tall, its studs up, inside a square box of the same footprint. */
+const round = (diameter: number, height: number): ShapeBox => ({ ...solid(diameter, height, diameter), round: true });
 const wedge = (width: number, height: number, depth: number): ShapeBox => ({ ...solid(width, height, depth), wedge: true });
 
 /**
@@ -131,6 +138,12 @@ export const SHAPES: Record<StructuralType, Shape> = {
   windscreen: { boxes: [wedge(1, 1, 1)], spins: 4 },
   /** The long windscreen: 1 x 2 footprint, 1 tall (a raked screen, about 27 degrees). */
   windscreenLong: { boxes: [wedge(1, 1, 2)], spins: 4 },
+  /** A round brick: a cylinder 1 cell across and a block tall (4 studs: the lattice points inside the circle). */
+  roundBrick: { boxes: [round(1, 1)], spins: 1 },
+  /** A round plate: the same disc, a plate thick (4 studs). */
+  roundPlate: { boxes: [round(1, PLATE.thickness)], spins: 1 },
+  /** The big round brick: 2 cells across, a block tall (12 studs: the 16 lattice points of its square minus the 4 corners). */
+  roundBrickLarge: { boxes: [round(2, 1)], spins: 1 },
   /** Two plates at a right angle (8 studs). */
   bracket: { boxes: bracket(1), spins: 4 },
   /** The same L, half as wide (4 studs). */
@@ -143,8 +156,14 @@ export const SHAPES: Record<StructuralType, Shape> = {
 
 /** Volume of a structural part relative to a block (what makes a plate light at the same weight setting). */
 export const partVolume = (part: { type: StructuralType }): number =>
-  SHAPES[part.type].boxes.reduce((sum, box) => sum + (box.polygon ? polygonArea(box.polygon) * box.size[1] : (box.size[0] * box.size[1] * box.size[2]) / (box.wedge ? 2 : 1)), 0);
+  SHAPES[part.type].boxes.reduce((sum, box) => sum + (box.polygon ? polygonArea(box.polygon) * box.size[1] : box.round ? (Math.PI / 4) * box.size[0] * box.size[1] * box.size[2] : (box.size[0] * box.size[1] * box.size[2]) / (box.wedge ? 2 : 1)), 0);
 
 /** The area (square cells) of a convex outline (`ShapeBox.polygon`). */
 export const polygonArea = (polygon: ReadonlyArray<readonly [number, number]>): number =>
   Math.abs(polygon.reduce((sum, [x, z], i) => sum + x * polygon[(i + 1) % polygon.length][1] - polygon[(i + 1) % polygon.length][0] * z, 0)) / 2;
+
+/**
+ * Is the stud at (`x`, `z`) from the centre of a round box (the offsets within its footprint, in cells) inside its circle? The studs of a
+ * round part are the lattice points that are (a stud's centre has to be clear of the rim).
+ */
+export const studInside = (x: number, z: number, diameter: number): boolean => Math.hypot(x, z) < diameter / 2 - 1e-3;
