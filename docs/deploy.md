@@ -1,0 +1,51 @@
+# Publishing on the web (Cloudflare Pages)
+
+BuildBlock is two static sites on Cloudflare Pages, on the `buildblock.dev` domain (its DNS is in Cloudflare):
+
+| Address | What | Folder | Pages project |
+|---|---|---|---|
+| `https://buildblock.dev` | The website: one page with the logo, the look of the game, an "in development" notice and a **Play now** button | `site/` | `buildblock-site` |
+| `https://play.buildblock.dev` | The game itself | `dist/` (the Vite build) | `buildblock-play` |
+
+Nothing here needs a server: the game is a static build (the physics engine is compiled in as WebAssembly inside the JavaScript) and the page is plain HTML and CSS.
+
+## The website (`site/`)
+
+`site/index.html` + `site/styles.css` use the colours, the font (Orbitron, the same file the game ships), the raised yellow button and the sky-and-floor scene of the main menu, with the stacked logo. The button points to `https://play.buildblock.dev`. The colours are the ones of `src/constants/colors.ts`, copied by hand into the CSS variables of `styles.css` (keep them in sync if the theme changes).
+
+- Preview it: `npm run site:dev`, then open <http://localhost:5196>.
+- The logo, the favicons and the font in `site/` are copies of the ones in `public/` and `node_modules/`: run `npm run site:sync` after changing the logo (`packaging/make-logo.py`) or the icons.
+- `site/_headers` and `public/_headers` are Cloudflare Pages header files (caching of the files that never change, `nosniff`, referrer policy).
+- Not there yet: a share image (`og:image`), analytics and a sitemap.
+
+## One-time setup
+
+You need a Cloudflare account that owns `buildblock.dev`. The commands use [Wrangler](https://developers.cloudflare.com/workers/wrangler/) through `npx`, so nothing is installed in the project.
+
+1. Log in: `npx wrangler login` (opens the browser).
+2. Create the two projects (direct upload, `main` as the production branch):
+   ```bash
+   npx wrangler pages project create buildblock-site --production-branch main
+   npx wrangler pages project create buildblock-play --production-branch main
+   ```
+3. Publish both once (see below) so each project has a deployment.
+4. In the Cloudflare dashboard, **Workers & Pages**, open each project, then **Custom domains** and **Set up a custom domain**:
+   - `buildblock-site`: `buildblock.dev` (and, if you want it to work too, `www.buildblock.dev`);
+   - `buildblock-play`: `play.buildblock.dev`.
+
+   Because the domain's DNS is on Cloudflare, it creates the DNS records and the HTTPS certificates itself; it takes a few minutes. (`.dev` domains only work over HTTPS, which Cloudflare provides.)
+
+## Publishing a new version
+
+```bash
+npm run deploy:site    # the website (site/)
+npm run deploy:play    # type-checks and builds the game, then publishes dist/
+```
+
+Each command prints the URL of the deployment (`https://<id>.buildblock-play.pages.dev`), a good place to check it before the domain shows it. Every publish to the `main` branch becomes the live site; older deployments stay in the dashboard and can be restored from there.
+
+## Good to know
+
+- The game keeps its saves in the browser's `localStorage`, which belongs to one address: the saves made on `play.buildblock.dev` are separate from the ones on `localhost:5173`, and from any other domain. There is no way yet to move them (see the roadmap: the move to a backend with a database).
+- The game's `index.html` already uses relative URLs (`base: './'` in `vite.config.ts`), so it works from any address or folder.
+- To publish from a Git repository instead of by hand, connect the repository in the Cloudflare dashboard: build command `npm run build` and output folder `dist` for the game, and no build command with `site` as the output folder for the website.

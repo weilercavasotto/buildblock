@@ -10,6 +10,7 @@ grid, mount wheels on them, then press **Play** to drive your creation under sim
 | [constants.md](constants.md) | Design tokens and constants (colours, spacing, typography, physics, text) and how they reach CSS |
 | [physics.md](physics.md) | How Play mode turns the grid into rigid bodies and motors, plus tuning constants |
 | [packaging.md](packaging.md) | Building a desktop app (macOS `.dmg`) with Pake |
+| [deploy.md](deploy.md) | Publishing on the web: the website (`buildblock.dev`) and the game (`play.buildblock.dev`) on Cloudflare Pages |
 | [adding-a-part.md](adding-a-part.md) | Step-by-step guide to adding a new kind of part |
 | [testing.md](testing.md) | How to test a new feature in the browser (always with the game muted) |
 | [roadmap.md](roadmap.md) | Known limitations and ideas for next steps |
