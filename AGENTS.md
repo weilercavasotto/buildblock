@@ -5,6 +5,15 @@ creation under physics. Stack: TypeScript, Vite, Three.js, Rapier (`@dimforge/ra
 
 Full documentation lives in [`docs/`](docs/README.md). Update it when you change behaviour.
 
+## Git workflow
+
+Details in [docs/branches.md](docs/branches.md). The rules:
+
+- **Never commit on `main`.** All work (features, fixes, adjustments, docs) happens on `develop` or on a task branch started from `develop` (`feature/…`, `fix/…`, `docs/…`, `chore/…`). Check `git branch --show-current` before the first edit of a task; if it says `main`, switch to `develop` first.
+- A task branch is merged into `develop` when the task is done (`git merge --no-ff`, then delete the branch).
+- **Finishing a task always means a commit on `develop`** (directly, or by the merge of the task branch), once `npm run build` passes and the docs are updated. This is standing permission: do not ask before committing at the end of a task.
+- **Do not push unless asked**, and `main` only receives `develop` in a release the user asks for.
+
 ## Commands
 
 ```bash
