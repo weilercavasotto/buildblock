@@ -36,7 +36,8 @@ export const BUTTON = {
 
 /** Fixed component dimensions in px. */
 export const SIZE = {
-  logo: 110,
+  /** The width of the logo with the name in the main menu (its height follows). */
+  logo: 380,
   panelWidth: 460,
   listMaxHeight: 260,
   separatorHeight: 28,
@@ -72,7 +73,8 @@ export const SIZE = {
   tutorialBob: 10,
   tutorialMargin: 16,
   paintSwatch: 28,
-  loadingLogo: 96,
+  /** The width of the logo with the name on the loading screen. */
+  loadingLogo: 300,
   menuPlayIcon: 28,
   loadingBarWidth: 280,
   loadingBarHeight: 8,

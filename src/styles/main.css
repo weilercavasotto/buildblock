@@ -1073,16 +1073,11 @@ body[data-cursor-mode='remove'] > canvas {
   opacity: 0;
   pointer-events: none;
 }
+/* The logo with the name (public/logo-stacked.svg); its height follows its width. */
 #loading-logo {
   width: var(--size-loading-logo);
-  height: var(--size-loading-logo);
+  height: auto;
   filter: var(--shadow-logo);
-}
-#loading-title {
-  margin: 0;
-  font-size: var(--font-size-title);
-  letter-spacing: var(--letter-spacing-xl);
-  font-weight: var(--font-weight-extrabold);
 }
 #loading-bar {
   width: var(--size-loading-bar-width);
@@ -1148,18 +1143,16 @@ body[data-cursor-mode='remove'] > canvas {
   flex-direction: column;
   align-items: center;
 }
-#menu-logo {
-  width: var(--size-logo);
-  height: var(--size-logo);
-  margin-bottom: var(--space-sm);
-  filter: var(--shadow-logo);
-}
+/* The logo with the name (public/logo-stacked.svg) is the title of the menu: its height follows its width. */
 #menu h1 {
   margin: 0 0 var(--space-sm);
-  font-size: var(--font-size-display);
-  letter-spacing: var(--letter-spacing-xl);
-  font-weight: var(--font-weight-extrabold);
-  text-shadow: var(--shadow-title);
+  line-height: 0;
+}
+#menu-logo {
+  display: block;
+  width: var(--size-logo);
+  height: auto;
+  filter: var(--shadow-logo);
 }
 #menu .tagline {
   margin: 0 0 var(--space-xxl);
