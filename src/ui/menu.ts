@@ -1,4 +1,4 @@
-import { DEFAULT_GRID_CELLS, GRID_SIZES, SAVE, TEXT } from '../constants';
+import { DEFAULT_GRID_CELLS, GRID_SIZES, LINKS, SAVE, TEXT } from '../constants';
 import { SaveGame, deleteSave, gridCellsOf, listSaves } from '../save';
 import { savePreviewUrl } from './save-preview';
 import { confirmDialog } from './confirm-dialog';
@@ -25,6 +25,7 @@ export class Menu {
     document.getElementById('menu-version')!.textContent = TEXT.menu.version(__APP_VERSION__);
     this.nameInput.maxLength = SAVE.nameMaxLength;
     document.getElementById('menu-play')!.onclick = () => this.showSaves();
+    document.getElementById('menu-discord')!.onclick = () => window.open(LINKS.discord, '_blank', 'noopener,noreferrer');
     document.getElementById('menu-back')!.onclick = () => (this.overlay ? this.hide() : this.showMain());
     document.getElementById('menu-back')!.textContent = TEXT.menu.back;
     const open = document.getElementById('new-open')!;

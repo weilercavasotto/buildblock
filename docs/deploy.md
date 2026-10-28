@@ -11,7 +11,7 @@ Nothing here needs a server: the game is a static build (the physics engine is c
 
 ## The website (`site/`)
 
-`site/index.html` + `site/styles.css` use the colours, the font (Orbitron, the same file the game ships), the raised yellow button and the sky-and-floor scene of the main menu, with the stacked logo. The button points to `https://play.buildblock.dev`. The colours are the ones of `src/constants/colors.ts`, copied by hand into the CSS variables of `styles.css` (keep them in sync if the theme changes).
+`site/index.html` + `site/styles.css` use the colours, the font (Orbitron, the same file the game ships), the raised yellow button and the sky-and-floor scene of the main menu, with the stacked logo. The **Play now** button points to `https://play.buildblock.dev` and a second one, **Join our Discord**, to the invitation of the Discord server (the same link as `LINKS.discord` in the game: change both if it changes). The colours are the ones of `src/constants/colors.ts`, copied by hand into the CSS variables of `styles.css` (keep them in sync if the theme changes).
 
 - Preview it: `npm run site:dev`, then open <http://localhost:5196>.
 - The logo, the favicons and the font in `site/` are copies of the ones in `public/` and `node_modules/`: run `npm run site:sync` after changing the logo (`packaging/make-logo.py`) or the icons.
