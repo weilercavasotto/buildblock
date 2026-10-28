@@ -35,6 +35,20 @@ You need a Cloudflare account that owns `buildblock.dev`. The commands use [Wran
 
    Because the domain's DNS is on Cloudflare, it creates the DNS records and the HTTPS certificates itself; it takes a few minutes. (`.dev` domains only work over HTTPS, which Cloudflare provides.)
 
+## If `wrangler login` fails
+
+`OAuth error: request_forbidden ... No CSRF value available in the session cookie` is the login page refusing the browser session (cookies blocked or cleared, a private window, another browser or profile than the one logged in to Cloudflare, or a stale session). In order:
+
+1. Log in to <https://dash.cloudflare.com> in your normal browser first, then run `npx wrangler login` again. If the link it prints opens somewhere else (another browser, a private window, an embedded browser), copy it and open it in the browser where you are logged in. Cookies must be allowed for `dash.cloudflare.com`; clearing them and logging in again also helps.
+2. Use an **API token** instead of the login: in the dashboard go to **My Profile**, **API Tokens**, **Create Token**, and either use the *Edit Cloudflare Workers* template or a custom token with **Account / Cloudflare Pages / Edit**. Then, in the terminal:
+   ```bash
+   export CLOUDFLARE_API_TOKEN=<the token>
+   export CLOUDFLARE_ACCOUNT_ID=<the account id, on the right of Workers & Pages>
+   npx wrangler whoami    # should list your account
+   ```
+   and run the commands of this guide in the same terminal (the token stays in that session only: do not put it in a file of the project).
+3. Skip Wrangler: in the dashboard, **Workers & Pages**, **Create**, **Pages**, **Upload assets**, and drag the `site/` folder (for the website) or the `dist/` folder after `npm run build` (for the game) into it. Name the projects `buildblock-site` and `buildblock-play`, then add the custom domains as above. To publish a new version, open the project and use **Create deployment** with the folder again.
+
 ## Publishing a new version
 
 ```bash
