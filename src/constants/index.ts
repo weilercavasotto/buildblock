@@ -10,6 +10,7 @@ export * from './physics';
 export * from './scenery';
 export * from './spacing';
 export * from './text';
+export * from './tutorial';
 export * from './theme';
 export * from './typography';
 export * from './sound';

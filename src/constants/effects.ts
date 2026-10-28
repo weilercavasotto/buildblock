@@ -16,6 +16,8 @@ export const Z_INDEX = {
   /** The hotbar is raised above a modal's backdrop while the catalog is open, so parts can be dropped on it. */
   hotbarOverDialog: 101,
   dragGhost: 110,
+  /** The tutorial: over the dialogs and the dragged parts, under the loading screen. */
+  tutorial: 150,
   /** The loading screen covers everything. */
   loading: 200,
 } as const;
@@ -25,6 +27,10 @@ export const MOTION = {
   fast: 150,
   /** Fade-out of the loading screen. */
   loadingFade: 350,
+  /** The tutorial: how long the highlight takes to move to the next part of the screen, the arrow's blink-and-bob loop and the highlight's pulse. */
+  tutorialMove: 280,
+  tutorialArrow: 900,
+  tutorialPulse: 1400,
 } as const;
 
 /** Opacity of muted / disabled UI, re-exported here so CSS and code agree. */

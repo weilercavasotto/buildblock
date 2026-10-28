@@ -20,6 +20,8 @@ export const RADIUS = {
 export const BORDER = {
   hairline: 1,
   regular: 2,
+  /** The ring round the part the tutorial highlights. */
+  thick: 3,
 } as const;
 
 /** Raised buttons: how thick the lower edge is, how far a press sinks it and how far a hover lifts it (px). */
@@ -62,6 +64,13 @@ export const SIZE = {
   partInspectorPreview: 72,
   /** The picture of a creation in the saved-games list. */
   savePreview: 76,
+  /** The tutorial: the width of its card, the size of its arrow, the gap between the arrow and the highlighted part, the room the highlight takes round it, how far the arrow bobs and the margin kept to the screen edge. */
+  tutorialCardWidth: 320,
+  tutorialArrow: 48,
+  tutorialGap: 12,
+  tutorialPad: 8,
+  tutorialBob: 10,
+  tutorialMargin: 16,
   paintSwatch: 28,
   loadingLogo: 96,
   menuPlayIcon: 28,

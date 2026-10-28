@@ -49,6 +49,7 @@ import { PartInspector } from './ui/part-inspector';
 import { isHelpOpen, toggleHelpDialog } from './ui/help-dialog';
 import { ZoomControl } from './ui/zoom-control';
 import { Menu } from './ui/menu';
+import { offerOnboarding } from './ui/onboarding';
 import { LoadingScreen } from './ui/loading-screen';
 
 async function main(): Promise<void> {
@@ -252,7 +253,7 @@ async function main(): Promise<void> {
           },
         },
         { label: TEXT.loading.buildArea, run: enterBuild },
-      ]);
+      ]).then(offerOnboarding); // once, the first time a game is entered (a player with saves from before the tutorial sees it too)
     },
     onNew: (name, gridCells) => {
       sound.play('confirm');
@@ -269,7 +270,7 @@ async function main(): Promise<void> {
           },
         },
         { label: TEXT.loading.buildArea, run: enterBuild },
-      ]);
+      ]).then(offerOnboarding); // the welcome and the tutorial: once, the first time a game is entered
     },
   });
 

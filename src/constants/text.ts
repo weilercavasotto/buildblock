@@ -40,6 +40,23 @@ export const TEXT = {
     atCell: (cell: string) => `at ${cell}`,
     missing: (actions: string) => `needs: ${actions}`,
   },
+  onboarding: {
+    welcome: {
+      title: 'Welcome to BlockLab!',
+      message: 'Build vehicles out of blocks and wheels, then press Play to drive them with real physics. This is your first game: it is saved automatically as you build.',
+      hint: 'A short tutorial shows you around the screen. It takes about a minute.',
+      start: 'Start tutorial',
+      skip: 'Skip',
+    },
+    tutorial: {
+      label: 'Tutorial',
+      next: 'Next',
+      back: 'Back',
+      skip: 'Skip',
+      finish: 'Finish',
+      step: (n: number, total: number) => `${n} / ${total}`,
+    },
+  },
   hud: {
     controlsTitle: 'Controls',
     unboundControls: (n: number) => (n === 1 ? '1 part needs a key' : `${n} parts need a key`),
@@ -56,7 +73,7 @@ export const TEXT = {
     stopTooltip: 'Stop (P or Esc)',
     resetLabel: '↺ Reset',
     reset: 'Reset the simulation (R)',
-    help: { title: 'Help', close: 'Close', or: 'or' },
+    help: { title: 'Help', close: 'Close', or: 'or', tutorialHint: 'New here? A short tour of the screen.', tutorial: 'Start the tutorial' },
   },
   modes: {
     group: 'Cursor mode',

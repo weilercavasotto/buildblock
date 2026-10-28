@@ -1,5 +1,6 @@
 import { HELP_TABS, HelpRow, TEXT } from '../constants';
 import { closeModal, openModal } from './modal';
+import { startTutorial } from './tutorial';
 
 let open = false;
 let lastTab = 0;
@@ -14,7 +15,7 @@ export function toggleHelpDialog(): void {
 
 /**
  * Help with one tab per topic (content in `HELP_TABS`). `Esc` or `H` close it, Tab cycles inside it and
- * Left/Right/Home/End move between tabs (see `openModal` for the shared modal behaviour). The last tab is remembered.
+ * Left/Right/Home/End move between tabs; a button under the tabs starts the tutorial (`startTutorial`) again (see `openModal` for the shared modal behaviour). The last tab is remembered.
  * All text is set with `textContent`.
  */
 export function openHelpDialog(): void {
@@ -76,7 +77,19 @@ export function openHelpDialog(): void {
         return el;
       });
 
-      dialog.append(header, tabList, panel);
+      // Under every tab: the way to take the tutorial again (it closes the help and starts it).
+      const footer = div('help-footer');
+      const hint = document.createElement('span');
+      hint.className = 'help-footer-hint';
+      hint.textContent = TEXT.hud.help.tutorialHint;
+      const tutorial = button('dialog-button primary', TEXT.hud.help.tutorial);
+      tutorial.onclick = () => {
+        close();
+        startTutorial();
+      };
+      footer.append(hint, tutorial);
+
+      dialog.append(header, tabList, panel, footer);
       open = true;
       select(panel, lastTab);
       return tabs[lastTab];

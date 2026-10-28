@@ -701,6 +701,8 @@ export const STORAGE = {
   savesKey: 'blocklab.saves.v2',
   /** Hotbar layout and selected slot (per browser, not per save). */
   hotbarKey: 'blocklab.hotbar.v1',
+  /** Set once the welcome dialog of the first game has been shown (it is not shown again). */
+  onboardingKey: 'blocklab.onboarding.v1',
   /** Single-slot save used before the main menu existed; migrated once. */
   legacyKey: 'blocklab.v1',
 } as const;

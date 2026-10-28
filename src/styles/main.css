@@ -261,6 +261,17 @@ body.dragging * {
   border: var(--border-regular) solid transparent;
   border-radius: var(--radius-sm);
 }
+.help-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+.help-footer-hint {
+  font-size: var(--font-size-sm);
+  opacity: var(--opacity-muted);
+}
 .help-heading {
   margin: var(--space-lg) 0 var(--space-sm);
   font-size: var(--font-size-md);
@@ -919,6 +930,125 @@ body[data-cursor-mode='remove'] > canvas {
   .dialog-backdrop,
   .dialog {
     animation: none;
+  }
+}
+
+/* ---- Tutorial (src/ui/tutorial.ts): the screen dimmed, the highlighted part lit, a blinking arrow and a card ---- */
+#tutorial {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-tutorial);
+}
+/* The highlight: a box round the part whose shadow dims everything else, with a pulsing ring. */
+.tutorial-spot {
+  position: absolute;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 100vmax var(--overlay-backdrop);
+  outline: var(--border-thick) solid var(--color-accent-highlight);
+  transition:
+    left var(--motion-tutorial-move) ease,
+    top var(--motion-tutorial-move) ease,
+    width var(--motion-tutorial-move) ease,
+    height var(--motion-tutorial-move) ease;
+  animation: tutorial-pulse var(--motion-tutorial-pulse) ease-in-out infinite;
+  pointer-events: none;
+}
+#tutorial.centred {
+  background: var(--overlay-backdrop);
+}
+#tutorial.centred .tutorial-spot {
+  display: none;
+}
+#tutorial.centred .tutorial-arrow {
+  display: none;
+}
+.tutorial-arrow {
+  position: absolute;
+  width: var(--size-tutorial-arrow);
+  height: var(--size-tutorial-arrow);
+  color: var(--color-accent-highlight);
+  transition:
+    left var(--motion-tutorial-move) ease,
+    top var(--motion-tutorial-move) ease;
+  animation: tutorial-bob var(--motion-tutorial-arrow) ease-in-out infinite;
+  pointer-events: none;
+}
+.tutorial-arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: var(--shadow-logo);
+}
+.tutorial-card {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--color-surface-panel);
+  color: var(--color-text-primary);
+  border: var(--border-regular) solid var(--color-accent-highlight);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transition:
+    left var(--motion-tutorial-move) ease,
+    top var(--motion-tutorial-move) ease;
+}
+.tutorial-title {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-sm);
+}
+.tutorial-text {
+  margin: 0 0 var(--space-lg);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  opacity: var(--opacity-muted);
+}
+.tutorial-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.tutorial-counter {
+  flex: 1;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  opacity: var(--opacity-muted);
+}
+.tutorial-footer .dialog-button {
+  white-space: nowrap;
+}
+/* The arrow blinks and bobs towards the highlighted part (the direction is set per step as --bob-x / --bob-y). */
+@keyframes tutorial-bob {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translate(var(--bob-x, 0), var(--bob-y, 0));
+  }
+}
+@keyframes tutorial-pulse {
+  0%,
+  100% {
+    outline-offset: 0;
+  }
+  50% {
+    outline-offset: var(--space-xs);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-spot,
+  .tutorial-arrow,
+  .tutorial-card {
+    transition: none;
+  }
+  .tutorial-spot {
+    animation: none;
+  }
+  .tutorial-arrow {
+    animation-duration: calc(var(--motion-tutorial-arrow) * 3);
   }
 }
 

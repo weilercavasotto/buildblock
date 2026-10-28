@@ -87,6 +87,12 @@ is per wheel, it is undoable, saved with the game, and only takes effect in Play
 springs make the body sink more; firm ones keep it level. **The heavier the creation, the more the springs compress** (stack blocks on a car and it sits lower, until it scrapes the floor: use a firmer setting for heavy builds). It is only changed in the inspector, never in the
 catalog (which just lists the property).
 
+## Welcome and tutorial
+
+The first time you **enter a game** in this browser, whether you create a new one or load a save you already had, a **welcome dialog** opens over the build area with a short greeting, a **Start tutorial** button and a **Skip** button. It is shown once: the browser remembers it (`STORAGE.onboardingKey`) as soon as it opens, so later games do not show it again.
+
+The **tutorial** goes through the screen one feature at a time (`TUTORIAL_STEPS` in `constants/tutorial.ts`): placing parts, the hotbar, the parts catalog, the cursor modes, rotating and tilting, undo / redo, the camera and zoom, Play, the menu / saves / help buttons and the settings. Each step dims the screen, lights the feature with a pulsing yellow highlight, points at it with a **blinking, bobbing arrow** and shows a card with a title, a text, a step counter and the buttons **Skip**, **Back** and **Next** (**Finish** on the last one). You can **take it again at any time**: the help (the i button, or `H`) has a **Start the tutorial** button under its tabs. The arrow keys also go forward and back, `Esc` ends it, and the game under it does not react to clicks or keys. The arrow and the card go on the side of the feature with the most room; a step without a feature (the first and the last) is a card in the middle; a feature that is not on screen is skipped.
+
 ## Main menu and saved games
 
 The game opens on the main menu (with a credit line at the bottom centre, "Developed by Weiler Cavasotto", drawn in `index.html` as `#menu-credit`): a random build (not always a car: a sled on skis pushed by thrusters, a windmill, a lighthouse with a sweeping lamp, a rocketship that hops on four thrusters or a plane that taxis out with its propeller; with headlights on the nose that the menu switches on, glass roofs and rear windows, now and then a siren on the roof or a barrel as cargo: a coupe, a pickup that may lift its cargo on a piston, a buggy with a spinning propeller or a rocket car that fires its thrusters, always freshly painted) wanders in the background while the camera orbits it.
