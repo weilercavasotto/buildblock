@@ -96,7 +96,7 @@ The **tutorial** goes through the screen one feature at a time (`TUTORIAL_STEPS`
 ## Main menu and saved games
 
 The game opens on the main menu (with a credit line at the bottom centre, "Developed by Weiler Cavasotto", drawn in `index.html` as `#menu-credit`): a random build (not always a car: a sled on skis pushed by thrusters, a windmill, a lighthouse with a sweeping lamp, a rocketship that hops on four thrusters or a plane that taxis out with its propeller; with headlights on the nose that the menu switches on, glass roofs and rear windows, now and then a siren on the roof or a barrel as cargo: a coupe, a pickup that may lift its cargo on a piston, a buggy with a spinning propeller or a rocket car that fires its thrusters, always freshly painted) wanders in the background while the camera orbits it.
-Under the **Play** button the menu has a **Join our Discord** button that opens the invitation to the BuildBlock Discord server in a new tab (`LINKS.discord` in `constants/game.ts`; the website has the same button). Press **Play** to open the *Saved games* panel:
+In its bottom left corner the main menu has a **Join our Discord** button that opens the invitation to the BuildBlock Discord server in a new tab (`LINKS.discord` in `constants/game.ts`; the website has the same button). Press **Play** to open the *Saved games* panel:
 
 - **Load** opens a save; **Delete** asks for confirmation in a dialog (Enter/Cancel/Esc/click outside keep the save;
   only the red **Delete** button removes it).

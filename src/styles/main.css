@@ -1208,12 +1208,14 @@ body[data-cursor-mode='remove'] > canvas {
   width: var(--size-menu-play-icon);
   height: var(--size-menu-play-icon);
 }
-/* The link to the Discord server, under Play: a smaller grey key (the default look of the menu buttons). */
+/* The link to the Discord server, in the bottom left corner of the main menu: a small grey key (the default look of the menu buttons). */
 #menu #menu-discord {
+  position: fixed;
+  left: var(--space-md);
+  bottom: var(--space-md);
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-top: var(--space-lg);
   font-size: var(--font-size-md);
   letter-spacing: var(--letter-spacing-sm);
 }
