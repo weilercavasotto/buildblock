@@ -1,3 +1,4 @@
+import './storage-migration'; // first: it renames the keys of the old BlockLab storage before anything reads them
 import '@fontsource-variable/orbitron';
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
@@ -527,7 +528,7 @@ async function main(): Promise<void> {
   });
 
   if (import.meta.env.DEV) {
-    Object.assign(window, { __blocklab: { grid, camera, controls, getPhysics: () => physics, getVehicle: () => vehicle, getMode: () => mode, menuScene, build, history, zoom, hotbar } });
+    Object.assign(window, { __buildblock: { grid, camera, controls, getPhysics: () => physics, getVehicle: () => vehicle, getMode: () => mode, menuScene, build, history, zoom, hotbar } });
   }
 
   const timer = new THREE.Timer();

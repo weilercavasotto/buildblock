@@ -42,7 +42,7 @@ export const TEXT = {
   },
   onboarding: {
     welcome: {
-      title: 'Welcome to BlockLab!',
+      title: 'Welcome to BuildBlock!',
       message: 'Build vehicles out of blocks and wheels, then press Play to drive them with real physics. This is your first game: it is saved automatically as you build.',
       hint: 'A short tutorial shows you around the screen. It takes about a minute.',
       start: 'Start tutorial',

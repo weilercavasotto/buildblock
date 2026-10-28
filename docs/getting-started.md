@@ -381,12 +381,12 @@ The vehicle moves only with the keys you gave to its parts (see *Part keys* abov
 
 ## Persistence
 
-Every change is saved automatically to the **active save** in `localStorage` (key `blocklab.saves.v2`,
+Every change is saved automatically to the **active save** in `localStorage` (key `buildblock.saves.v2`; the keys of the BlockLab days, `blocklab.*`, are moved to the new names the first time the game starts, see `src/storage-migration.ts`,
 a list of `{ id, name, updatedAt, parts }`). Saves from the old single-slot format (`blocklab.v1`) are
 migrated once into a save called "My creation". There is no export/import yet.
 
 ## Dev-only debug hook
 
-In dev mode (`npm run dev`) `window.__blocklab` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build, history, zoom }`
+In dev mode (`npm run dev`) `window.__buildblock` exposes `{ grid, camera, controls, getPhysics, getMode, menuScene, build, history, zoom }`
 for inspection from the browser console. It is stripped from production builds
 (`import.meta.env.DEV`).

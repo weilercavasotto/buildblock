@@ -5,7 +5,7 @@
  */
 export const SOUND = {
   /** localStorage key of the saved settings (`{ muted }`). */
-  storageKey: 'blocklab.sound',
+  storageKey: 'buildblock.sound',
   /** Overall level, and the level of the interface / building effects and of the vehicle voices. */
   master: 0.5,
   sfx: 0.9,

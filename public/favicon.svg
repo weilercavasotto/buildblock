@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <title>BlockLab</title>
+  <title>BuildBlock</title>
   <rect width="128" height="128" rx="28" fill="#1a1f2b"/>
   <g transform="translate(11 6) scale(0.9)">
   <polygon points="64,66 110,40 110,90 64,116" fill="#a9322b"/>

@@ -1,4 +1,4 @@
-# BlockLab
+# BuildBlock
 
 Web-based 3D building game (LEGO-like): place blocks and wheels on a grid, press Play, drive the
 creation under physics. Stack: TypeScript, Vite, Three.js, Rapier (`@dimforge/rapier3d-compat`).
@@ -49,12 +49,13 @@ There is no test suite yet; verify changes in the browser (see "Verifying change
 - `src/ui/hud.ts`, `src/ui/menu.ts`, `index.html`: top bars / hotbar visibility and the main menu with its saved-games panel (markup)
 - `public/`: static branding assets (`logo-mark.svg`, `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`; regenerate the raster ones if the SVG changes)
 - `src/scene/sky.ts`: shader sky dome with blocky (voxel-style) clouds that drift with the wind (parameters in `SKY`, `src/constants/game.ts`)
-- `src/save.ts`: named save slots in localStorage, each with its floor-grid size `gridCells` (one of `GRID_SIZES`; chosen in the New game panel, `ui/menu.ts`) (key `blocklab.saves.v2`; migrates the old `blocklab.v1`)
+- `src/save.ts`: named save slots in localStorage, each with its floor-grid size `gridCells` (one of `GRID_SIZES`; chosen in the New game panel, `ui/menu.ts`) (key `buildblock.saves.v2`; migrates the old single-slot `blocklab.v1`, which keeps its first name)
 
 See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/physics.md).
 
 ## Conventions
 
+- The project was renamed from BlockLab to BuildBlock. Everything uses the new name (the `localStorage` keys `buildblock.*`, the dev global `window.__buildblock`, the Pake app id `com.weilercavasotto.buildblock`). `src/storage-migration.ts` (imported first by `main.ts`) moves a browser's old `blocklab.*` keys to the new ones once; the only old name left is `STORAGE.legacyKey` (`blocklab.v1`, the single-slot save of the first version, which `save.ts` still migrates). A new storage key goes in `constants/` with the `buildblock.` prefix.
 - **Never hard-code colours, sizes, spacing, fonts, tunable numbers or UI strings**: add/use a token in `src/constants/`
   (see [docs/constants.md](docs/constants.md)). CSS only uses `var(--...)`; Three.js colours go through `hexToNumber(COLORS...)`.
 - **All in-game text is English** (HUD, help, labels, `lang="en"`).
@@ -110,12 +111,12 @@ See [docs/architecture.md](docs/architecture.md) and [docs/physics.md](docs/phys
 
 ## Verifying changes
 
-Full checklist in [docs/testing.md](docs/testing.md). **Always test with the game muted** (`M`, check `#btn-sound.muted`; saved in `localStorage` `blocklab.sound`).
+Full checklist in [docs/testing.md](docs/testing.md). **Always test with the game muted** (`M`, check `#btn-sound.muted`; saved in `localStorage` `buildblock.sound`).
 
 1. `npm run build` must pass.
 2. Run `npm run dev`, open the app and exercise the feature: place blocks/wheels with real clicks, press
    Play, drive with W/S/A/D, `R` restarts, Stop returns to the intact build.
-3. Dev mode exposes `window.__blocklab` (`grid`, `camera`, `controls`, `getPhysics()`, `getMode()`, `menuScene`, `build`, `history`, `zoom`) for inspecting
+3. Dev mode exposes `window.__buildblock` (`grid`, `camera`, `controls`, `getPhysics()`, `getMode()`, `menuScene`, `build`, `history`, `zoom`) for inspecting
    state, e.g. a body's position, from the console.
 4. The in-app browser pane pauses `requestAnimationFrame` while hidden; if physics seems frozen, bring the
    tab to the front (a screenshot also wakes it) before concluding something is broken.

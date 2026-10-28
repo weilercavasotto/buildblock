@@ -1,6 +1,6 @@
-# BlockLab documentation
+# BuildBlock documentation
 
-BlockLab is a 3D, web-based building game in the spirit of LEGO: place blocks on a
+BuildBlock is a 3D, web-based building game in the spirit of LEGO: place blocks on a
 grid, mount wheels on them, then press **Play** to drive your creation under simulated physics.
 
 | Document | Contents |

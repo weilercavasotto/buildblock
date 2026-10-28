@@ -9,12 +9,12 @@ The game synthesises all its sound (Web Audio) and it keeps playing in the backg
 anything else** and keep it muted for the whole session.
 
 - Press `M` or click `#btn-sound`. `M` **toggles**, so check the result: `#btn-sound` has the class `muted` when the sound is off.
-- The choice is saved in `localStorage` under `blocklab.sound` (`{"muted":true}`), so it survives reloads of the same origin. A
+- The choice is saved in `localStorage` under `buildblock.sound` (`{"muted":true}`), so it survives reloads of the same origin. A
   new port is a new origin: mute again each time you start a dev server on another port.
 - To be sure from the console, before doing anything else:
 
   ```js
-  localStorage.setItem('blocklab.sound', JSON.stringify({ muted: true })); location.reload();
+  localStorage.setItem('buildblock.sound', JSON.stringify({ muted: true })); location.reload();
   ```
 
 - Close the tab when you are done.
@@ -34,7 +34,7 @@ The game starts in the main menu: **Play** opens the saved games, **New game** t
 
 ## 3. Inspect and drive the game from the console
 
-In dev mode `window.__blocklab` exposes `grid`, `camera`, `controls`, `getPhysics()`, `getVehicle()`, `getMode()`, `menuScene`,
+In dev mode `window.__buildblock` exposes `grid`, `camera`, `controls`, `getPhysics()`, `getVehicle()`, `getMode()`, `menuScene`,
 `build`, `history`, `zoom` and `hotbar`.
 
 - **Build a creation without clicking**: `grid.parts.clear()` then `grid.add({ type, cell, face, studs, spin, keys })`. `add`

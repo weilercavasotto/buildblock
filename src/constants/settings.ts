@@ -2,7 +2,7 @@
  * The settings of the game (the panel of the gear button, top right): their defaults, where they are saved and what the panel lists.
  * Every value is saved in localStorage; `settings.ts` holds them at run time. The mute switch is the sound engine's own (`sound.muted`).
  */
-export const SETTINGS_STORAGE_KEY = 'blocklab.settings';
+export const SETTINGS_STORAGE_KEY = 'buildblock.settings';
 
 export const SETTINGS_DEFAULTS = {
   /** The FPS counter (also F3): off until the player turns it on. */

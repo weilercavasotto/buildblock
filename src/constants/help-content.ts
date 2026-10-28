@@ -27,7 +27,7 @@ export const HELP_TABS: HelpTab[] = [
     title: 'Basics',
     sections: [
       {
-        heading: 'What is BlockLab?',
+        heading: 'What is BuildBlock?',
         rows: [
           {
             text: 'Build vehicles out of blocks and wheels on a grid, then press Play to drive them with real physics.',
