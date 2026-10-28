@@ -697,6 +697,12 @@ export const HISTORY = {
   maxSteps: 100,
 } as const;
 
+/** Links out of the game. */
+export const LINKS = {
+  /** The invitation to the Discord server of BuildBlock (also on the website, `site/index.html`). */
+  discord: 'https://discord.gg/aVSstexTe',
+} as const;
+
 export const STORAGE = {
   savesKey: 'buildblock.saves.v2',
   /** Hotbar layout and selected slot (per browser, not per save). */

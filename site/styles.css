@@ -24,6 +24,9 @@
   --highlight-hover: #ffe07a;
   --on-highlight: #141821;
   --lip: #b8890f;
+  --control: #2d3446;
+  --control-hover: #3a4359;
+  --control-lip: #10141c;
   --muted: 0.7;
   --horizon: 52%;
 }
@@ -198,9 +201,24 @@ body {
     box-shadow 150ms ease-out,
     background-color 150ms ease-out;
 }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
 .button svg {
   width: 20px;
   height: 20px;
+}
+/* The Discord button: the grey key of the game's menu (COLORS.surface.control, COLORS.button.lip). */
+.button.secondary {
+  background-color: var(--control);
+  color: var(--text);
+  --lip: var(--control-lip);
+}
+.button.secondary:hover {
+  background-color: var(--control-hover);
 }
 .button:hover {
   background-color: var(--highlight-hover);
