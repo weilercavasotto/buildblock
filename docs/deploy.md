@@ -4,7 +4,7 @@ BuildBlock is two static sites on Cloudflare Pages, on the `buildblock.dev` doma
 
 | Address | What | Folder | Pages project |
 |---|---|---|---|
-| `https://buildblock.dev` | The website: one page with the logo, the look of the game, an "in development" notice and a **Play now** button | `site/` | `buildblock-site` |
+| `https://buildblock.dev` | The website: one page with the logo, the look of the game, a "website in development" notice (the game itself is ready to play) and a **Play now** button | `site/` | `buildblock-site` |
 | `https://play.buildblock.dev` | The game itself | `dist/` (the Vite build) | `buildblock-play` |
 
 Nothing here needs a server: the game is a static build (the physics engine is compiled in as WebAssembly inside the JavaScript) and the page is plain HTML and CSS.
