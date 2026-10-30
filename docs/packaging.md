@@ -32,3 +32,7 @@ npm run package:html   # builds dist/ and writes release/BuildBlock-<version>-ht
 ## Cover image
 
 `packaging/cover.png` (630 x 500) is the cover image: the stacked logo centred on the menu's dark panel colour (`COLORS.surface.panel`). Its source is `packaging/cover.html` (colour copied by hand); `npm run cover:sync` renders it again with headless Google Chrome, so rerun it when the logo or the colours change.
+
+## itch.io page
+
+`packaging/itch-description.html` is the description of the game for its itch.io page (the editor accepts HTML): paste it in the description field. Update it when a feature, control or the Discord link changes. The HTML build zip (`npm run package:html`) is what is uploaded there, with "This file will be played in the browser" ticked; the cover image is `packaging/cover.png`.
