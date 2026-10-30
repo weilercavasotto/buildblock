@@ -36,3 +36,7 @@ npm run package:html   # builds dist/ and writes release/BuildBlock-<version>-ht
 ## itch.io page
 
 `packaging/itch-description.html` is the description of the game for its itch.io page (the editor accepts HTML): paste it in the description field. Update it when a feature, control or the Discord link changes. The HTML build zip (`npm run package:html`) is what is uploaded there, with "This file will be played in the browser" ticked; the cover image is `packaging/cover.png`.
+
+## Store screenshots
+
+`packaging/screenshots/` holds the screenshots for the store pages (itch.io), 2000 x 844 PNG (converted from the WebP originals, since itch.io takes PNG / JPG / GIF): the main menu, building, the inspector and the parts catalog. Keep the numbered names so the order on the page stays; replace a file when the UI changes enough to date it.
