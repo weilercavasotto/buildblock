@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "package:mac:dev": "mkdir -p release && cd release && npx -y pake-cli http://localhost:5173 --name \"BuildBlock Dev\" --icon ../packaging/icon.png --identifier com.weilercavasotto.buildblock.dev --width 1280 --height 800 --wasm --disabled-web-shortcuts --app-version $npm_package_version",
     "package:mac": "npm run build && mkdir -p release && cd release && npx -y pake-cli ../dist/index.html --use-local-file --name BuildBlock --icon ../packaging/icon.png --identifier com.weilercavasotto.buildblock --width 1280 --height 800 --wasm --disabled-web-shortcuts --app-version $npm_package_version",
+    "package:html": "npm run build && node packaging/package-html.mjs",
     "site:sync": "cp public/logo-stacked.svg public/favicon.svg public/favicon.ico public/apple-touch-icon.png site/ && cp node_modules/@fontsource-variable/orbitron/files/orbitron-latin-wght-normal.woff2 site/fonts/",
     "site:dev": "python3 -m http.server 5196 --directory site",
     "deploy:site": "npx -y wrangler@4 pages deploy site --project-name buildblock-site --branch main",

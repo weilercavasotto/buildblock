@@ -20,3 +20,11 @@ npm run package:mac:dev   # writes release/"BuildBlock Dev.dmg"
 ```
 
 It wraps `http://localhost:5173` instead of a build, so the native window shows whatever `npm run dev` serves, with hot reload: **start `npm run dev` first** (it shows nothing while the server is down). It has its own name and id (`com.weilercavasotto.buildblock.dev`), so it lives beside the distributable app, with its own saves. Install it once; it needs rebuilding only if the port or the icon changes.
+
+## HTML build (zip for a static host)
+
+```bash
+npm run package:html   # builds dist/ and writes release/BuildBlock-<version>-html.zip
+```
+
+`packaging/package-html.mjs` zips the contents of `dist/` (plus a `README.txt`) with the system `zip`, so `index.html` is at the root of the archive: unzip it on any static host (or serve it locally, e.g. `python3 -m http.server`). It must be served over HTTP: opened from disk (`file://`) browsers block the ES module script. Saves live in that site's own `localStorage`. The zip sits next to the installers in `release/` (git-ignored).
