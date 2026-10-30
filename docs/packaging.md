@@ -28,3 +28,7 @@ npm run package:html   # builds dist/ and writes release/BuildBlock-<version>-ht
 ```
 
 `packaging/package-html.mjs` zips the contents of `dist/` (plus a `README.txt`) with the system `zip`, so `index.html` is at the root of the archive: unzip it on any static host (or serve it locally, e.g. `python3 -m http.server`). It must be served over HTTP: opened from disk (`file://`) browsers block the ES module script. Saves live in that site's own `localStorage`. The zip sits next to the installers in `release/` (git-ignored).
+
+## Cover image
+
+`packaging/cover.png` (630 x 500) is the cover image: the stacked logo on a panel over the menu's sky and grid floor. Its source is `packaging/cover.html` (tokens copied by hand from `COLORS.scene` / `COLORS.surface`); `npm run cover:sync` renders it again with headless Google Chrome, so rerun it when the logo or the colours change.
