@@ -31,4 +31,4 @@ npm run package:html   # builds dist/ and writes release/BuildBlock-<version>-ht
 
 ## Cover image
 
-`packaging/cover.png` (630 x 500) is the cover image: the stacked logo on a panel over the menu's sky and grid floor. Its source is `packaging/cover.html` (tokens copied by hand from `COLORS.scene` / `COLORS.surface`); `npm run cover:sync` renders it again with headless Google Chrome, so rerun it when the logo or the colours change.
+`packaging/cover.png` (630 x 500) is the cover image: the stacked logo centred on the menu's dark panel colour (`COLORS.surface.panel`). Its source is `packaging/cover.html` (colour copied by hand); `npm run cover:sync` renders it again with headless Google Chrome, so rerun it when the logo or the colours change.

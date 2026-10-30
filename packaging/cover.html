@@ -1,16 +1,10 @@
 <!doctype html>
 <html lang="en"><meta charset="utf-8">
-<!-- Cover image 630x500: the game menu's look (sky, grid floor, dark panel) with the stacked logo. Render with `npm run cover:sync` (needs Google Chrome). -->
+<!-- Cover image 630x500: the stacked logo centred on the menu's dark panel colour. Render with `npm run cover:sync` (needs Google Chrome). -->
 <style>
   html, body { margin: 0; width: 630px; height: 500px; overflow: hidden; }
-  body { position: relative; background: linear-gradient(180deg, #4f8fd6, #9fc5e8 52%, #7fae6a 52%); }
-  .floor { position: absolute; left: -50%; right: -50%; top: 52%; height: 200%; background-color: #7fae6a; opacity: .9;
-    background-image: linear-gradient(#4f7f4f 2px, transparent 2px), linear-gradient(90deg, #4f7f4f 2px, transparent 2px);
-    background-size: 64px 64px; transform: perspective(520px) rotateX(62deg); transform-origin: 50% 0; }
-  .shade { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(10,14,24,.15) 40%, rgba(10,14,24,.55)); }
-  .panel { position: absolute; left: 50%; top: 50%; width: 520px; height: 330px; transform: translate(-50%, -50%);
-    background: rgba(20,24,33,.92); border-radius: 18px; box-shadow: 0 0 0 2px #4a5368, 0 14px 0 #10141c; display: flex; align-items: center; justify-content: center; }
-  .panel img { width: 440px; }
+  body { background: #141821; display: flex; align-items: center; justify-content: center; }
+  img { width: 520px; }
 </style>
-<div class="floor"></div><div class="shade"></div>
-<div class="panel"><img src="../public/logo-stacked.svg" alt="BuildBlock"></div>
+
+<img src="../public/logo-stacked.svg" alt="BuildBlock">
